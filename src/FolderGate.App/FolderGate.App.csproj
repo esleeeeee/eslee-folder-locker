@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FolderGate.Core\FolderGate.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\..\assets\icons\EsleeFolderLocker.ico</ApplicationIcon>
+    <Title>eslee폴더잠금기</Title>
+    <Product>eslee폴더잠금기</Product>
+    <Description>eslee폴더잠금기</Description>
+    <AssemblyTitle>eslee폴더잠금기</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\assets\icons\EsleeFolderLocker.ico">
+      <Link>assets\icons\EsleeFolderLocker.ico</Link>
+    </Resource>
+  </ItemGroup>
+
+</Project>

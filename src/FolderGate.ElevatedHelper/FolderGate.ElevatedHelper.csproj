@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FolderGate.Core\FolderGate.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>..\..\assets\icons\EsleeFolderLocker.ico</ApplicationIcon>
+    <Title>eslee폴더잠금기 권한 도우미</Title>
+    <Product>eslee폴더잠금기</Product>
+    <Description>eslee폴더잠금기 권한 도우미</Description>
+    <AssemblyTitle>eslee폴더잠금기 권한 도우미</AssemblyTitle>
+  </PropertyGroup>
+
+</Project>
