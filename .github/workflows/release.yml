@@ -56,25 +56,6 @@ jobs:
           $assetName = "EunsungFolderLock-${{ github.ref_name }}-win-x64.zip"
           Compress-Archive -Path .\artifacts\publish\* -DestinationPath ".\artifacts\release\$assetName" -Force
 
-      - name: Delete legacy malformed release asset
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $legacyAssetName = "-$tag-win-x64.zip"
-          $release = gh api "/repos/${{ github.repository }}/releases/tags/$tag" | ConvertFrom-Json
-          $legacyAssets = @($release.assets | Where-Object { $_.name -eq $legacyAssetName })
-
-          if ($legacyAssets.Count -eq 0) {
-            Write-Host "No malformed legacy asset to delete."
-          }
-          else {
-            foreach ($asset in $legacyAssets) {
-              gh api -X DELETE "/repos/${{ github.repository }}/releases/assets/$($asset.id)"
-            }
-          }
-
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
