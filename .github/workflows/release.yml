@@ -34,13 +34,13 @@ jobs:
         run: dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build
 
       - name: Publish app
-        run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish --no-restore
+        run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
       - name: Publish elevated helper
-        run: dotnet publish .\src\FolderGate.ElevatedHelper\FolderGate.ElevatedHelper.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish --no-restore
+        run: dotnet publish .\src\FolderGate.ElevatedHelper\FolderGate.ElevatedHelper.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
       - name: Publish recovery tool
-        run: dotnet publish .\src\FolderGate.RecoveryTool\FolderGate.RecoveryTool.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish --no-restore
+        run: dotnet publish .\src\FolderGate.RecoveryTool\FolderGate.RecoveryTool.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
       - name: Create Korean executable aliases
         shell: pwsh
