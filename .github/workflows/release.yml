@@ -27,8 +27,11 @@ jobs:
       - name: Build
         run: dotnet build .\FolderGate.sln -c Release --no-restore
 
-      - name: Test without elevation-required tests
-        run: dotnet test .\FolderGate.sln -c Release --no-build --filter "TestCategory!=RequiresElevation"
+      - name: Test core project
+        run: dotnet test .\tests\FolderGate.Core.Tests\FolderGate.Core.Tests.csproj -c Release --no-build
+
+      - name: Test app project
+        run: dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build
 
       - name: Publish app
         run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish --no-restore
