@@ -42,6 +42,10 @@ The recovery tool runs elevated, reads ACL backup files, lets the user select a 
 
 If the program was deleted while folders were still locked, restore the deleted program folder from the Recycle Bin if possible. If that is not possible, download the same or a newer release, extract it, and place any preserved `data` directory back beside the executables before running `eslee폴더잠금기_복구도구.exe`. If the ACL backup data was also deleted, the original ACL cannot be reconstructed by the app; a Windows administrator must manually inspect the folder permissions and remove the deny rules or repair the ACL.
 
+## Explorer Unlock Shortcut
+
+The app can register an Explorer context-menu unlock command. After registering it in the app, right-click a registered locked folder and choose `eslee폴더잠금기로 잠금 해제`. On Windows 11, this entry may appear under `Show more options`; `Shift` + right-click also opens the expanded context menu directly.
+
 ## Important Security Notes
 
 This is not an encryption product.
@@ -204,6 +208,10 @@ NTFS 권한은 프로그램 파일과 별개로 Windows 파일 시스템에 남�
 복구 도구는 관리자 권한으로 실행되며, ACL 백업 파일을 읽고 사용자가 선택한 백업을 기준으로 원래 권한을 복원합니다. 복구 실행 전에는 명시적인 확인 입력을 요구합니다.
 
 폴더가 잠긴 상태에서 프로그램을 삭제했다면 먼저 휴지통에서 프로그램 폴더를 복원하세요. 복원이 어렵다면 같은 버전 또는 더 최신 릴리스를 다시 다운로드해 압축을 풀고, 보관 중인 `data` 디렉터리가 있다면 실행 파일 옆에 다시 배치한 뒤 `eslee폴더잠금기_복구도구.exe`를 실행하세요. ACL 백업 데이터까지 삭제된 경우 앱은 원래 ACL을 재구성할 수 없습니다. 이 경우 Windows 관리자 권한으로 폴더 권한을 직접 확인해 deny 규칙을 제거하거나 ACL을 수동 복구해야 합니다.
+
+## 탐색기 잠금 해제 바로가기
+
+앱에서 탐색기 우클릭 메뉴를 등록하면, 등록된 잠금 폴더를 우클릭해 `eslee폴더잠금기로 잠금 해제`를 선택할 수 있습니다. Windows 11에서는 이 항목이 `더 많은 옵션 표시` 아래에 보일 수 있으며, `Shift` + 우클릭을 사용하면 확장 우클릭 메뉴를 바로 열 수 있습니다.
 
 ## 보안상 주의사항
 
