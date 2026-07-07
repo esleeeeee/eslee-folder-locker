@@ -32,6 +32,15 @@ public sealed class UserInteractionService : IUserInteractionService
         return dialog.ShowDialog() == true ? dialog.Password : null;
     }
 
+    public UnlockPasswordRequest? AskUnlockPassword(string title, string message)
+    {
+        PasswordDialog dialog = PasswordDialog.CreateUnlockPasswordPrompt(title, message);
+        dialog.Owner = _owner;
+        return dialog.ShowDialog() == true
+            ? new UnlockPasswordRequest(dialog.Password, dialog.SelectedUnlockDuration)
+            : null;
+    }
+
     public string? AskNewPassword(string title, string message)
     {
         PasswordDialog dialog = PasswordDialog.CreateNewPasswordPrompt(title, message);
@@ -41,17 +50,17 @@ public sealed class UserInteractionService : IUserInteractionService
 
     public bool Confirm(string title, string message)
     {
-        return MessageBox.Show(_owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        return System.Windows.MessageBox.Show(_owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
     }
 
     public void ShowError(string message)
     {
-        MessageBox.Show(_owner, message, "이은성폴더잠금기", MessageBoxButton.OK, MessageBoxImage.Error);
+        System.Windows.MessageBox.Show(_owner, message, "이은성폴더잠금기", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     public void ShowInfo(string message)
     {
-        MessageBox.Show(_owner, message, "이은성폴더잠금기", MessageBoxButton.OK, MessageBoxImage.Information);
+        System.Windows.MessageBox.Show(_owner, message, "이은성폴더잠금기", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void ShowLogFile(string logFilePath)

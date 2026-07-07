@@ -8,9 +8,13 @@ namespace FolderGate.App;
 public partial class MainWindow : Window
 {
     public MainWindow()
+        : this(AppPaths.Resolve())
+    {
+    }
+
+    public MainWindow(AppPaths paths)
     {
         InitializeComponent();
-        AppPaths paths = AppPaths.Resolve();
         ToolLocator toolLocator = new(paths);
         DataContext = new MainViewModel(paths, new UserInteractionService(this), new ElevatedToolRunner(paths, toolLocator));
     }

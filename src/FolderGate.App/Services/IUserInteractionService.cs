@@ -6,6 +6,8 @@ public interface IUserInteractionService
 
     string? AskPassword(string title, string message);
 
+    UnlockPasswordRequest? AskUnlockPassword(string title, string message);
+
     string? AskNewPassword(string title, string message);
 
     bool Confirm(string title, string message);
@@ -16,3 +18,5 @@ public interface IUserInteractionService
 
     void ShowLogFile(string logFilePath);
 }
+
+public sealed record UnlockPasswordRequest(string Password, TimeSpan? Duration);

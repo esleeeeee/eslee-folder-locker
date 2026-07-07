@@ -31,12 +31,16 @@ Hardened mode is intentionally implemented inside one elevated helper process. I
 
 NTFS permissions persist independently of this application. Deleting the program does not automatically unlock folders.
 
+Keep track of where you extracted or installed this program. The application data directory contains the configuration, operation state, and ACL backup files used to unlock and recover folders. Do not delete the program folder while folders are locked unless you have already unlocked them or have kept a separate copy of the `data` directory and recovery tool.
+
 For that reason, the project includes a standalone recovery tool:
 
 - `이은성폴더잠금기_복구도구.exe`
 - Internal project name: `FolderGate.RecoveryTool.exe`
 
 The recovery tool runs elevated, reads ACL backup files, lets the user select a backup, and restores the original permissions after explicit confirmation.
+
+If the program was deleted while folders were still locked, restore the deleted program folder from the Recycle Bin if possible. If that is not possible, download the same or a newer release, extract it, and place any preserved `data` directory back beside the executables before running `이은성폴더잠금기_복구도구.exe`. If the ACL backup data was also deleted, the original ACL cannot be reconstructed by the app; a Windows administrator must manually inspect the folder permissions and remove the deny rules or repair the ACL.
 
 ## Important Security Notes
 
@@ -190,12 +194,16 @@ Generated outputs include PNG sizes from 16px through 256px and a multi-size Win
 
 NTFS 권한은 프로그램 파일과 별개로 Windows 파일 시스템에 남습니다. 프로그램을 삭제했다고 해서 이미 잠긴 폴더가 자동으로 풀리지는 않습니다.
 
+프로그램을 어디에 압축 해제했거나 설치했는지 반드시 기억하세요. 이 프로그램의 `data` 디렉터리에는 폴더 잠금 해제와 복구에 필요한 설정, 작업 상태, ACL 백업 파일이 저장됩니다. 잠긴 폴더가 남아 있는 상태에서 프로그램 폴더를 삭제하지 마세요. 삭제해야 한다면 먼저 모든 폴더를 잠금 해제하거나, 최소한 `data` 디렉터리와 복구 도구를 따로 보관해야 합니다.
+
 이를 위해 별도의 복구 도구를 제공합니다.
 
 - `이은성폴더잠금기_복구도구.exe`
 - 내부 프로젝트명: `FolderGate.RecoveryTool.exe`
 
 복구 도구는 관리자 권한으로 실행되며, ACL 백업 파일을 읽고 사용자가 선택한 백업을 기준으로 원래 권한을 복원합니다. 복구 실행 전에는 명시적인 확인 입력을 요구합니다.
+
+폴더가 잠긴 상태에서 프로그램을 삭제했다면 먼저 휴지통에서 프로그램 폴더를 복원하세요. 복원이 어렵다면 같은 버전 또는 더 최신 릴리스를 다시 다운로드해 압축을 풀고, 보관 중인 `data` 디렉터리가 있다면 실행 파일 옆에 다시 배치한 뒤 `이은성폴더잠금기_복구도구.exe`를 실행하세요. ACL 백업 데이터까지 삭제된 경우 앱은 원래 ACL을 재구성할 수 없습니다. 이 경우 Windows 관리자 권한으로 폴더 권한을 직접 확인해 deny 규칙을 제거하거나 ACL을 수동 복구해야 합니다.
 
 ## 보안상 주의사항
 

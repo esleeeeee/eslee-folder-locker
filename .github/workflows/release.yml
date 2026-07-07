@@ -60,10 +60,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: 이은성폴더잠금기 ${{ github.ref_name }}
-          body: |
-            초기 공개 릴리스입니다.
-
-            압축을 풀고 이은성폴더잠금기.exe를 실행하세요.
-            Windows에서 .NET 8 Desktop Runtime이 필요할 수 있습니다.
+          body_path: .github/release-notes/${{ github.ref_name }}.md
           files: .\artifacts\release\eslee-folder-lock-${{ github.ref_name }}-win-x64.zip
           make_latest: true

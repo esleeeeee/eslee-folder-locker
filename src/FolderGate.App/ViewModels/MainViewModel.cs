@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using FolderGate.App.Services;
@@ -17,6 +18,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly TargetPathValidator _pathValidator;
     private readonly IUserInteractionService _interaction;
     private readonly ElevatedToolRunner _toolRunner;
+    private readonly ExplorerContextMenuService _explorerContextMenu;
+    private readonly StartupRelockService _startupRelockService;
     private readonly OperationProgressStore _progressStore;
     private FolderGateConfig _config;
     private FolderItemViewModel? _selectedFolder;
@@ -39,6 +42,9 @@ public sealed class MainViewModel : ObservableObject
         _paths = paths;
         _interaction = interaction;
         _toolRunner = toolRunner;
+        ToolLocator toolLocator = new(paths);
+        _explorerContextMenu = new ExplorerContextMenuService(paths, toolLocator);
+        _startupRelockService = new StartupRelockService(paths, toolLocator);
         _configStore = new ConfigStore(paths);
         _progressStore = new OperationProgressStore(paths);
         _pathValidator = new TargetPathValidator(paths);
@@ -51,6 +57,8 @@ public sealed class MainViewModel : ObservableObject
         ChangePasswordCommand = new RelayCommand(ChangePassword, () => !IsBusy);
         ShowLogsCommand = new RelayCommand(() => _interaction.ShowLogFile(_paths.LogFilePath));
         OpenRecoveryToolCommand = new AsyncRelayCommand(OpenRecoveryToolAsync, () => !IsBusy);
+        RegisterExplorerMenuCommand = new RelayCommand(RegisterExplorerMenu, () => !IsBusy);
+        UnregisterExplorerMenuCommand = new RelayCommand(UnregisterExplorerMenu, () => !IsBusy);
         CancelOperationCommand = new RelayCommand(CancelCurrentOperation, () => IsBusy && _activeOperationId is not null);
 
         RefreshFolders();
@@ -206,6 +214,10 @@ public sealed class MainViewModel : ObservableObject
 
     public AsyncRelayCommand OpenRecoveryToolCommand { get; }
 
+    public RelayCommand RegisterExplorerMenuCommand { get; }
+
+    public RelayCommand UnregisterExplorerMenuCommand { get; }
+
     public RelayCommand CancelOperationCommand { get; }
 
     private async Task AddFolderAsync()
@@ -317,19 +329,25 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        string? password = _interaction.AskPassword("잠금 해제", "비밀번호를 입력하세요.");
-        if (password is null)
+        UnlockPasswordRequest? request = _interaction.AskUnlockPassword("잠금 해제", "비밀번호와 잠금 해제 유지 시간을 선택하세요.");
+        if (request is null)
         {
             return;
         }
 
-        if (!_passwordService.Verify(password, _config.Password))
+        if (!_passwordService.Verify(request.Password, _config.Password))
         {
             _interaction.ShowError("비밀번호가 올바르지 않습니다. ACL 변경은 수행하지 않았습니다.");
             return;
         }
 
         RegisteredFolder folder = SelectedFolder.Model;
+        if (request.Duration is not null)
+        {
+            await StartTemporaryUnlockAndRefreshAsync(folder, request.Duration.Value).ConfigureAwait(true);
+            return;
+        }
+
         await RunHelperAndRefreshAsync("unlock", folder, null).ConfigureAwait(true);
 
         _config = _configStore.Load();
@@ -337,6 +355,69 @@ public sealed class MainViewModel : ObservableObject
         if (refreshed is { State: FolderLockState.Unlocked } && Directory.Exists(refreshed.Path))
         {
             ElevatedToolRunner.OpenExplorer(refreshed.Path);
+        }
+    }
+
+    private async Task StartTemporaryUnlockAndRefreshAsync(RegisteredFolder folder, TimeSpan duration)
+    {
+        string operationId = Guid.NewGuid().ToString("N");
+        Process? process = null;
+        try
+        {
+            IsBusy = true;
+            _activeOperationId = operationId;
+            ResetOperationProgress();
+            StatusMessage = "임시 잠금 해제를 위해 UAC 승격을 요청합니다.";
+            _startupRelockService.Install();
+            process = _toolRunner.StartHelper("temporary-unlock", folder, operationId, duration: duration);
+
+            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddMinutes(10);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                ApplyProgressSnapshot(operationId);
+                _config = _configStore.Load();
+                RegisteredFolder? refreshed = _config.Folders.FirstOrDefault(item => item.Id == folder.Id);
+                if (refreshed is { State: FolderLockState.TemporarilyUnlocked })
+                {
+                    RefreshFolders(folder.Id);
+                    StatusMessage = "임시 잠금 해제되었습니다. 지정 시간이 지나면 자동으로 다시 잠급니다.";
+                    ElevatedToolRunner.OpenExplorer(refreshed.Path);
+                    return;
+                }
+
+                if (process.HasExited)
+                {
+                    int exitCode = process.ExitCode;
+                    RefreshFolders(folder.Id);
+                    StatusMessage = $"임시 잠금 해제 프로세스가 종료되었습니다. 종료 코드: {exitCode}";
+                    if (exitCode != 0)
+                    {
+                        _interaction.ShowError("임시 잠금 해제 작업이 실패했습니다. 로그와 상태를 확인하세요.");
+                    }
+
+                    return;
+                }
+
+                await Task.Delay(500).ConfigureAwait(true);
+            }
+
+            RefreshFolders(folder.Id);
+            StatusMessage = "임시 잠금 해제 상태 확인 시간 초과";
+            _interaction.ShowError("임시 잠금 해제 상태를 확인하지 못했습니다. 폴더 상태를 확인하세요.");
+        }
+        catch (Exception ex)
+        {
+            _config = _configStore.Load();
+            RefreshFolders(folder.Id);
+            _interaction.ShowError(ex.Message);
+            StatusMessage = "임시 잠금 해제 실패";
+        }
+        finally
+        {
+            process?.Dispose();
+            _activeOperationId = null;
+            IsProgressIndeterminate = false;
+            IsBusy = false;
         }
     }
 
@@ -387,6 +468,36 @@ public sealed class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private void RegisterExplorerMenu()
+    {
+        try
+        {
+            _explorerContextMenu.Install();
+            StatusMessage = "탐색기 우클릭 잠금 해제 메뉴를 등록했습니다.";
+            _interaction.ShowInfo("탐색기에서 폴더를 우클릭하면 '이은성폴더잠금기로 잠금 해제' 메뉴를 사용할 수 있습니다.");
+        }
+        catch (Exception ex)
+        {
+            _interaction.ShowError(ex.Message);
+            StatusMessage = "탐색기 메뉴 등록 실패";
+        }
+    }
+
+    private void UnregisterExplorerMenu()
+    {
+        try
+        {
+            _explorerContextMenu.Uninstall();
+            StatusMessage = "탐색기 우클릭 잠금 해제 메뉴를 제거했습니다.";
+            _interaction.ShowInfo("탐색기 우클릭 잠금 해제 메뉴를 제거했습니다.");
+        }
+        catch (Exception ex)
+        {
+            _interaction.ShowError(ex.Message);
+            StatusMessage = "탐색기 메뉴 제거 실패";
         }
     }
 
@@ -524,6 +635,7 @@ public sealed class MainViewModel : ObservableObject
             "backup" => "ACL 백업",
             "lock" => "잠금 적용",
             "unlock" => "잠금 해제",
+            "temporary-unlock-wait" => "임시 해제 대기",
             "restore" => "복구",
             "rollback" => "원복",
             "starting" => "시작 중",
@@ -569,6 +681,8 @@ public sealed class MainViewModel : ObservableObject
         UnlockCommand.RaiseCanExecuteChanged();
         ChangePasswordCommand.RaiseCanExecuteChanged();
         OpenRecoveryToolCommand.RaiseCanExecuteChanged();
+        RegisterExplorerMenuCommand.RaiseCanExecuteChanged();
+        UnregisterExplorerMenuCommand.RaiseCanExecuteChanged();
         CancelOperationCommand.RaiseCanExecuteChanged();
     }
 }

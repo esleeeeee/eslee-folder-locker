@@ -122,6 +122,7 @@ public sealed class OperationProgressReporter : IProgress<AclOperationProgress>,
             "backup" => "ACL 백업을 메모리에 수집하는 중입니다.",
             "lock" => "ACL 잠금을 적용하는 중입니다.",
             "unlock" => "이은성폴더잠금기(FolderGate 엔진)가 추가한 ACL 규칙을 제거하는 중입니다.",
+            "temporary-unlock-wait" => "임시 잠금 해제 상태입니다. 지정 시간이 지나면 다시 잠급니다.",
             "restore" => "백업 ACL을 복구하는 중입니다.",
             "rollback" => "이미 변경된 항목을 원복하는 중입니다.",
             _ => "작업 중입니다."

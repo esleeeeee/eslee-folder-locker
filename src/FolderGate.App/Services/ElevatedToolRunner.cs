@@ -16,7 +16,27 @@ public sealed class ElevatedToolRunner
         _toolLocator = toolLocator;
     }
 
-    public Task<int> RunHelperAsync(string command, RegisteredFolder folder, string operationId, LockMode? mode = null)
+    public Task<int> RunHelperAsync(string command, RegisteredFolder folder, string operationId, LockMode? mode = null, TimeSpan? duration = null)
+    {
+        Process process = StartHelper(command, folder, operationId, mode, duration);
+        return WaitForExitAsync(process);
+    }
+
+    public Process StartHelper(string command, RegisteredFolder folder, string operationId, LockMode? mode = null, TimeSpan? duration = null)
+    {
+        ProcessStartInfo startInfo = CreateHelperStartInfo(command, folder, operationId, mode, duration);
+        try
+        {
+            return Process.Start(startInfo)
+                ?? throw new InvalidOperationException("프로세스를 시작하지 못했습니다.");
+        }
+        catch (Win32Exception ex) when ((uint)ex.NativeErrorCode == 1223)
+        {
+            throw new InvalidOperationException("UAC 승격이 취소되었습니다.", ex);
+        }
+    }
+
+    private ProcessStartInfo CreateHelperStartInfo(string command, RegisteredFolder folder, string operationId, LockMode? mode, TimeSpan? duration)
     {
         string helperPath = _toolLocator.FindExecutable("FolderGate.ElevatedHelper");
         ProcessStartInfo startInfo = new()
@@ -24,7 +44,8 @@ public sealed class ElevatedToolRunner
             FileName = helperPath,
             WorkingDirectory = _paths.ProjectRoot,
             UseShellExecute = true,
-            Verb = "runas"
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
         };
 
         startInfo.ArgumentList.Add(command);
@@ -41,7 +62,13 @@ public sealed class ElevatedToolRunner
             startInfo.ArgumentList.Add(mode.Value.ToString());
         }
 
-        return RunProcessAsync(startInfo);
+        if (duration is not null)
+        {
+            startInfo.ArgumentList.Add("--duration-seconds");
+            startInfo.ArgumentList.Add(Math.Ceiling(duration.Value.TotalSeconds).ToString("0"));
+        }
+
+        return startInfo;
     }
 
     public Task OpenRecoveryToolAsync()
@@ -52,7 +79,8 @@ public sealed class ElevatedToolRunner
             FileName = recoveryPath,
             WorkingDirectory = _paths.ProjectRoot,
             UseShellExecute = true,
-            Verb = "runas"
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
         };
         startInfo.ArgumentList.Add("--root");
         startInfo.ArgumentList.Add(_paths.ProjectRoot);
@@ -76,12 +104,20 @@ public sealed class ElevatedToolRunner
         {
             using Process process = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("프로세스를 시작하지 못했습니다.");
-            await process.WaitForExitAsync().ConfigureAwait(true);
-            return process.ExitCode;
+            return await WaitForExitAsync(process).ConfigureAwait(true);
         }
         catch (Win32Exception ex) when ((uint)ex.NativeErrorCode == 1223)
         {
             throw new InvalidOperationException("UAC 승격이 취소되었습니다.", ex);
+        }
+    }
+
+    private static async Task<int> WaitForExitAsync(Process process)
+    {
+        using (process)
+        {
+            await process.WaitForExitAsync().ConfigureAwait(true);
+            return process.ExitCode;
         }
     }
 }

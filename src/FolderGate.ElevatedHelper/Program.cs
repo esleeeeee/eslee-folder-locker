@@ -44,6 +44,7 @@ try
     {
         "lock" => RunLock(configStore, config, folder, aclService, commandLine, progress, cancellationTokenSource.Token, operationId),
         "unlock" => RunUnlock(configStore, config, folder, aclService, progress, cancellationTokenSource.Token, operationId),
+        "temporary-unlock" => RunTemporaryUnlock(configStore, config, folder, aclService, commandLine, progress, cancellationTokenSource.Token, operationId),
         "restore" => RunRestore(configStore, config, folder, aclService, commandLine, progress, cancellationTokenSource.Token, operationId),
         _ => throw new InvalidOperationException("알 수 없는 명령입니다.")
     };
@@ -76,6 +77,7 @@ static AclOperationResult RunLock(
     folder.Mode = mode;
     folder.State = FolderLockState.Working;
     folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
     folder.LastResult = "잠금 작업 중";
     configStore.Save(config);
 
@@ -85,6 +87,7 @@ static AclOperationResult RunLock(
     folder.LatestBackupPath = result.BackupPath ?? folder.LatestBackupPath;
     folder.LastOperationId = result.OperationId;
     folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
     folder.LastResult = result.Message;
     configStore.Save(config);
     return result;
@@ -101,6 +104,7 @@ static AclOperationResult RunUnlock(
 {
     folder.State = FolderLockState.Working;
     folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
     folder.LastResult = "잠금 해제 작업 중";
     configStore.Save(config);
 
@@ -109,9 +113,91 @@ static AclOperationResult RunUnlock(
     folder.State = result.Success ? FolderLockState.Unlocked : FolderLockState.RecoveryRequired;
     folder.LastOperationId = result.OperationId;
     folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
     folder.LastResult = result.Message;
     configStore.Save(config);
     return result;
+}
+
+static AclOperationResult RunTemporaryUnlock(
+    ConfigStore configStore,
+    FolderGateConfig config,
+    RegisteredFolder folder,
+    AclService aclService,
+    CommandLine commandLine,
+    IProgress<AclOperationProgress> progress,
+    CancellationToken cancellationToken,
+    string operationId)
+{
+    TimeSpan duration = ParseDuration(commandLine.GetRequiredValue("duration-seconds"));
+
+    folder.State = FolderLockState.Working;
+    folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
+    folder.LastResult = "임시 잠금 해제 작업 중";
+    configStore.Save(config);
+
+    AclOperationResult unlockResult = aclService.UnlockAsync(folder, folder.LatestBackupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+    if (!unlockResult.Success)
+    {
+        folder.State = FolderLockState.RecoveryRequired;
+        folder.LastOperationId = unlockResult.OperationId;
+        folder.LastOperationUtc = DateTimeOffset.UtcNow;
+        folder.LastResult = unlockResult.Message;
+        configStore.Save(config);
+        return unlockResult;
+    }
+
+    DateTimeOffset relockAtUtc = DateTimeOffset.UtcNow.Add(duration);
+    folder.State = FolderLockState.TemporarilyUnlocked;
+    folder.LastOperationId = unlockResult.OperationId;
+    folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = relockAtUtc;
+    folder.LastResult = $"임시 잠금 해제됨. {FormatDuration(duration)} 후 자동으로 다시 잠급니다.";
+    configStore.Save(config);
+
+    progress.Report(new AclOperationProgress
+    {
+        Phase = "temporary-unlock-wait",
+        Processed = 0,
+        Total = 1,
+        Failed = 0,
+        CurrentPath = folder.Path
+    });
+
+    try
+    {
+        Task.Delay(duration, cancellationToken).GetAwaiter().GetResult();
+    }
+    catch (OperationCanceledException)
+    {
+        folder.State = FolderLockState.TemporarilyUnlocked;
+        folder.LastOperationUtc = DateTimeOffset.UtcNow;
+        folder.LastResult = "임시 잠금 해제 대기가 취소되었습니다. 폴더는 아직 임시 해제 상태입니다.";
+        configStore.Save(config);
+        return AclOperationResult.Failed(operationId, unlockResult.BackupPath, unlockResult.ProcessedCount, folder.LastResult, recoveryRequired: false);
+    }
+
+    folder.State = FolderLockState.Working;
+    folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.LastResult = "임시 해제 시간이 끝나 다시 잠그는 중";
+    configStore.Save(config);
+
+    AclOperationResult lockResult = aclService.LockAsync(folder, folder.Mode, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+
+    folder.State = lockResult.Success ? FolderLockState.Locked : FolderLockState.RecoveryRequired;
+    folder.LatestBackupPath = lockResult.BackupPath ?? folder.LatestBackupPath;
+    folder.LastOperationId = lockResult.OperationId;
+    folder.LastOperationUtc = DateTimeOffset.UtcNow;
+    folder.TemporaryUnlockUntilUtc = null;
+    folder.LastResult = lockResult.Success
+        ? "임시 해제 시간이 끝나 다시 잠갔습니다."
+        : lockResult.Message;
+    configStore.Save(config);
+
+    return lockResult.Success
+        ? AclOperationResult.Ok(operationId, lockResult.BackupPath, lockResult.ProcessedCount, "임시 해제 시간이 끝나 다시 잠갔습니다.")
+        : lockResult;
 }
 
 static AclOperationResult RunRestore(
@@ -146,7 +232,33 @@ static void PrintUsage()
 {
     Console.WriteLine("이은성폴더잠금기_권한도우미.exe lock --root <project-root> --target-id <id> --operation-id <id> --mode Quick|Hardened");
     Console.WriteLine("이은성폴더잠금기_권한도우미.exe unlock --root <project-root> --target-id <id> --operation-id <id>");
+    Console.WriteLine("이은성폴더잠금기_권한도우미.exe temporary-unlock --root <project-root> --target-id <id> --operation-id <id> --duration-seconds <seconds>");
     Console.WriteLine("이은성폴더잠금기_권한도우미.exe restore --root <project-root> --target-id <id> --operation-id <id> --backup <backup-json>");
+}
+
+static TimeSpan ParseDuration(string value)
+{
+    if (!int.TryParse(value, out int seconds) || seconds <= 0)
+    {
+        throw new InvalidOperationException("--duration-seconds 값은 1 이상의 초 단위 정수여야 합니다.");
+    }
+
+    return TimeSpan.FromSeconds(seconds);
+}
+
+static string FormatDuration(TimeSpan duration)
+{
+    if (duration.TotalDays >= 1)
+    {
+        return $"{Math.Round(duration.TotalDays):0}일";
+    }
+
+    if (duration.TotalHours >= 1)
+    {
+        return $"{Math.Round(duration.TotalHours):0}시간";
+    }
+
+    return $"{Math.Round(duration.TotalMinutes):0}분";
 }
 
 internal sealed class ConsoleProgressReporter : IProgress<AclOperationProgress>

@@ -23,6 +23,7 @@ public sealed class FolderItemViewModel
     public string StateText => Model.State switch
     {
         FolderLockState.Locked => "잠김",
+        FolderLockState.TemporarilyUnlocked => "임시 해제",
         FolderLockState.Working => "작업 중",
         FolderLockState.RecoveryRequired => "복구 필요",
         _ => "해제됨"

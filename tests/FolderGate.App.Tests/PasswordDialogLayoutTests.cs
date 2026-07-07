@@ -23,6 +23,7 @@ public sealed class PasswordDialogLayoutTests
                 Assert.IsTrue(dialog.MinHeight >= 300);
                 Assert.IsTrue(dialog.MinWidth >= 440);
                 Assert.AreEqual(ResizeMode.NoResize, dialog.ResizeMode);
+                Assert.AreEqual(WindowStartupLocation.Manual, dialog.WindowStartupLocation);
             }
             finally
             {
@@ -59,11 +60,38 @@ public sealed class PasswordDialogLayoutTests
                     Assert.IsTrue(content.DesiredSize.Height > 0, $"Dialog content did not measure at scale {scale:P0}.");
                     Assert.AreEqual(SizeToContent.Height, dialog.SizeToContent, $"Dialog must grow vertically at scale {scale:P0}.");
                     Assert.IsTrue(double.IsNaN(dialog.Height), $"Dialog height must remain auto at scale {scale:P0}.");
+                    Assert.AreEqual(WindowStartupLocation.Manual, dialog.WindowStartupLocation);
                 }
                 finally
                 {
                     dialog.Close();
                 }
+            }
+        });
+    }
+
+    [TestMethod]
+    public void UnlockPasswordDialog_ShowsDurationOptions()
+    {
+        RunOnStaThread(() =>
+        {
+            PasswordDialog dialog = PasswordDialog.CreateUnlockPasswordPrompt(
+                "잠금 해제",
+                "비밀번호와 잠금 해제 유지 시간을 선택하세요.");
+
+            try
+            {
+                FrameworkElement panel = (FrameworkElement)dialog.FindName("UnlockDurationPanel");
+                ComboBox comboBox = (ComboBox)dialog.FindName("UnlockDurationInput");
+
+                Assert.AreEqual(Visibility.Visible, panel.Visibility);
+                Assert.AreEqual(7, comboBox.Items.Count);
+                Assert.AreEqual(TimeSpan.FromMinutes(1), dialog.SelectedUnlockDuration);
+                Assert.IsTrue(dialog.MinHeight >= 360);
+            }
+            finally
+            {
+                dialog.Close();
             }
         });
     }
