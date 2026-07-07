@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="eslee폴더잠금기"
-        Icon="pack://application:,,,/FolderGate.App;component/assets/icons/EsleeFolderLocker.ico"
+        Icon="pack://application:,,,/FolderGate.App;component/assets/icons/EsleeFolderLock.ico"
         MinHeight="640"
         MinWidth="980"
         Height="700"

@@ -9,7 +9,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>..\..\assets\icons\EsleeFolderLocker.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\assets\icons\EsleeFolderLock.ico</ApplicationIcon>
     <Title>eslee폴더잠금기 복구 도구</Title>
     <Product>eslee폴더잠금기</Product>
     <Description>eslee폴더잠금기 복구 도구</Description>
