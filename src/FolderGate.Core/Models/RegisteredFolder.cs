@@ -20,6 +20,8 @@ public sealed class RegisteredFolder
 
     public DateTimeOffset? LastOperationUtc { get; set; }
 
+    public DateTimeOffset? TemporaryUnlockUntilUtc { get; set; }
+
     public string? LastResult { get; set; }
 
     public bool HasReparsePointWarning { get; set; }

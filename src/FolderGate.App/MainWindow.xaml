@@ -115,6 +115,10 @@
                             Command="{Binding ChangePasswordCommand}" />
                     <Button Content="복구 도구 열기"
                             Command="{Binding OpenRecoveryToolCommand}" />
+                    <Button Content="탐색기 메뉴 등록"
+                            Command="{Binding RegisterExplorerMenuCommand}" />
+                    <Button Content="탐색기 메뉴 제거"
+                            Command="{Binding UnregisterExplorerMenuCommand}" />
                     <Button Content="취소"
                             Command="{Binding CancelOperationCommand}" />
                 </WrapPanel>
