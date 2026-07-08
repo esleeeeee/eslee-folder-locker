@@ -9,11 +9,11 @@ public sealed class StartupRelockServiceTests
     public void BuildCommand_QuotesExecutableAndRoot()
     {
         string command = StartupRelockService.BuildCommand(
-            @"C:\Program Files\eslee folder lock\eslee폴더잠금기.exe",
+            @"C:\Program Files\eslee folder locker\eslee폴더잠금기.exe",
             @"C:\Users\Example\Project Root");
 
         Assert.AreEqual(
-            "\"C:\\Program Files\\eslee folder lock\\eslee폴더잠금기.exe\" --resume-temporary-unlocks --root \"C:\\Users\\Example\\Project Root\"",
+            "\"C:\\Program Files\\eslee folder locker\\eslee폴더잠금기.exe\" --resume-temporary-unlocks --root \"C:\\Users\\Example\\Project Root\"",
             command);
     }
 }
