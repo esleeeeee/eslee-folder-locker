@@ -5,6 +5,7 @@ release/
 *.jsonl
 
 # Build outputs
+artifacts/
 bin/
 obj/
 **/bin/
