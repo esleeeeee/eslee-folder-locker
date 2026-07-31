@@ -10,18 +10,15 @@ public sealed class ToolLocator
     {
         ["FolderGate.App"] =
         [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker.exe" : "eslee폴더잠금기.exe",
-            "eslee폴더잠금기.exe"
+            AppText.LanguageCode == "en" ? "eslee-folder-locker.exe" : "eslee폴더잠금기.exe"
         ],
         ["FolderGate.ElevatedHelper"] =
         [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker-helper.exe" : "eslee폴더잠금기_권한도우미.exe",
-            "eslee폴더잠금기_권한도우미.exe"
+            AppText.LanguageCode == "en" ? "eslee-folder-locker-helper.exe" : "eslee폴더잠금기_권한도우미.exe"
         ],
         ["FolderGate.RecoveryTool"] =
         [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker-recovery.exe" : "eslee폴더잠금기_복구도구.exe",
-            "eslee폴더잠금기_복구도구.exe"
+            AppText.LanguageCode == "en" ? "eslee-folder-locker-recovery.exe" : "eslee폴더잠금기_복구도구.exe"
         ]
     };
 

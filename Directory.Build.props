@@ -1,6 +1,10 @@
 <Project>
   <PropertyGroup>
     <AppLanguage Condition="'$(AppLanguage)' == ''">ko</AppLanguage>
+    <RepositoryRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)'))</RepositoryRoot>
+    <PathMap>$(RepositoryRoot)=/_/</PathMap>
+    <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AppLanguage)' == 'en'">
