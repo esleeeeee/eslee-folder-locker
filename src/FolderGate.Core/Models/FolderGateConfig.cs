@@ -18,5 +18,11 @@ public sealed class FolderGateConfig
     /// </summary>
     public string? MasterCredentialId { get; set; }
 
+    /// <summary>
+    /// When true (default), closing the main window hides it to the system tray
+    /// instead of exiting the app. Changeable in the settings window.
+    /// </summary>
+    public bool CloseToTray { get; set; } = true;
+
     public List<RegisteredFolder> Folders { get; set; } = [];
 }

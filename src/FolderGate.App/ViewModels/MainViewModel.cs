@@ -782,6 +782,15 @@ public sealed class MainViewModel : ObservableObject
             : value.ToString(@"mm\:ss");
     }
 
+    /// <summary>
+    /// Reloads the folder list from storage. Used by the tray icon after a
+    /// tray-initiated unlock so an already-open window shows the new state.
+    /// </summary>
+    public void RefreshFromStorage()
+    {
+        RefreshFolders(SelectedFolder?.Id);
+    }
+
     private void RefreshFolders(string? selectedId = null)
     {
         _config = _configStore.Load();

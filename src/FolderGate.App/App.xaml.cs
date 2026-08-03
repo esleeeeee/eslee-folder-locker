@@ -1,5 +1,7 @@
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using FolderGate.App.Services;
 using FolderGate.Core.Localization;
@@ -10,6 +12,13 @@ namespace FolderGate.App;
 
 public partial class App : System.Windows.Application
 {
+    private Mutex? _singleInstanceMutex;
+    private bool _ownsSingleInstanceMutex;
+    private EventWaitHandle? _activationEvent;
+    private RegisteredWaitHandle? _activationWait;
+    private TrayIconService? _trayIcon;
+    private MainWindow? _mainWindowInstance;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -38,16 +47,153 @@ public partial class App : System.Windows.Application
 
         if (arguments.UnlockPath is null)
         {
-            TryOfferPortableMigration(paths);
-            HandleMasterSecurityStartup(paths);
-            MainWindow = new MainWindow(paths);
-            MainWindow.Show();
+            // One main app per user session (and per data root). A second normal
+            // launch activates the existing window; a second --tray launch exits
+            // quietly so login auto-start never pops a window.
+            if (!TryBecomeSingleInstance(paths, arguments.StartInTray))
+            {
+                Shutdown(0);
+                return;
+            }
+
+            if (!arguments.StartInTray)
+            {
+                TryOfferPortableMigration(paths);
+                HandleMasterSecurityStartup(paths);
+            }
+
+            _mainWindowInstance = new MainWindow(paths);
+            MainWindow = _mainWindowInstance;
+            _trayIcon = new TrayIconService(
+                paths,
+                showMainWindow: ShowMainWindowFromTray,
+                openRecoveryTool: OpenRecoveryToolFromTray,
+                openSettings: () => SettingsWindow.ShowFor(paths, _mainWindowInstance),
+                exitApplication: ExitFromTray,
+                refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage());
+            _mainWindowInstance.HiddenToTray += () => _trayIcon?.ShowMinimizedToTrayTip();
+
+            // --tray: quiet start for Windows login auto-start. Startup dialogs
+            // (migration offer, first-run master setup) are skipped here; every
+            // guarded action re-checks its own gate, and the prompts reappear on
+            // the next normal launch while their conditions still hold.
+            if (!arguments.StartInTray)
+            {
+                _mainWindowInstance.Show();
+            }
+
             return;
         }
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         int exitCode = await new UnlockPromptRunner(paths).RunAsync(arguments.UnlockPath).ConfigureAwait(true);
         Shutdown(exitCode);
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _activationWait?.Unregister(null);
+        _activationEvent?.Dispose();
+        _trayIcon?.Dispose();
+        if (_singleInstanceMutex is not null)
+        {
+            if (_ownsSingleInstanceMutex)
+            {
+                try
+                {
+                    _singleInstanceMutex.ReleaseMutex();
+                }
+                catch (ApplicationException)
+                {
+                }
+            }
+
+            _singleInstanceMutex.Dispose();
+        }
+
+        base.OnExit(e);
+    }
+
+    private bool TryBecomeSingleInstance(AppPaths paths, bool startInTray)
+    {
+        string suffix = ComputeInstanceSuffix(paths.DataRoot);
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, $@"Local\eslee-folder-locker-app-{suffix}", out _ownsSingleInstanceMutex);
+        if (!_ownsSingleInstanceMutex)
+        {
+            if (!startInTray)
+            {
+                try
+                {
+                    using EventWaitHandle handle = EventWaitHandle.OpenExisting($@"Local\eslee-folder-locker-activate-{suffix}");
+                    handle.Set();
+                }
+                catch (Exception ex) when (ex is WaitHandleCannotBeOpenedException or UnauthorizedAccessException)
+                {
+                }
+            }
+
+            return false;
+        }
+
+        _activationEvent = new EventWaitHandle(false, EventResetMode.AutoReset, $@"Local\eslee-folder-locker-activate-{suffix}");
+        _activationWait = ThreadPool.RegisterWaitForSingleObject(
+            _activationEvent,
+            (_, _) => Dispatcher.BeginInvoke(ShowMainWindowFromTray),
+            null,
+            Timeout.Infinite,
+            executeOnlyOnce: false);
+        return true;
+    }
+
+    private static string ComputeInstanceSuffix(string dataRoot)
+    {
+        // Stable per data root so a dev-tree instance and an installed instance
+        // can coexist while two instances on the same data cannot.
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(dataRoot.ToUpperInvariant()));
+        return Convert.ToHexString(hash)[..16];
+    }
+
+    private void ShowMainWindowFromTray()
+    {
+        if (_mainWindowInstance is null)
+        {
+            return;
+        }
+
+        _mainWindowInstance.Show();
+        if (_mainWindowInstance.WindowState == WindowState.Minimized)
+        {
+            _mainWindowInstance.WindowState = WindowState.Normal;
+        }
+
+        _mainWindowInstance.Activate();
+    }
+
+    private void OpenRecoveryToolFromTray()
+    {
+        if (_mainWindowInstance is null)
+        {
+            return;
+        }
+
+        // Route through the main view model so the tray uses the identical
+        // master-state gating, logging, and error reporting as the app button.
+        ShowMainWindowFromTray();
+        if (_mainWindowInstance.ViewModel.OpenRecoveryToolCommand.CanExecute(null))
+        {
+            _mainWindowInstance.ViewModel.OpenRecoveryToolCommand.Execute(null);
+        }
+    }
+
+    private void ExitFromTray()
+    {
+        if (_mainWindowInstance is not null)
+        {
+            _mainWindowInstance.ForceClose = true;
+            _mainWindowInstance.Close();
+        }
+
+        Shutdown(0);
     }
 
     private static void TryMigrateExplorerContextMenu(AppPaths paths)

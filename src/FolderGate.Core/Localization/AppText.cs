@@ -729,4 +729,56 @@ public static class AppText
     public static string DataFolderBlocked => LanguageCode == "en"
         ? "The eslee Folder Locker data folder and its children cannot be used as lock targets."
         : "eslee폴더잠금기 데이터 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
+
+    // ----- System tray -----
+
+    public static string TrayOpenApp => LanguageCode == "en"
+        ? "Open eslee Folder Locker"
+        : "eslee폴더잠금기 열기";
+
+    public static string TrayLockedFolders => LanguageCode == "en"
+        ? "Locked folders"
+        : "잠긴 폴더";
+
+    public static string TrayNoLockedFolders => LanguageCode == "en"
+        ? "No locked folders"
+        : "잠긴 폴더 없음";
+
+    public static string TrayExit => LanguageCode == "en"
+        ? "Exit"
+        : "종료";
+
+    public static string TrayStillRunningTip => LanguageCode == "en"
+        ? "eslee Folder Locker keeps running in the system tray. Use the tray icon's Exit menu to quit completely."
+        : "eslee폴더잠금기가 시스템 트레이에서 계속 실행됩니다. 완전히 종료하려면 트레이 아이콘의 종료 메뉴를 사용하세요.";
+
+    // ----- Settings window -----
+
+    public static string SettingsTitle => LanguageCode == "en"
+        ? "Settings"
+        : "설정";
+
+    public static string SettingsCloseBehaviorLabel => LanguageCode == "en"
+        ? "When the main window is closed"
+        : "메인 창을 닫을 때";
+
+    public static string SettingsCloseToTrayOption => LanguageCode == "en"
+        ? "Minimize to the system tray (app keeps running)"
+        : "시스템 트레이로 최소화 (앱은 계속 실행)";
+
+    public static string SettingsExitOnCloseOption => LanguageCode == "en"
+        ? "Exit the app completely"
+        : "앱을 완전히 종료";
+
+    public static string SettingsAutoStartLabel => LanguageCode == "en"
+        ? "Start automatically at Windows login (starts in the tray)"
+        : "Windows 로그인 시 자동 실행 (트레이로 시작)";
+
+    public static string SettingsSaveButton => LanguageCode == "en"
+        ? "Save"
+        : "저장";
+
+    public static string SettingsSaved => LanguageCode == "en"
+        ? "Settings saved."
+        : "설정을 저장했습니다.";
 }
