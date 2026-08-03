@@ -171,6 +171,19 @@ After entering the correct password, you can choose how long the folder should s
 
 Temporary unlock stores an absolute UTC expiration time. If the PC is turned off before the selected duration expires, the app attempts to relock after the next Windows login. If the expiration time already passed while the PC was off, it attempts to relock immediately.
 
+## System Tray
+
+Since v1.2.0 the app shows a system tray icon while running.
+
+- Double-click the tray icon to open the main window.
+- Right-click menu: open the app, the locked-folder list (selecting one starts the password unlock flow directly), open the recovery tool, settings, and exit.
+- Closing the main window minimizes to the tray by default; the app keeps running. Use the tray menu's `Exit` to quit completely.
+- `Settings` lets you change the close behavior (minimize to tray / exit) and enable start-at-login.
+- Auto-start launches quietly in the tray and can also be enabled as an optional installer task.
+- Only one main app instance runs per user session; a second launch activates the existing window instead of opening a new one.
+
+The tray's locked-folder menu reflects the current lock states every time it opens, and unlocking uses the same per-folder password flow as the Explorer context menu.
+
 ## What Happens If I Uninstall?
 
 Do not uninstall while folders are still locked.
