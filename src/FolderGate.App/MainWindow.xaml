@@ -120,6 +120,12 @@
                             Command="{Binding RegisterExplorerMenuCommand}" />
                     <Button Content="{x:Static text:AppText.UnregisterExplorerMenu}"
                             Command="{Binding UnregisterExplorerMenuCommand}" />
+                    <Button Content="{x:Static text:AppText.MasterChangeMenuButton}"
+                            Command="{Binding ChangeMasterPasswordCommand}" />
+                    <Button Content="{x:Static text:AppText.MasterHintMenuButton}"
+                            Command="{Binding ChangeMasterHintCommand}" />
+                    <Button Content="{x:Static text:AppText.SettingsTitle}"
+                            Click="OpenSettings_Click" />
                     <Button Content="{x:Static text:AppText.Cancel}"
                             Command="{Binding CancelOperationCommand}" />
                 </WrapPanel>

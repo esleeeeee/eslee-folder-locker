@@ -72,6 +72,21 @@ jobs:
         shell: pwsh
         run: .\tools\Verify-ReleasePrivacy.ps1 -PublishRoot .\artifacts\publish-ko,.\artifacts\publish-en
 
+      - name: Build installers
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          foreach ($lang in "ko", "en") {
+            & $iscc `
+              "/DAppLanguage=$lang" `
+              "/DAppVersion=$version" `
+              "/DSourceDir=${{ github.workspace }}\artifacts\publish-$lang" `
+              "/DOutputDir=${{ github.workspace }}\artifacts\installer" `
+              .\installer\eslee-folder-locker.iss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $lang" }
+          }
+
       - name: Package release zip
         shell: pwsh
         run: |
@@ -85,6 +100,7 @@ jobs:
           name: eslee-folder-locker ${{ github.ref_name }}
           body_path: .github/release-notes/${{ github.ref_name }}.md
           files: |
+            .\artifacts\installer\*.exe
             .\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-ko-win-x64.zip
             .\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-en-win-x64.zip
           make_latest: true
