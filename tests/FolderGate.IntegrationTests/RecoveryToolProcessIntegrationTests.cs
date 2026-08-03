@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using FolderGate.Core.Acl;
 using FolderGate.Core.Models;
+using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
 namespace FolderGate.IntegrationTests;
@@ -34,6 +35,12 @@ public sealed class RecoveryToolProcessIntegrationTests
             FolderGateConfig config = new();
             config.Folders.Add(folder);
             configStore.Save(config);
+
+            // The recovery tool authenticates in-process before showing anything,
+            // so the test data root needs a master credential and the password is
+            // fed through stdin before the folder/backup selections.
+            MasterCredentialManager master = new(paths);
+            master.SetupInitial("integration-master-pw", null);
 
             AclOperationResult lockResult = await service.LockAsync(folder, LockMode.Hardened, CancellationToken.None);
             Assert.IsTrue(lockResult.Success, lockResult.Message);
@@ -70,6 +77,7 @@ public sealed class RecoveryToolProcessIntegrationTests
                 ?? throw new InvalidOperationException("FolderGate.RecoveryTool.exe 별도 프로세스를 시작하지 못했습니다.");
 
             processId = process.Id;
+            await process.StandardInput.WriteLineAsync("integration-master-pw");
             await process.StandardInput.WriteLineAsync("1");
             await process.StandardInput.WriteLineAsync("1");
             await process.StandardInput.WriteLineAsync("RESTORE");

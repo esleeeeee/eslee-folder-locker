@@ -16,4 +16,16 @@ public sealed class ExplorerContextMenuServiceTests
             "\"C:\\Program Files\\eslee folder locker\\eslee폴더잠금기.exe\" --unlock-path \"%1\" --root \"C:\\Users\\Example\\Project Root\"",
             command);
     }
+
+    [TestMethod]
+    public void BuildDataRootCommand_QuotesExecutableDataRootAndPlaceholder()
+    {
+        string command = ExplorerContextMenuService.BuildDataRootCommand(
+            @"C:\Program Files\eslee Folder Locker\eslee폴더잠금기.exe",
+            @"C:\Users\Example\AppData\Local\eslee-folder-locker");
+
+        Assert.AreEqual(
+            "\"C:\\Program Files\\eslee Folder Locker\\eslee폴더잠금기.exe\" --unlock-path \"%1\" --data-root \"C:\\Users\\Example\\AppData\\Local\\eslee-folder-locker\"",
+            command);
+    }
 }
