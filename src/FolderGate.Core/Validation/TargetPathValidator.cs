@@ -132,6 +132,14 @@ public sealed class TargetPathValidator
             return AppText.ProjectFolderBlocked;
         }
 
+        // The data root (installed layout: %LOCALAPPDATA%\eslee-folder-locker) holds
+        // the config, ACL backups, and master credential. Locking it would cut the
+        // app off from its own recovery data.
+        if (WindowsPathComparer.IsSameOrChild(fullPath, _paths.DataRoot))
+        {
+            return AppText.DataFolderBlocked;
+        }
+
         string? parent = Directory.GetParent(_paths.ProjectRoot)?.FullName;
         while (!string.IsNullOrWhiteSpace(parent))
         {
