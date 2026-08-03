@@ -14,6 +14,7 @@ public sealed class UnlockPromptRunner
     private readonly PasswordService _passwordService = new();
     private readonly ElevatedToolRunner _toolRunner;
     private readonly StartupRelockService _startupRelockService;
+    private readonly MasterCredentialManager _masterManager;
 
     public UnlockPromptRunner(AppPaths paths)
     {
@@ -21,6 +22,7 @@ public sealed class UnlockPromptRunner
         ToolLocator toolLocator = new(paths);
         _toolRunner = new ElevatedToolRunner(paths, toolLocator);
         _startupRelockService = new StartupRelockService(paths, toolLocator);
+        _masterManager = new MasterCredentialManager(paths);
     }
 
     public async Task<int> RunAsync(string targetPath)
@@ -72,6 +74,18 @@ public sealed class UnlockPromptRunner
         TimeSpan? duration = dialog.SelectedUnlockDuration;
         if (duration is not null)
         {
+            // Timed unlock registers the automatic re-lock startup entry, which is
+            // blocked unless the master recovery password is configured. Permanent
+            // unlock remains available so users are never locked out of their data.
+            MasterSecurityState masterState = _masterManager.EvaluateState();
+            if (masterState != MasterSecurityState.Configured)
+            {
+                ShowError(masterState == MasterSecurityState.Corrupted
+                    ? AppText.MasterCorruptedMessage
+                    : AppText.MasterTempUnlockBlockedNoMaster);
+                return 8;
+            }
+
             return await StartTemporaryUnlockAsync(folder, operationId, duration.Value).ConfigureAwait(true);
         }
 

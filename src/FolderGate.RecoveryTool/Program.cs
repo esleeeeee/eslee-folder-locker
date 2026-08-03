@@ -25,7 +25,51 @@ try
         return 740;
     }
 
-    AppPaths paths = AppPaths.Resolve(GetRootArgument(args));
+    AppPaths paths = AppPaths.Resolve(GetArgumentValue(args, "--root"), GetArgumentValue(args, "--data-root"));
+
+    // Self-contained authentication gate. This runs inside the recovery tool
+    // process itself, so launching the executable directly (without the main
+    // app) still requires the master recovery password. The password is never
+    // accepted via command line, environment variables, or files.
+    // Until authentication succeeds, no folder paths, backup lists, file names,
+    // timestamps, or log contents are displayed.
+    MasterCredentialManager master = new(paths);
+    MasterSecurityState securityState = master.EvaluateState();
+    if (securityState == MasterSecurityState.NotConfigured)
+    {
+        Console.WriteLine(AppText.RecoveryMasterNotConfigured);
+        return 3;
+    }
+
+    if (securityState == MasterSecurityState.Corrupted)
+    {
+        master.LogCorruptedStateDetected("recovery-tool");
+        Console.Error.WriteLine(AppText.RecoveryMasterCorrupted);
+        return 4;
+    }
+
+    Console.WriteLine(AppText.RecoveryAuthPrompt);
+    while (true)
+    {
+        Console.Write("> ");
+        string? password = ReadMasterPassword(master);
+        if (password is null)
+        {
+            Console.WriteLine(AppText.RecoveryAuthCanceled);
+            return 0;
+        }
+
+        if (master.Authenticate(password))
+        {
+            Console.WriteLine(AppText.RecoveryAuthSucceeded);
+            break;
+        }
+
+        // Intentionally no failure counter, delay, or lockout of any kind:
+        // unlimited immediate retries are a confirmed product decision.
+        Console.WriteLine(AppText.RecoveryAuthFailedRetry);
+    }
+
     ConfigStore configStore = new(paths);
     FolderGateConfig config = configStore.Load();
 
@@ -87,6 +131,55 @@ catch (Exception ex)
     return 1;
 }
 
+static string? ReadMasterPassword(MasterCredentialManager master)
+{
+    if (Console.IsInputRedirected)
+    {
+        // Automation path (integration tests, scripted use): read one line without
+        // masking. F1/ESC handling requires an interactive console.
+        return Console.ReadLine();
+    }
+
+    List<char> chars = [];
+    while (true)
+    {
+        ConsoleKeyInfo key = Console.ReadKey(intercept: true);
+        switch (key.Key)
+        {
+            case ConsoleKey.Enter:
+                Console.WriteLine();
+                return new string(chars.ToArray());
+            case ConsoleKey.Escape:
+                Console.WriteLine();
+                return null;
+            case ConsoleKey.F1:
+                // Hint is shown only on this explicit request, never automatically.
+                Console.WriteLine();
+                string? hint = master.GetHint();
+                Console.WriteLine(hint is null ? AppText.MasterHintNone : AppText.RecoveryHintPrefix + hint);
+                Console.Write("> ");
+                Console.Write(new string('*', chars.Count));
+                continue;
+            case ConsoleKey.Backspace:
+                if (chars.Count > 0)
+                {
+                    chars.RemoveAt(chars.Count - 1);
+                    Console.Write("\b \b");
+                }
+
+                continue;
+            default:
+                if (key.KeyChar != '\0')
+                {
+                    chars.Add(key.KeyChar);
+                    Console.Write('*');
+                }
+
+                continue;
+        }
+    }
+}
+
 static RegisteredFolder SelectFolder(IReadOnlyList<RegisteredFolder> folders)
 {
     Console.WriteLine(AppText.SelectRecoveryTarget);
@@ -131,11 +224,11 @@ static int ReadIndex(int count)
     }
 }
 
-static string? GetRootArgument(string[] args)
+static string? GetArgumentValue(string[] args, string name)
 {
     for (int i = 0; i < args.Length - 1; i++)
     {
-        if (string.Equals(args[i], "--root", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
         {
             return args[i + 1];
         }
