@@ -73,12 +73,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 #if AppLanguage == "ko"
 LaunchApp=eslee폴더잠금기 실행
 DesktopIconTask=바탕화면 바로가기 만들기
+AutoStartTask=Windows 로그인 시 자동 실행 (트레이로 시작)
 LockedFoldersWarning=경고: 아직 잠긴 폴더가 있습니다.%n%n프로그램을 제거하기 전에 eslee폴더잠금기에서 모든 폴더의 잠금을 정상적으로 해제하세요. 잠긴 상태로 제거하면 잠긴 폴더를 해제하기 어려워질 수 있습니다.%n%n지금 제거를 취소하고 먼저 잠금을 해제하시겠습니까?%n%n[예] = 제거 취소 (권장)%n[아니요] = 위험을 감수하고 계속
 LockedFoldersSecondConfirm=정말 계속하시겠습니까?%n%n잠긴 폴더와 복구 데이터는 삭제되지 않지만, 프로그램이 제거되면 잠금 해제를 위해 프로그램을 다시 설치해야 할 수 있습니다.%n%n[예] = 제거 계속%n[아니요] = 제거 취소
 DataPreservedNote=사용자 데이터(설정, ACL 백업, 마스터 복구 비밀번호)는 삭제되지 않았습니다. 다시 설치하면 기존 데이터를 그대로 사용할 수 있습니다.
 #else
 LaunchApp=Launch eslee Folder Locker
 DesktopIconTask=Create a desktop shortcut
+AutoStartTask=Start automatically at Windows login (in the tray)
 LockedFoldersWarning=Warning: locked folders still exist.%n%nUnlock all folders in eslee Folder Locker before uninstalling. Uninstalling while folders are locked can make them harder to unlock.%n%nCancel the uninstall and unlock first?%n%n[Yes] = cancel uninstall (recommended)%n[No] = continue at my own risk
 LockedFoldersSecondConfirm=Are you sure you want to continue?%n%nLocked folders and recovery data are not deleted, but you may need to reinstall the app to unlock them later.%n%n[Yes] = continue uninstall%n[No] = cancel uninstall
 DataPreservedNote=User data (settings, ACL backups, master recovery password) was not deleted. Reinstalling will pick it up again.
@@ -86,6 +88,7 @@ DataPreservedNote=User data (settings, ACL backups, master recovery password) wa
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopIconTask}"; Flags: unchecked
+Name: "autostart"; Description: "{cm:AutoStartTask}"; Flags: unchecked
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -108,6 +111,9 @@ Root: HKCU; Subkey: "Software\Classes\Directory\shell\eslee-folder-locker-unlock
 Root: HKCU; Subkey: "Software\Classes\Folder\shell\eslee-folder-locker-unlock"; ValueType: string; ValueData: "{code:GetMenuText}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\Folder\shell\eslee-folder-locker-unlock"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MainExeName}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\Folder\shell\eslee-folder-locker-unlock\command"; ValueType: string; ValueData: """{app}\{#MainExeName}"" --unlock-path ""%1"""; Flags: uninsdeletekey
+; App auto-start at login (optional task). Distinct value name from the
+; temporary-relock entry so the two registrations never overwrite each other.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "eslee-folder-locker"; ValueData: """{app}\{#MainExeName}"" --tray"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MainExeName}"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent runasoriginaluser
@@ -174,10 +180,14 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then
   begin
-    { Remove the per-user auto-relock entry the app may have registered.
+    { Remove the per-user auto-relock and app auto-start entries the app may
+      have registered (the app-written auto-start value can carry a --data-root
+      argument, so the uninsdeletevalue flag alone would not always match).
       User data itself is preserved by design. }
     RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run',
       'eslee-folder-locker-temporary-relock');
+    RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run',
+      'eslee-folder-locker');
     if DirExists(ExpandConstant('{localappdata}\eslee-folder-locker')) then
       MsgBox(CustomMessage('DataPreservedNote'), mbInformation, MB_OK);
   end;
