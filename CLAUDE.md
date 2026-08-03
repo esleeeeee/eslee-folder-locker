@@ -36,23 +36,56 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 | 프로젝트 | 역할 |
 |---|---|
 | `FolderGate.App` | WPF UI. 일반 권한으로 실행되고 필요할 때만 UAC 승격을 요청합니다. |
-| `FolderGate.Core` | 도메인 모델, PBKDF2 비밀번호, JSON 설정·로그 저장소, 경로 검증, ACL 백업·변경 서비스 |
+| `FolderGate.Core` | 도메인 모델, PBKDF2 비밀번호, 마스터 복구 자격 증명, JSON 설정·로그 저장소, 경로 검증, ACL 백업·변경 서비스, 포터블 마이그레이션 |
 | `FolderGate.ElevatedHelper` | 승격 실행되는 콘솔 도우미. 실제 ACL 변경을 담당합니다. |
-| `FolderGate.RecoveryTool` | 독립 복구 도구. ACL 백업에서 원래 권한을 복원합니다. |
+| `FolderGate.RecoveryTool` | 독립 복구 도구. 자체적으로 마스터 복구 비밀번호를 검증한 뒤 ACL 백업에서 원래 권한을 복원합니다. |
 
 `docs/` 아래에 `architecture.md`, `acl-design.md`, `recovery-guide.md`, `limitations.md`, `test-results.md`가 있습니다.
+`installer/` 아래에 Inno Setup 스크립트(`eslee-folder-locker.iss`)와 빌드 스크립트(`Build-Installers.ps1`)가 있습니다.
 
-## 런타임 상태
+## 런타임 상태 (v1.2.0부터 2가지 레이아웃)
 
-`AppPaths.Resolve()`가 프로젝트 루트를 찾고 그 아래 `data/`, `release/`를 사용합니다.
-루트 탐색은 `FolderGate.sln` 또는 `data/configs` + `data/backups` 존재 여부를 기준으로 상위로 거슬러 올라갑니다.
+`AppPaths.Resolve()`가 레이아웃을 결정합니다. 우선순위: `--data-root` 인자 → `--root` 인자 → 개발/레거시 트리 탐색(`FolderGate.sln` 또는 `data/configs`+`data/backups` 상향 탐색) → 기본 설치형.
 
-- `data/configs/foldergate.config.json` — 등록 폴더, 잠금 상태, 비밀번호 해시
-- `data/backups/<targetId>/<operationId>.json` — 잠금 전 원본 SDDL 백업
-- `data/logs/` — 작업 로그, 진행 상태
-- `release/` — 로컬 배포 산출물
+**Installed 레이아웃 (설치본 기본)** — `%LOCALAPPDATA%\eslee-folder-locker\`
 
-`data/`와 `release/`는 gitignore 대상입니다. **개인 데이터이므로 저장소에 커밋하지 마세요.**
+- `config/foldergate.config.json` — 등록 폴더, 잠금 상태, 폴더 비밀번호 해시, 마스터 CredentialId 스탬프
+- `backups/<targetId>/<operationId>.json` — 잠금 전 원본 SDDL 백업
+- `security/master.credential.json` — 마스터 복구 비밀번호 verifier (PBKDF2-SHA256, 파일 DACL 제한)
+- `logs/` — 작업 로그, 진행 상태
+
+**LegacyRoot 레이아웃 (개발·테스트·구 포터블)** — `<루트>\data\{configs,backups,logs,security}` + `<루트>\release`
+
+- 테스트는 `AppPaths.Resolve(root)` 또는 5-인자 오버로드로 임시 루트를 씁니다.
+- UAC 승격은 다른 관리자 계정으로 실행될 수 있으므로, 승격 프로세스에는 **항상 `--data-root` 또는 `--root`를 명시 전달**합니다 (`ElevatedToolRunner.AddDataLocationArguments`).
+
+`data/`, `release/`, `artifacts/`는 gitignore 대상입니다. **개인 데이터이므로 저장소에 커밋하지 마세요.**
+
+## 마스터 복구 비밀번호 — 확정 제품 결정 (변경 금지)
+
+- 폴더별 비밀번호(일반 해제)와 마스터 복구 비밀번호(복구 도구 진입)는 별개이며 서로 대체하지 않습니다.
+- 마스터 비밀번호의 설정 조건은 **빈 문자열이 아닐 것 + 확인 입력과 정확히 일치할 것** 뿐입니다.
+  길이·문자 종류·강도 제한, 강도 표시, 흔한 비밀번호 차단을 **추가하지 마세요**. 공백만으로 된 비밀번호도 유효합니다.
+  입력값을 trim하거나 정규화하지 마세요.
+- 입력 실패 횟수 제한, 잠금, 지연을 **구현하지 마세요**. 무제한 즉시 재시도가 확정 사양입니다.
+- 복구 코드, 비밀번호 찾기, 초기화, 우회 경로를 **만들지 마세요**. 분실 시 복구 불가가 의도된 동작입니다.
+- 비밀번호를 명령줄 인수, 환경 변수, 임시 파일로 전달하지 마세요. 복구 도구는 자체 화면에서만 입력받습니다.
+- 손상 상태(스탬프 있는데 파일 없음/파싱 불가/ID 불일치)에서는 재초기화 대신 새 잠금·복구 도구를 차단합니다.
+  레거시 마이그레이션(스탬프 없음)은 최초 설정을 허용합니다. `MasterSecurityEvaluator` 매트릭스를 함부로 바꾸지 마세요.
+- 로그에 비밀번호, 길이, 문자, 해시, salt, 힌트 내용을 기록하지 마세요.
+- ACL 백업 암호화는 의도적으로 제외했습니다(백업 가용성 우선). 근거는 `docs/limitations.md` 참고.
+
+## 설치 파일 빌드
+
+```bash
+powershell -File .\installer\Build-Installers.ps1 -Version 1.2.0 -Language both
+```
+
+- Inno Setup 6 필요 (사용자 범위 설치 가능, `%LOCALAPPDATA%\Programs\Inno Setup 6`).
+- 산출물: `artifacts\installer\eslee-folder-locker-setup-v<버전>-{ko,en}.exe` (SHA-256 출력).
+- ko/en 설치 파일은 동일 AppId를 공유해 서로 업그레이드로 인식됩니다.
+- 제거 프로그램은 잠긴 폴더 감지 시 기본 차단(이중 확인 후 강행 가능)하며 사용자 데이터를 삭제하지 않습니다.
+- `.ps1`에 한글이 들어가면 **UTF-8 BOM**으로 저장해야 합니다 (Windows PowerShell 5.1 인코딩 문제).
 
 ### 절대경로 의존 주의
 
@@ -75,22 +108,22 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 - Windows ACL에서 Deny ACE가 Allow ACE보다 우선한다는 점을 고려합니다.
 - Everyone, Users, 현재 사용자 SID, Administrators, SYSTEM의 상호작용을 명확히 검토합니다.
 - 상속, 하위 항목, 재분석 지점, 심볼릭 링크, 네트워크 경로를 신중히 처리합니다.
-- `TargetPathValidator`가 드라이브 루트, Windows 시스템 폴더, 사용자 프로필 루트, OneDrive 루트, 프로젝트 루트를
-  차단합니다. 이 가드를 약화시키지 마세요.
+- `TargetPathValidator`가 드라이브 루트, Windows 시스템 폴더, 사용자 프로필 루트, OneDrive 루트, 프로젝트 루트,
+  앱 데이터 루트(`DataRoot`)를 차단합니다. 이 가드를 약화시키지 마세요.
 - **테스트용 임시 폴더 외의 실제 사용자 폴더에 잠금 테스트를 하지 않습니다.**
 - 레지스트리나 시작 프로그램을 수정할 때는 기존 값을 백업하고 복구 가능하게 처리합니다.
 
 ## Git 정책
 
-- 기본 브랜치는 `main`입니다.
-- 명시적 요청 없이 하지 않습니다: 커밋, push, 태그 생성·삭제, 릴리스 생성·수정, 히스토리 재작성, force push.
-- `backup/pre-privacy-rewrite` 브랜치는 개인 식별자 제거 이전의 구 히스토리 보존용입니다. **절대 push하지 마세요.**
-- 히스토리는 2026-07-31에 개인 식별자 제거를 위해 재작성되었습니다. 구 히스토리 기반 브랜치를 원격에 올리면
-  개인정보가 재유입되고 force push가 필요해집니다.
+- 기본 브랜치는 `main`입니다. 기능 작업은 기능 브랜치에서 진행하고 사용자 검증 후 병합합니다.
+- 명시적 요청 없이 하지 않습니다: main 직접 커밋, 태그 생성·삭제, 릴리스 생성·수정, 히스토리 재작성, force push.
+- 히스토리는 2026-07-31에 개인 식별자 제거를 위해 재작성되었습니다. 재작성 이전 히스토리 기반 브랜치나 태그를
+  원격에 올리면 개인정보가 재유입되고 force push가 필요해집니다. (구 히스토리 로컬 사본은 2026-08-02에 완전 제거됨)
 
 ## 배포
 
-태그를 push하면 GitHub Actions가 한국어·영어 릴리스 ZIP을 생성합니다.
+태그를 push하면 GitHub Actions가 한국어·영어 설치 파일과 릴리스 ZIP을 생성합니다
+(GitHub Windows 러너에는 Inno Setup 6이 사전 설치되어 있습니다).
 릴리스 노트는 `.github/release-notes/vX.Y.Z.md`에 둡니다.
 릴리스, 태그 생성, push는 사용자가 명시적으로 요청할 때만 수행합니다.
 
