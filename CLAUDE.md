@@ -58,6 +58,10 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 
 - 테스트는 `AppPaths.Resolve(root)` 또는 5-인자 오버로드로 임시 루트를 씁니다.
 - UAC 승격은 다른 관리자 계정으로 실행될 수 있으므로, 승격 프로세스에는 **항상 `--data-root` 또는 `--root`를 명시 전달**합니다 (`ElevatedToolRunner.AddDataLocationArguments`).
+- HKCU Run 키에는 서로 다른 값 2개가 공존합니다: `eslee-folder-locker`(앱 자동 실행, `--tray`, `AutoStartService`)와
+  `eslee-folder-locker-temporary-relock`(임시 재잠금, `StartupRelockService`). **값 이름을 합치거나 서로 덮어쓰게 만들지 마세요.**
+- 메인 앱은 데이터 루트별 named mutex로 단일 인스턴스를 유지하고, 두 번째 실행은 named event로 기존 창을 활성화합니다.
+  `--unlock-path`(탐색기 해제 창)와 `--resume-temporary-unlocks`는 이 단일 인스턴스 제한을 받지 않습니다.
 
 `data/`, `release/`, `artifacts/`는 gitignore 대상입니다. **개인 데이터이므로 저장소에 커밋하지 마세요.**
 
