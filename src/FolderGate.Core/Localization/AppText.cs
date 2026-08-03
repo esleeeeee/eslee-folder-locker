@@ -437,4 +437,348 @@ public static class AppText
     public static string OptionRequiresValue(string optionName) => LanguageCode == "en"
         ? $"{optionName} requires a value."
         : $"{optionName}에는 값이 필요합니다.";
+
+    // ----- Master recovery password -----
+
+    public static string MasterPasswordEmpty => LanguageCode == "en"
+        ? "The master recovery password cannot be empty."
+        : "마스터 복구 비밀번호는 빈 문자열일 수 없습니다.";
+
+    public static string MasterPasswordTooLong => LanguageCode == "en"
+        ? "The entered password exceeds the technical input limit. Use a shorter password."
+        : "입력한 비밀번호가 기술적 입력 한도를 초과했습니다. 더 짧은 비밀번호를 사용하세요.";
+
+    public static string MasterPasswordMismatch => LanguageCode == "en"
+        ? "The password and confirmation do not match exactly."
+        : "비밀번호와 확인 입력이 정확히 일치하지 않습니다.";
+
+    public static string MasterCurrentPasswordInvalid => LanguageCode == "en"
+        ? "The current master recovery password is incorrect."
+        : "현재 마스터 복구 비밀번호가 올바르지 않습니다.";
+
+    public static string MasterNewPasswordSameAsCurrent => LanguageCode == "en"
+        ? "The new password is identical to the current password. Choose a different password."
+        : "새 비밀번호가 현재 비밀번호와 완전히 동일합니다. 다른 비밀번호를 입력하세요.";
+
+    public static string MasterSetupNotAllowedInState => LanguageCode == "en"
+        ? "Master recovery password setup is not allowed in the current security state."
+        : "현재 보안 상태에서는 마스터 복구 비밀번호 최초 설정을 진행할 수 없습니다.";
+
+    public static string MasterCredentialUnavailable => LanguageCode == "en"
+        ? "The master recovery credential is missing or damaged."
+        : "마스터 복구 비밀번호 데이터가 없거나 손상되었습니다.";
+
+    public static string MasterSetupTitle => LanguageCode == "en"
+        ? "Set master recovery password"
+        : "마스터 복구 비밀번호 설정";
+
+    public static string MasterSetupIntro => LanguageCode == "en"
+        ? "The master recovery password protects access to the recovery tool. It is separate from the folder password used for normal unlocking. Until it is set, folders cannot be locked."
+        : "마스터 복구 비밀번호는 복구 도구 접근을 보호하는 별도의 비밀번호입니다. 일반 잠금 해제에 쓰는 폴더 비밀번호와는 다릅니다. 이 비밀번호를 설정하기 전에는 폴더를 잠글 수 없습니다.";
+
+    public static string MasterSetupWarning => LanguageCode == "en"
+        ? "If you forget the master recovery password, the recovery tool cannot be used. The developer cannot view or reset this password, no recovery codes are provided, and reinstalling the app does not reset it. The original permissions of locked folders may become unrecoverable. You are responsible for remembering this password or storing it somewhere safe."
+        : "마스터 복구 비밀번호를 잊으면 복구 도구를 사용할 수 없습니다. 개발자도 이 비밀번호를 확인하거나 초기화할 수 없고, 복구 코드도 제공되지 않으며, 앱을 다시 설치해도 초기화되지 않습니다. 잠긴 폴더의 원래 권한을 복원하지 못할 수 있습니다. 이 비밀번호를 기억하거나 안전한 곳에 따로 보관할 책임은 사용자에게 있습니다.";
+
+    public static string MasterSetupAckCheckbox => LanguageCode == "en"
+        ? "I understand that this password cannot be recovered if forgotten."
+        : "비밀번호를 잊으면 복구할 수 없다는 사실을 이해했습니다.";
+
+    public static string MasterSetupAckRequired => LanguageCode == "en"
+        ? "Check the confirmation box after reading the warning."
+        : "경고 내용을 확인한 뒤 확인 체크박스를 선택해야 설정을 완료할 수 있습니다.";
+
+    public static string MasterSetupNewPasswordLabel => LanguageCode == "en"
+        ? "New master recovery password"
+        : "새 마스터 복구 비밀번호";
+
+    public static string MasterSetupConfirmPasswordLabel => LanguageCode == "en"
+        ? "Confirm master recovery password"
+        : "마스터 복구 비밀번호 확인";
+
+    public static string MasterHintLabel => LanguageCode == "en"
+        ? "Password hint (optional)"
+        : "비밀번호 힌트 (선택 사항)";
+
+    public static string MasterHintCaution => LanguageCode == "en"
+        ? "The hint is stored as plain text and anyone using this recovery tool screen can view it. Never write the password itself in the hint."
+        : "힌트는 평문으로 저장되며 복구 도구 화면에서 다른 사람도 볼 수 있습니다. 힌트에 비밀번호 자체를 적으면 안 됩니다.";
+
+    public static string MasterSetupCompleteButton => LanguageCode == "en"
+        ? "Complete setup"
+        : "설정 완료";
+
+    public static string MasterSetupLaterButton => LanguageCode == "en"
+        ? "Set up later"
+        : "나중에 설정";
+
+    public static string MasterSetupDone => LanguageCode == "en"
+        ? "Master recovery password has been set."
+        : "마스터 복구 비밀번호를 설정했습니다.";
+
+    public static string MasterWhitespaceOnlyCaution => LanguageCode == "en"
+        ? "This password consists only of whitespace characters. It is valid, but may be confusing to enter later. Continue?"
+        : "이 비밀번호는 공백 문자로만 이루어져 있습니다. 사용할 수는 있지만 나중에 입력할 때 혼동될 수 있습니다. 계속할까요?";
+
+    public static string MasterNotConfiguredExplanation => LanguageCode == "en"
+        ? "A master recovery password must be set before locking folders. It protects the recovery tool that can restore original folder permissions in an emergency. Set it now?"
+        : "폴더를 잠그려면 먼저 마스터 복구 비밀번호를 설정해야 합니다. 이 비밀번호는 긴급 상황에서 폴더의 원래 권한을 복원하는 복구 도구를 보호합니다. 지금 설정할까요?";
+
+    public static string MasterTempUnlockBlockedNoMaster => LanguageCode == "en"
+        ? "Timed unlock registers an automatic re-lock, which requires the master recovery password to be set first. Use permanent unlock, or set the master recovery password."
+        : "시간제 잠금 해제는 자동 재잠금을 등록하므로 먼저 마스터 복구 비밀번호를 설정해야 합니다. 완전 해제를 사용하거나 마스터 복구 비밀번호를 설정하세요.";
+
+    public static string MasterCorruptedTitle => LanguageCode == "en"
+        ? "Security data damaged"
+        : "보안 데이터 손상";
+
+    public static string MasterCorruptedMessage => LanguageCode == "en"
+        ? "The master recovery password data is missing or damaged even though it was configured before. To protect existing ACL backups, the following are blocked: locking new folders, re-locking, timed unlock, and the recovery tool. Unlocking with the folder password still works, and existing ACL backups are preserved. The app will not reset the master password by itself; this state is recorded in the log."
+        : "마스터 복구 비밀번호가 설정된 적이 있는데 해당 보안 데이터가 없거나 손상되었습니다. 기존 ACL 백업을 보호하기 위해 새 폴더 잠금, 재잠금, 시간제 해제, 복구 도구 사용이 차단됩니다. 폴더 비밀번호를 이용한 잠금 해제는 계속 사용할 수 있으며 기존 ACL 백업은 보존됩니다. 앱이 임의로 마스터 비밀번호를 다시 초기화하지 않으며, 이 상태는 로그에 기록됩니다.";
+
+    public static string MasterChangeMenuButton => LanguageCode == "en"
+        ? "Change master password"
+        : "마스터 비밀번호 변경";
+
+    public static string MasterHintMenuButton => LanguageCode == "en"
+        ? "Change recovery hint"
+        : "복구 힌트 변경";
+
+    public static string MasterChangeTitle => LanguageCode == "en"
+        ? "Change master recovery password"
+        : "마스터 복구 비밀번호 변경";
+
+    public static string MasterChangeCurrentLabel => LanguageCode == "en"
+        ? "Current master recovery password"
+        : "현재 마스터 복구 비밀번호";
+
+    public static string MasterChangeButton => LanguageCode == "en"
+        ? "Change"
+        : "변경";
+
+    public static string MasterPasswordChangedStatus => LanguageCode == "en"
+        ? "Master recovery password changed."
+        : "마스터 복구 비밀번호를 변경했습니다.";
+
+    public static string MasterHintChangeTitle => LanguageCode == "en"
+        ? "Change recovery hint"
+        : "복구 힌트 변경";
+
+    public static string MasterHintChangedStatus => LanguageCode == "en"
+        ? "Recovery hint changed."
+        : "복구 힌트를 변경했습니다.";
+
+    public static string MasterHintNone => LanguageCode == "en"
+        ? "No hint is set."
+        : "설정된 힌트가 없습니다.";
+
+    public static string ShowPasswordToggle => LanguageCode == "en"
+        ? "Show"
+        : "표시";
+
+    public static string MasterFeatureRequiresConfigured => LanguageCode == "en"
+        ? "This feature is available after the master recovery password is set."
+        : "이 기능은 마스터 복구 비밀번호를 설정한 뒤 사용할 수 있습니다.";
+
+    // ----- Master credential log messages (never include sensitive data) -----
+
+    public static string MasterSetupCompletedLog => LanguageCode == "en"
+        ? "Master recovery password configured."
+        : "마스터 복구 비밀번호가 설정되었습니다.";
+
+    public static string MasterAuthFailedLog => LanguageCode == "en"
+        ? "Master recovery password verification failed."
+        : "마스터 복구 비밀번호 검증에 실패했습니다.";
+
+    public static string MasterPasswordChangedLog => LanguageCode == "en"
+        ? "Master recovery password changed."
+        : "마스터 복구 비밀번호가 변경되었습니다.";
+
+    public static string MasterHintChangedLog => LanguageCode == "en"
+        ? "Master recovery password hint changed."
+        : "마스터 복구 비밀번호 힌트가 변경되었습니다.";
+
+    public static string MasterSecurityCorruptedLog => LanguageCode == "en"
+        ? "Master security data is missing or damaged; protective blocks are active."
+        : "마스터 보안 데이터가 없거나 손상되어 보호 차단이 활성화되었습니다.";
+
+    // ----- Recovery tool authentication (console) -----
+
+    public static string RecoveryAuthPrompt => LanguageCode == "en"
+        ? "Enter the master recovery password. (F1: show hint, ESC: exit)"
+        : "마스터 복구 비밀번호를 입력하세요. (F1: 힌트 보기, ESC: 종료)";
+
+    public static string RecoveryAuthFailedRetry => LanguageCode == "en"
+        ? "The password is incorrect. Try again. (No attempt limit.)"
+        : "비밀번호가 올바르지 않습니다. 다시 입력하세요. (입력 횟수 제한은 없습니다.)";
+
+    public static string RecoveryAuthCanceled => LanguageCode == "en"
+        ? "Recovery tool authentication canceled."
+        : "복구 도구 인증을 취소했습니다.";
+
+    public static string RecoveryAuthSucceeded => LanguageCode == "en"
+        ? "Authentication succeeded."
+        : "인증에 성공했습니다.";
+
+    public static string RecoveryHintPrefix => LanguageCode == "en"
+        ? "Hint: "
+        : "힌트: ";
+
+    public static string RecoveryMasterNotConfigured => LanguageCode == "en"
+        ? "No master recovery password is set. Set it in the main app first; the recovery tool cannot be used until then."
+        : "마스터 복구 비밀번호가 설정되어 있지 않습니다. 먼저 메인 앱에서 마스터 복구 비밀번호를 설정하세요. 설정 전에는 복구 도구를 사용할 수 없습니다.";
+
+    public static string RecoveryMasterCorrupted => LanguageCode == "en"
+        ? "Master security data is missing or damaged even though it was configured before. To protect existing ACL backups, the recovery tool is blocked and will not reset the password by itself. Existing ACL backup files are preserved."
+        : "마스터 복구 비밀번호가 설정된 적이 있는데 보안 데이터가 없거나 손상되었습니다. 기존 ACL 백업을 보호하기 위해 복구 도구 사용을 차단하며, 복구 도구가 임의로 비밀번호를 재설정하지 않습니다. 기존 ACL 백업 파일은 보존됩니다.";
+
+    // ----- Recovery tool launch (main app) -----
+
+    public static string RecoveryToolNotFound(string searchedPaths) => LanguageCode == "en"
+        ? $"The recovery tool executable was not found. The installation may be damaged; reinstalling the app can restore it. Searched: {searchedPaths}"
+        : $"복구 도구 실행 파일을 찾을 수 없습니다. 설치가 손상되었을 수 있으며, 앱을 다시 설치하면 복구될 수 있습니다. 탐색한 위치: {searchedPaths}";
+
+    public static string RecoveryToolUacCanceled => LanguageCode == "en"
+        ? "Administrator elevation for the recovery tool was canceled. The recovery tool did not run."
+        : "복구 도구 실행에 필요한 관리자 권한 요청이 취소되었습니다. 복구 도구는 실행되지 않았습니다.";
+
+    public static string RecoveryToolLaunchFailed(string detail) => LanguageCode == "en"
+        ? $"Failed to start the recovery tool: {detail}"
+        : $"복구 도구를 시작하지 못했습니다: {detail}";
+
+    // ----- Portable data migration -----
+
+    public static string MigrationTargetAlreadyExists => LanguageCode == "en"
+        ? "App data already exists at the new location. Migration is skipped to avoid overwriting it."
+        : "새 데이터 위치에 이미 앱 데이터가 있습니다. 기존 데이터를 덮어쓰지 않도록 마이그레이션을 진행하지 않습니다.";
+
+    public static string MigrationSourceConfigMissing => LanguageCode == "en"
+        ? "No legacy configuration file was found in the selected folder."
+        : "선택한 폴더에서 이전 버전 설정 파일을 찾을 수 없습니다.";
+
+    public static string MigrationSourceConfigUnreadable => LanguageCode == "en"
+        ? "The legacy configuration file could not be read."
+        : "이전 버전 설정 파일을 읽을 수 없습니다.";
+
+    public static string MigrationCopyVerificationFailed(string path) => LanguageCode == "en"
+        ? $"Copy verification failed: {path}"
+        : $"복사 검증에 실패했습니다: {path}";
+
+    public static string MigrationLockedFolderBackupMissing(string folderName) => LanguageCode == "en"
+        ? $"Locked folder '{folderName}' has no readable ACL backup file. Recovery for this folder may be limited after migration."
+        : $"잠긴 폴더 '{folderName}'의 ACL 백업 파일을 찾을 수 없습니다. 마이그레이션 후 이 폴더의 복구가 제한될 수 있습니다.";
+
+    public static string MigrationBackupOutsideSource(string folderName) => LanguageCode == "en"
+        ? $"The latest backup of '{folderName}' is outside the migrated folder and keeps its original path."
+        : $"'{folderName}'의 최신 백업이 이전 대상 폴더 밖에 있어 원래 경로를 그대로 사용합니다.";
+
+    public static string MigrationBackupReferenceMissing(string folderName) => LanguageCode == "en"
+        ? $"The latest backup file referenced by '{folderName}' was not found among the migrated files."
+        : $"'{folderName}'이(가) 참조하는 최신 백업 파일을 이전된 파일에서 찾지 못했습니다.";
+
+    public static string MigrationBackupTargetCollision(string entryName) => LanguageCode == "en"
+        ? $"A backup entry named '{entryName}' already exists at the new location and was kept; the migrated copy was skipped."
+        : $"새 위치에 이미 '{entryName}' 백업 항목이 있어 기존 항목을 유지하고 이전 복사본은 건너뛰었습니다.";
+
+    public static string MigrationPromptTitle => LanguageCode == "en"
+        ? "Migrate previous data"
+        : "이전 데이터 이전";
+
+    public static string MigrationPromptIntro => LanguageCode == "en"
+        ? "Data from a previous portable version of eslee Folder Locker was found. It can be copied to the new per-user data location. The original data is not deleted or modified."
+        : "이전 포터블 버전의 eslee폴더잠금기 데이터를 발견했습니다. 새 사용자 데이터 위치로 복사해 계속 사용할 수 있습니다. 원본 데이터는 삭제하거나 수정하지 않습니다.";
+
+    public static string MigrationRunButton => LanguageCode == "en"
+        ? "Migrate"
+        : "이전 실행";
+
+    public static string MigrationChooseFolderButton => LanguageCode == "en"
+        ? "Choose folder manually"
+        : "폴더 직접 선택";
+
+    public static string MigrationSkipButton => LanguageCode == "en"
+        ? "Skip"
+        : "건너뛰기";
+
+    public static string MigrationSelectFolderTitle => LanguageCode == "en"
+        ? "Select the previous eslee Folder Locker folder (the one containing the data folder)"
+        : "이전 eslee폴더잠금기 폴더를 선택하세요 (data 폴더가 들어 있는 상위 폴더)";
+
+    public static string MigrationNoLegacyInSelected => LanguageCode == "en"
+        ? "The selected folder does not contain previous eslee Folder Locker data."
+        : "선택한 폴더에 이전 eslee폴더잠금기 데이터가 없습니다.";
+
+    public static string MigrationSummary(int folderCount, int lockedCount, int backupFileCount) => LanguageCode == "en"
+        ? $"Registered folders: {folderCount}, locked folders: {lockedCount}, backup files: {backupFileCount}. Continue with migration?"
+        : $"등록 폴더 {folderCount}개, 잠긴 폴더 {lockedCount}개, 백업 파일 {backupFileCount}개를 이전합니다. 계속할까요?";
+
+    public static string MigrationSucceeded => LanguageCode == "en"
+        ? "Data migration completed."
+        : "데이터 이전이 완료되었습니다.";
+
+    public static string MigrationFailedPrefix => LanguageCode == "en"
+        ? "Data migration failed"
+        : "데이터 이전 실패";
+
+    public static string MigrationWarningsHeader => LanguageCode == "en"
+        ? "Migration notes:"
+        : "이전 관련 참고 사항:";
+
+    // ----- Path validation -----
+
+    public static string DataFolderBlocked => LanguageCode == "en"
+        ? "The eslee Folder Locker data folder and its children cannot be used as lock targets."
+        : "eslee폴더잠금기 데이터 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
+
+    // ----- System tray -----
+
+    public static string TrayOpenApp => LanguageCode == "en"
+        ? "Open eslee Folder Locker"
+        : "eslee폴더잠금기 열기";
+
+    public static string TrayLockedFolders => LanguageCode == "en"
+        ? "Locked folders"
+        : "잠긴 폴더";
+
+    public static string TrayNoLockedFolders => LanguageCode == "en"
+        ? "No locked folders"
+        : "잠긴 폴더 없음";
+
+    public static string TrayExit => LanguageCode == "en"
+        ? "Exit"
+        : "종료";
+
+    public static string TrayFolderListUnavailable => LanguageCode == "en"
+        ? "Could not read the locked folder list"
+        : "잠긴 폴더 목록을 읽을 수 없습니다";
+
+    // ----- Settings window -----
+
+    public static string SettingsTitle => LanguageCode == "en"
+        ? "Settings"
+        : "설정";
+
+    public static string SettingsCloseBehaviorLabel => LanguageCode == "en"
+        ? "When the main window is closed"
+        : "메인 창을 닫을 때";
+
+    public static string SettingsCloseToTrayOption => LanguageCode == "en"
+        ? "Minimize to the system tray (app keeps running)"
+        : "시스템 트레이로 최소화 (앱은 계속 실행)";
+
+    public static string SettingsExitOnCloseOption => LanguageCode == "en"
+        ? "Exit the app completely"
+        : "앱을 완전히 종료";
+
+    public static string SettingsAutoStartLabel => LanguageCode == "en"
+        ? "Start automatically at Windows login (starts in the tray)"
+        : "Windows 로그인 시 자동 실행 (트레이로 시작)";
+
+    public static string SettingsSaveButton => LanguageCode == "en"
+        ? "Save"
+        : "저장";
+
+    public static string SettingsSaved => LanguageCode == "en"
+        ? "Settings saved."
+        : "설정을 저장했습니다.";
 }

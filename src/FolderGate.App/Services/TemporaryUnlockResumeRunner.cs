@@ -1,6 +1,7 @@
 using System.Threading;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
+using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
 namespace FolderGate.App.Services;
@@ -11,11 +12,13 @@ public sealed class TemporaryUnlockResumeRunner
 
     private readonly ConfigStore _configStore;
     private readonly ElevatedToolRunner _toolRunner;
+    private readonly MasterCredentialManager _masterManager;
 
     public TemporaryUnlockResumeRunner(AppPaths paths)
     {
         _configStore = new ConfigStore(paths);
         _toolRunner = new ElevatedToolRunner(paths, new ToolLocator(paths));
+        _masterManager = new MasterCredentialManager(paths);
     }
 
     public async Task<int> RunAsync()
@@ -51,6 +54,18 @@ public sealed class TemporaryUnlockResumeRunner
                 if (due is null || due.TemporaryUnlockUntilUtc is null || due.TemporaryUnlockUntilUtc > DateTimeOffset.UtcNow)
                 {
                     continue;
+                }
+
+                // Re-locking creates a fresh ACL backup, i.e. a new lock. In the
+                // corrupted security state new locks are blocked, so the folder is
+                // left temporarily unlocked (data stays accessible) and the failure
+                // is recorded. NotConfigured (legacy migrated data) is allowed:
+                // resuming completes a re-lock the user already scheduled.
+                if (_masterManager.EvaluateState() == MasterSecurityState.Corrupted)
+                {
+                    _masterManager.LogCorruptedStateDetected("resume-relock");
+                    MarkAutoRelockFailure(due.Id, AppText.MasterCredentialUnavailable);
+                    return 5;
                 }
 
                 string operationId = Guid.NewGuid().ToString("N");

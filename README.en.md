@@ -27,13 +27,16 @@ This is not a strong security boundary. Administrators and users who understand 
 
 ## Basic Usage
 
-1. Download the English zip package from the release page.
-2. Extract it to a location you can remember.
-3. Run `eslee-folder-locker.exe`.
-4. Add the folder you want to lock.
-5. Set a password the first time you use it.
-6. Apply Quick mode or Hardened mode.
-7. Unlock from the app or from the File Explorer right-click menu.
+Starting with v1.2.0 the installer is the primary distribution.
+
+1. Download the English installer from the release page.
+2. Run the installer and follow the wizard.
+3. Launch `eslee Folder Locker` from the Start menu or the desktop shortcut.
+4. On first run, set the master recovery password. Folders cannot be locked until it is set.
+5. Add the folder you want to lock.
+6. Set a folder password the first time you lock.
+7. Apply Quick mode or Hardened mode.
+8. Unlock from the app or from the File Explorer right-click menu.
 
 Windows may require the .NET 8 Desktop Runtime if it is not already installed.
 
@@ -41,10 +44,11 @@ Windows may require the .NET 8 Desktop Runtime if it is not already installed.
 
 Release packages are split by language.
 
-- Korean: `eslee-folder-locker-vX.Y.Z-ko-win-x64.zip`
-- English: `eslee-folder-locker-vX.Y.Z-en-win-x64.zip`
+- Korean installer: `eslee-folder-locker-setup-vX.Y.Z-ko.exe`
+- English installer: `eslee-folder-locker-setup-vX.Y.Z-en.exe`
+- No-install zip: `eslee-folder-locker-vX.Y.Z-ko-win-x64.zip` / `...-en-win-x64.zip`
 
-Main executables in the English package:
+Main installed executables (English package):
 
 ```text
 eslee-folder-locker.exe
@@ -53,6 +57,56 @@ eslee-folder-locker-recovery.exe
 ```
 
 Most users only need to run `eslee-folder-locker.exe`. The helper and recovery tool are used when locking, unlocking, or restoring permissions.
+
+## Where User Data Is Stored
+
+Since v1.2.0, configuration, ACL backups, master recovery password data, and logs live in a per-user data folder instead of the install directory:
+
+```text
+%LOCALAPPDATA%\eslee-folder-locker\
+  config\    settings and registered folders
+  backups\   pre-lock ACL backups
+  security\  master recovery password verifier
+  logs\      operation logs
+```
+
+This guarantees:
+
+- The app works even when the install directory (Program Files) is read-only.
+- Changing the install path or updating the app preserves user data.
+- Uninstalling never auto-deletes ACL backups or security data; reinstalling picks the data up again.
+
+## Master Recovery Password
+
+The master recovery password is a separate, last-resort password that gates access to the recovery tool. It does not replace the folder password used for normal unlocking.
+
+| Credential | Purpose |
+| --- | --- |
+| Folder password | Normal folder unlock |
+| Master recovery password | Recovery tool access and emergency ACL restore |
+| Windows administrator (UAC) | Approving actual ACL changes |
+
+Behavior:
+
+- On first run the app shows the master recovery password setup screen. Until setup completes, locking, re-locking, timed unlock, and the recovery tool are blocked.
+- The recovery tool requires the master recovery password even when its executable is launched directly. Before authentication it shows no folder paths, backup lists, file names, or timestamps.
+- There is no failed-attempt limit. You can retry immediately, any number of times.
+- There are no length or character-class rules. Any non-empty string works: spaces, Korean, letters, digits, symbols, and pasting are all allowed.
+- An optional hint can be set. The hint is stored in plain text and anyone at the recovery tool screen can view it via `Show hint` (F1) — never write the password itself in the hint.
+- Use the `Change master password` and `Change recovery hint` buttons in the app; both always require the current master password.
+
+**Important warning**
+
+If you forget the master recovery password, the recovery tool cannot be used. The developer cannot view or reset it, no recovery codes exist, and reinstalling does not reset it. The original permissions of locked folders may become unrecoverable. Remembering or safely storing this password is your responsibility. This is intended behavior.
+
+## Migrating From The Portable Version
+
+If you used the portable (zip) v1.1.x builds, the installed app offers to migrate your previous data on first launch.
+
+- Candidates are discovered only from real evidence: the Explorer menu registration, the auto-relock startup entry, and a legacy `data` folder next to the executables. No drive-wide scanning.
+- You can also pick the previous folder manually.
+- Migration copies; the original data is never deleted or modified.
+- If migration fails, the new location is not activated and the original data remains authoritative.
 
 ## How Folder Locking Works
 
@@ -117,21 +171,34 @@ After entering the correct password, you can choose how long the folder should s
 
 Temporary unlock stores an absolute UTC expiration time. If the PC is turned off before the selected duration expires, the app attempts to relock after the next Windows login. If the expiration time already passed while the PC was off, it attempts to relock immediately.
 
-## What If I Delete The Program Folder?
+## System Tray
 
-Do not delete the program folder while folders are still locked.
+Since v1.2.0 the app shows a system tray icon while running.
 
-The lock is not stored only inside the executable. Permission changes remain on the Windows file system, and the `data` folder beside the executables contains configuration, operation state, and ACL backups needed for unlock and recovery.
+- Double-click the tray icon to open the main window.
+- Right-click menu: open the app, the locked-folder list (selecting one starts the password unlock flow directly), open the recovery tool, settings, and exit.
+- Closing the main window minimizes to the tray **silently** by default — no balloon tip, toast, or popup; the app keeps running. Use the tray menu's `Exit` to quit completely.
+- `Settings` lets you change the close behavior (minimize to tray / exit) and enable start-at-login.
+- Auto-start launches quietly in the tray and can also be enabled as an optional installer task. The installer registers `--tray`, while enabling it from the app settings registers `--tray --data-root "<data path>"` with the installed data root spelled out. Both behave identically on the default installed data root, but the registered command strings differ.
+- Only one main app instance runs per user session; a second launch activates the existing window instead of opening a new one.
 
-If you deleted the program while folders were locked:
+The tray's locked-folder menu reflects the current lock states every time it opens, and unlocking uses the same per-folder password flow as the Explorer context menu.
 
-1. Restore the deleted program folder from the Recycle Bin if possible.
-2. If that is not possible, download the same or a newer release from GitHub.
-3. Put any preserved `data` folder back beside the executables.
-4. Run `eslee-folder-locker-recovery.exe` as administrator.
-5. Select the ACL backup to restore.
+## What Happens If I Uninstall?
 
-If the `data` folder and ACL backups were also deleted, the app cannot reconstruct the original permissions automatically. A Windows administrator must manually inspect the folder permissions and remove the deny rules or repair the ACL.
+Do not uninstall while folders are still locked.
+
+- The uninstaller warns strongly when locked folders remain and cancels by default; continuing requires two explicit confirmations.
+- Uninstalling never deletes the settings, ACL backups, or master recovery password data under `%LOCALAPPDATA%\eslee-folder-locker`.
+- Reinstalling picks up the existing data and recovery state, so folders can be unlocked or restored afterwards.
+
+If you already uninstalled while folders were locked:
+
+1. Download and install the same or a newer installer from GitHub.
+2. Run the app or the recovery tool; existing data is detected automatically.
+3. In the recovery tool, enter the master recovery password and select the ACL backup to restore.
+
+If you also deleted the ACL backups under `%LOCALAPPDATA%\eslee-folder-locker`, the app cannot reconstruct the original permissions automatically. A Windows administrator must manually inspect the folder permissions and remove the deny rules or repair the ACL.
 
 ## Paths The App Blocks
 
@@ -144,6 +211,7 @@ To reduce the chance of locking system paths or making recovery difficult, the a
 - User profile root
 - OneDrive root
 - This project folder and its parent paths
+- The `%LOCALAPPDATA%\eslee-folder-locker` data folder
 
 For example, paths like `C:\`, `D:\`, `C:\Windows`, or the entire user profile should not be locked.
 
@@ -157,6 +225,9 @@ Covered behavior includes:
 - Unlock restores the exact original ACL SDDL
 - Cancellation and errors roll back already changed items in reverse order
 - RecoveryTool can restore ACL backups from a separate process
+- RecoveryTool requires master password authentication even when launched directly, and reveals no folder data before authentication
+- Master password setup, verification, change, hint, corruption detection, and unlimited-retry behavior
+- Portable data migration copy-verify-activate flow, including source preservation on failure
 - Hardened mode handles 10,000+ items without per-item external process launches
 - UTC backup timestamps are shown to users in local time
 - Password validation and WPF dialog layout checks
@@ -212,11 +283,14 @@ tests/
   FolderGate.Core.Tests/
   FolderGate.IntegrationTests/
 
+installer/
+  Inno Setup script and installer build script
+
 assets/icons/
   App icon source and Windows ICO
 
 tools/
-  Icon generation script
+  Icon generation script, release privacy check script
 ```
 
 ## Technology

@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly ExplorerContextMenuService _explorerContextMenu;
     private readonly StartupRelockService _startupRelockService;
     private readonly OperationProgressStore _progressStore;
+    private readonly MasterCredentialManager _masterManager;
     private FolderGateConfig _config;
     private FolderItemViewModel? _selectedFolder;
     private LockMode _selectedMode = LockMode.Quick;
@@ -49,6 +50,7 @@ public sealed class MainViewModel : ObservableObject
         _configStore = new ConfigStore(paths);
         _progressStore = new OperationProgressStore(paths);
         _pathValidator = new TargetPathValidator(paths);
+        _masterManager = new MasterCredentialManager(paths);
         _config = _configStore.Load();
 
         AddFolderCommand = new AsyncRelayCommand(AddFolderAsync);
@@ -61,6 +63,8 @@ public sealed class MainViewModel : ObservableObject
         RegisterExplorerMenuCommand = new RelayCommand(RegisterExplorerMenu, () => !IsBusy);
         UnregisterExplorerMenuCommand = new RelayCommand(UnregisterExplorerMenu, () => !IsBusy);
         CancelOperationCommand = new RelayCommand(CancelCurrentOperation, () => IsBusy && _activeOperationId is not null);
+        ChangeMasterPasswordCommand = new RelayCommand(ChangeMasterPassword, () => !IsBusy);
+        ChangeMasterHintCommand = new RelayCommand(ChangeMasterHint, () => !IsBusy);
 
         RefreshFolders();
     }
@@ -221,6 +225,10 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand CancelOperationCommand { get; }
 
+    public RelayCommand ChangeMasterPasswordCommand { get; }
+
+    public RelayCommand ChangeMasterHintCommand { get; }
+
     private async Task AddFolderAsync()
     {
         string? selectedPath = _interaction.SelectFolder();
@@ -303,6 +311,14 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        // Locking is blocked until the master recovery password exists. The button
+        // stays enabled on purpose: clicking it explains why the password is needed
+        // and offers to run first-time setup right away.
+        if (!EnsureMasterConfigured(AppText.MasterNotConfiguredExplanation, "lock"))
+        {
+            return;
+        }
+
         RegisteredFolder folder = SelectedFolder.Model;
         string modeText = AppText.ModeName(SelectedMode);
         string childText = SelectedMode == LockMode.Quick ? AppText.NoChildItems : AppText.RecursiveChildAcl;
@@ -345,6 +361,14 @@ public sealed class MainViewModel : ObservableObject
         RegisteredFolder folder = SelectedFolder.Model;
         if (request.Duration is not null)
         {
+            // Timed unlock registers the automatic re-lock startup entry, which is
+            // blocked until the master recovery password is configured. Permanent
+            // unlock stays available in every security state.
+            if (!EnsureMasterConfigured(AppText.MasterTempUnlockBlockedNoMaster, "temporary-unlock"))
+            {
+                return;
+            }
+
             await StartTemporaryUnlockAndRefreshAsync(folder, request.Duration.Value).ConfigureAwait(true);
             return;
         }
@@ -454,6 +478,23 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task OpenRecoveryToolAsync()
     {
+        // The recovery tool enforces master password authentication in its own
+        // process; this pre-check only provides a clearer message without a UAC
+        // round trip when the tool would refuse to run anyway.
+        MasterSecurityState masterState = _masterManager.EvaluateState();
+        if (masterState == MasterSecurityState.NotConfigured)
+        {
+            _interaction.ShowError(AppText.RecoveryMasterNotConfigured);
+            return;
+        }
+
+        if (masterState == MasterSecurityState.Corrupted)
+        {
+            _masterManager.LogCorruptedStateDetected("open-recovery-tool");
+            _interaction.ShowError(AppText.MasterCorruptedMessage);
+            return;
+        }
+
         try
         {
             IsBusy = true;
@@ -471,6 +512,115 @@ public sealed class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private bool EnsureMasterConfigured(string notConfiguredMessage, string context)
+    {
+        MasterSecurityState state = _masterManager.EvaluateState();
+        if (state == MasterSecurityState.Configured)
+        {
+            return true;
+        }
+
+        if (state == MasterSecurityState.Corrupted)
+        {
+            _masterManager.LogCorruptedStateDetected(context);
+            _interaction.ShowError(AppText.MasterCorruptedMessage);
+            return false;
+        }
+
+        if (!_interaction.Confirm(AppText.MasterSetupTitle, notConfiguredMessage))
+        {
+            return false;
+        }
+
+        MasterSetupRequest? setup = _interaction.AskMasterPasswordSetup();
+        if (setup is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            _masterManager.SetupInitial(setup.Password, setup.Hint);
+            StatusMessage = AppText.MasterSetupDone;
+            return true;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException)
+        {
+            _interaction.ShowError(ex.Message);
+            return false;
+        }
+    }
+
+    private void ChangeMasterPassword()
+    {
+        MasterSecurityState state = _masterManager.EvaluateState();
+        if (state == MasterSecurityState.NotConfigured)
+        {
+            _interaction.ShowInfo(AppText.MasterFeatureRequiresConfigured);
+            return;
+        }
+
+        if (state == MasterSecurityState.Corrupted)
+        {
+            _masterManager.LogCorruptedStateDetected("change-master-password");
+            _interaction.ShowError(AppText.MasterCorruptedMessage);
+            return;
+        }
+
+        MasterChangeRequest? request = _interaction.AskMasterPasswordChange();
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _masterManager.ChangePassword(request.CurrentPassword, request.NewPassword);
+            StatusMessage = AppText.MasterPasswordChangedStatus;
+            _interaction.ShowInfo(AppText.MasterPasswordChangedStatus);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException)
+        {
+            // On any failure the previous credential file is untouched, so the
+            // old master password remains valid.
+            _interaction.ShowError(ex.Message);
+        }
+    }
+
+    private void ChangeMasterHint()
+    {
+        MasterSecurityState state = _masterManager.EvaluateState();
+        if (state == MasterSecurityState.NotConfigured)
+        {
+            _interaction.ShowInfo(AppText.MasterFeatureRequiresConfigured);
+            return;
+        }
+
+        if (state == MasterSecurityState.Corrupted)
+        {
+            _masterManager.LogCorruptedStateDetected("change-master-hint");
+            _interaction.ShowError(AppText.MasterCorruptedMessage);
+            return;
+        }
+
+        MasterHintRequest? request = _interaction.AskMasterHintChange(_masterManager.GetHint());
+        if (request is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _masterManager.ChangeHint(request.CurrentPassword, request.Hint);
+            StatusMessage = AppText.MasterHintChangedStatus;
+            _interaction.ShowInfo(AppText.MasterHintChangedStatus);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException)
+        {
+            _interaction.ShowError(ex.Message);
         }
     }
 
@@ -632,6 +782,15 @@ public sealed class MainViewModel : ObservableObject
             : value.ToString(@"mm\:ss");
     }
 
+    /// <summary>
+    /// Reloads the folder list from storage. Used by the tray icon after a
+    /// tray-initiated unlock so an already-open window shows the new state.
+    /// </summary>
+    public void RefreshFromStorage()
+    {
+        RefreshFolders(SelectedFolder?.Id);
+    }
+
     private void RefreshFolders(string? selectedId = null)
     {
         _config = _configStore.Load();
@@ -673,5 +832,7 @@ public sealed class MainViewModel : ObservableObject
         RegisterExplorerMenuCommand.RaiseCanExecuteChanged();
         UnregisterExplorerMenuCommand.RaiseCanExecuteChanged();
         CancelOperationCommand.RaiseCanExecuteChanged();
+        ChangeMasterPasswordCommand.RaiseCanExecuteChanged();
+        ChangeMasterHintCommand.RaiseCanExecuteChanged();
     }
 }

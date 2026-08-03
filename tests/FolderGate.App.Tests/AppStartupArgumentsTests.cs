@@ -52,6 +52,40 @@ public sealed class AppStartupArgumentsTests
     }
 
     [TestMethod]
+    public void Parse_ReadsTrayFlag()
+    {
+        AppStartupArguments result = AppStartupArguments.Parse(["--tray", "--data-root", @"C:\Data Root"]);
+
+        Assert.IsTrue(result.StartInTray);
+        Assert.AreEqual(@"C:\Data Root", result.DataRootPath);
+        Assert.IsNull(result.UnlockPath);
+        Assert.IsFalse(result.ResumeTemporaryUnlocks);
+    }
+
+    [TestMethod]
+    public void Parse_TrayDefaultsToFalse()
+    {
+        AppStartupArguments result = AppStartupArguments.Parse([]);
+
+        Assert.IsFalse(result.StartInTray);
+    }
+
+    [TestMethod]
+    public void Parse_ReadsDataRoot()
+    {
+        AppStartupArguments result = AppStartupArguments.Parse([
+            "--unlock-path",
+            @"C:\Locked",
+            "--data-root",
+            @"C:\AppData Path\eslee-folder-locker"
+        ]);
+
+        Assert.AreEqual(@"C:\Locked", result.UnlockPath);
+        Assert.AreEqual(@"C:\AppData Path\eslee-folder-locker", result.DataRootPath);
+        Assert.IsNull(result.RootPath);
+    }
+
+    [TestMethod]
     public void Parse_RejectsMissingValue()
     {
         Assert.ThrowsException<ArgumentException>(() => AppStartupArguments.Parse(["--unlock-path"]));

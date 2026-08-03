@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.2.0
+
+### English
+
+- Switched the primary distribution from portable ZIPs to Windows installers (Inno Setup, Korean and English editions sharing one upgrade identity).
+- Moved all user data (config, ACL backups, logs, security data) from the program folder to `%LOCALAPPDATA%\eslee-folder-locker`, so the app works with a read-only install directory and survives updates, moves, and reinstalls.
+- Added evidence-based migration of legacy portable data (Explorer menu / auto-relock registrations, executable-adjacent `data` folder, or a manually selected folder) using a copy-verify-activate flow that never modifies the original data.
+- Fixed "Open recovery tool" doing nothing: the interactive console recovery tool was being launched with a hidden window and waited for input invisibly. It now opens visibly, with clear errors distinguishing a canceled UAC prompt from a missing or damaged executable, and logs each launch attempt.
+- Added the master recovery password: a separate last-resort credential gating the recovery tool. The recovery tool authenticates in its own process, so launching the EXE directly still requires the password, and nothing (folder paths, backups, file names, timestamps) is shown before authentication succeeds.
+- First-run setup with an explicit unrecoverability warning; locking, re-locking, timed unlock, and the recovery tool are blocked until setup completes. Folder passwords are unchanged and remain the normal unlock mechanism.
+- By confirmed product decision: no password length/complexity rules (any non-empty string, whitespace allowed, exact-sequence comparison), no failed-attempt limits or lockouts, and no recovery codes or reset paths — a forgotten master password is unrecoverable by design.
+- Master password change and hint management in the app; both require the current password. Hints are stored in plain text and shown only on explicit request (F1 in the recovery tool).
+- Damaged or missing security data is detected (including a swapped credential file) and never silently re-initialized; new locks and recovery are blocked while unlocking with folder passwords keeps working.
+- The uninstaller warns and cancels by default when locked folders remain, and never deletes user data; reinstalling picks up existing data and recovery state.
+- Added a system tray icon: double-click restores the main window; the right-click menu offers open app, a live locked-folder list with direct per-folder password unlock, recovery tool, settings, and exit. Closing the window minimizes to the tray by default (changeable in settings), start-at-login runs quietly with `--tray` (also an optional installer task), and only one main instance runs per user session — a second launch activates the existing window. The auto-start Run entry is separate from the temporary-relock entry so they never overwrite each other, and uninstall cleans both.
+- All five elevation-required integration tests (recovery restore, not-configured/corrupted exit codes, unlimited password retries, no data before authentication) were run in an elevated terminal and passed.
+
+### Korean
+
+- 기본 배포 방식을 포터블 ZIP에서 Windows 설치 프로그램(Inno Setup, 한국어/영어 각각 제공, 동일 업그레이드 ID)으로 전환했습니다.
+- 사용자 데이터(설정, ACL 백업, 로그, 보안 데이터)를 프로그램 폴더에서 `%LOCALAPPDATA%\eslee-folder-locker`로 이전해, 설치 폴더가 읽기 전용이어도 동작하고 업데이트·이동·재설치 후에도 데이터가 유지됩니다.
+- 이전 포터블 데이터 마이그레이션을 추가했습니다. 탐색기 메뉴/자동 재잠금 등록, 실행 파일 옆 `data` 폴더, 사용자가 직접 선택한 폴더처럼 실제 근거가 있는 위치만 대상으로 하며, 복사-검증-활성화 방식으로 원본을 수정하지 않습니다.
+- `복구 도구 열기`가 동작하지 않던 문제를 수정했습니다. 대화형 콘솔인 복구 도구가 숨김 창으로 실행되어 보이지 않는 채 입력을 기다리던 것이 원인이었습니다. 이제 창이 정상 표시되고, UAC 취소와 실행 파일 누락·손상을 구분한 오류 메시지와 실행 로그를 제공합니다.
+- 마스터 복구 비밀번호를 도입했습니다. 복구 도구 접근을 보호하는 별도의 최종 복구 비밀번호로, 복구 도구가 자체 프로세스에서 인증하므로 EXE를 직접 실행해도 반드시 비밀번호가 필요하며, 인증 전에는 폴더 경로·백업 목록·파일명·시각 등 어떤 정보도 표시하지 않습니다.
+- 최초 실행 시 복구 불가 경고와 함께 설정 화면을 표시하며, 설정 완료 전에는 새 잠금·재잠금·시간제 해제·복구 도구 사용이 차단됩니다. 폴더별 비밀번호는 기존과 동일하게 유지됩니다.
+- 확정된 제품 결정에 따라 비밀번호 길이·복잡성 제한이 없고(빈 문자열만 불가, 공백 허용, 문자 시퀀스 정확 비교), 입력 실패 횟수 제한·잠금·지연이 없으며, 복구 코드·초기화 기능도 제공하지 않습니다. 마스터 비밀번호 분실 시 복구 불가는 의도된 동작입니다.
+- 앱에서 마스터 비밀번호 변경과 힌트 관리를 제공합니다. 두 기능 모두 현재 비밀번호가 필요합니다. 힌트는 평문으로 저장되며 복구 도구에서 F1로 요청했을 때만 표시됩니다.
+- 보안 데이터가 삭제·손상·교체된 상태를 감지하며(파일 교체 감지 포함) 임의로 재초기화하지 않습니다. 이 상태에서는 새 잠금과 복구가 차단되고, 폴더 비밀번호를 이용한 잠금 해제는 계속 동작합니다.
+- 제거 프로그램은 잠긴 폴더가 남아 있으면 경고 후 기본적으로 제거를 취소하며, 사용자 데이터를 삭제하지 않습니다. 재설치하면 기존 데이터와 복구 상태를 다시 인식합니다.
+- 시스템 트레이 아이콘을 추가했습니다. 더블 클릭으로 메인 창을 열고, 우클릭 메뉴에서 앱 열기, 실시간 잠긴 폴더 목록(선택 시 폴더 비밀번호 해제 흐름 바로 실행), 복구 도구, 설정, 종료를 제공합니다. 창을 닫으면 기본적으로 트레이로 최소화되며(설정에서 변경 가능), 로그인 자동 실행은 `--tray`로 조용히 시작하고(설치 시 선택 항목 제공), 메인 앱은 사용자 세션당 한 개만 실행되어 두 번째 실행 시 기존 창을 활성화합니다. 자동 실행 Run 등록은 임시 재잠금 등록과 분리되어 서로 덮어쓰지 않으며, 제거 시 둘 다 정리됩니다.
+- 관리자 권한 통합 테스트 5개(복구 복원, 미설정/손상 종료 코드, 무제한 비밀번호 재시도, 인증 전 정보 비노출)를 관리자 터미널에서 실행해 전부 통과했습니다.
+
 ## v1.1.1
 
 ### English
