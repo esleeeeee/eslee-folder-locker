@@ -36,6 +36,30 @@ public sealed class ConfigStoreTests
         }
     }
 
+    [TestMethod]
+    public void CloseToTray_DefaultsTrueAndRoundtrips()
+    {
+        string root = CreateTestRoot();
+
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(root);
+            ConfigStore store = new(paths);
+
+            Assert.IsTrue(store.Load().CloseToTray, "Minimize-to-tray must be the default close behavior.");
+
+            FolderGateConfig config = store.Load();
+            config.CloseToTray = false;
+            store.Save(config);
+
+            Assert.IsFalse(store.Load().CloseToTray);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static string CreateTestRoot()
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestRuns", Guid.NewGuid().ToString("N")));
