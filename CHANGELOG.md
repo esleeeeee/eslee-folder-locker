@@ -14,6 +14,8 @@
 - Master password change and hint management in the app; both require the current password. Hints are stored in plain text and shown only on explicit request (F1 in the recovery tool).
 - Damaged or missing security data is detected (including a swapped credential file) and never silently re-initialized; new locks and recovery are blocked while unlocking with folder passwords keeps working.
 - The uninstaller warns and cancels by default when locked folders remain, and never deletes user data; reinstalling picks up existing data and recovery state.
+- Added a system tray icon: double-click restores the main window; the right-click menu offers open app, a live locked-folder list with direct per-folder password unlock, recovery tool, settings, and exit. Closing the window minimizes to the tray by default (changeable in settings), start-at-login runs quietly with `--tray` (also an optional installer task), and only one main instance runs per user session — a second launch activates the existing window. The auto-start Run entry is separate from the temporary-relock entry so they never overwrite each other, and uninstall cleans both.
+- All five elevation-required integration tests (recovery restore, not-configured/corrupted exit codes, unlimited password retries, no data before authentication) were run in an elevated terminal and passed.
 
 ### Korean
 
@@ -27,6 +29,8 @@
 - 앱에서 마스터 비밀번호 변경과 힌트 관리를 제공합니다. 두 기능 모두 현재 비밀번호가 필요합니다. 힌트는 평문으로 저장되며 복구 도구에서 F1로 요청했을 때만 표시됩니다.
 - 보안 데이터가 삭제·손상·교체된 상태를 감지하며(파일 교체 감지 포함) 임의로 재초기화하지 않습니다. 이 상태에서는 새 잠금과 복구가 차단되고, 폴더 비밀번호를 이용한 잠금 해제는 계속 동작합니다.
 - 제거 프로그램은 잠긴 폴더가 남아 있으면 경고 후 기본적으로 제거를 취소하며, 사용자 데이터를 삭제하지 않습니다. 재설치하면 기존 데이터와 복구 상태를 다시 인식합니다.
+- 시스템 트레이 아이콘을 추가했습니다. 더블 클릭으로 메인 창을 열고, 우클릭 메뉴에서 앱 열기, 실시간 잠긴 폴더 목록(선택 시 폴더 비밀번호 해제 흐름 바로 실행), 복구 도구, 설정, 종료를 제공합니다. 창을 닫으면 기본적으로 트레이로 최소화되며(설정에서 변경 가능), 로그인 자동 실행은 `--tray`로 조용히 시작하고(설치 시 선택 항목 제공), 메인 앱은 사용자 세션당 한 개만 실행되어 두 번째 실행 시 기존 창을 활성화합니다. 자동 실행 Run 등록은 임시 재잠금 등록과 분리되어 서로 덮어쓰지 않으며, 제거 시 둘 다 정리됩니다.
+- 관리자 권한 통합 테스트 5개(복구 복원, 미설정/손상 종료 코드, 무제한 비밀번호 재시도, 인증 전 정보 비노출)를 관리자 터미널에서 실행해 전부 통과했습니다.
 
 ## v1.1.1
 
