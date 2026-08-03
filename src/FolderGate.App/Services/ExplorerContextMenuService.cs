@@ -8,8 +8,8 @@ public sealed class ExplorerContextMenuService
 {
     private static readonly string[] MenuKeyPaths =
     [
-        @"Software\Classes\Directory\shell\eslee-folder-locker-unlock",
-        @"Software\Classes\Folder\shell\eslee-folder-locker-unlock"
+        WellKnownRegistryPaths.ExplorerDirectoryMenuKey,
+        WellKnownRegistryPaths.ExplorerFolderMenuKey
     ];
 
     private static readonly string[] LegacyMenuKeyPaths =
@@ -39,7 +39,7 @@ public sealed class ExplorerContextMenuService
 
             using RegistryKey commandKey = Registry.CurrentUser.CreateSubKey(menuKeyPath + @"\command", writable: true)
                 ?? throw new InvalidOperationException(AppText.ExplorerMenuCommandKeyCreateFailed);
-            commandKey.SetValue(null, BuildCommand(appPath, _paths.ProjectRoot));
+            commandKey.SetValue(null, BuildCommandForPaths(appPath, _paths));
         }
 
         RemoveKeys(LegacyMenuKeyPaths);
@@ -73,8 +73,20 @@ public sealed class ExplorerContextMenuService
         }
     }
 
+    public static string BuildCommandForPaths(string appPath, AppPaths paths)
+    {
+        return paths.Layout == AppDataLayout.Installed
+            ? BuildDataRootCommand(appPath, paths.DataRoot)
+            : BuildCommand(appPath, paths.ProjectRoot);
+    }
+
     public static string BuildCommand(string appPath, string projectRoot)
     {
         return $"\"{appPath}\" --unlock-path \"%1\" --root \"{projectRoot}\"";
+    }
+
+    public static string BuildDataRootCommand(string appPath, string dataRoot)
+    {
+        return $"\"{appPath}\" --unlock-path \"%1\" --data-root \"{dataRoot}\"";
     }
 }
