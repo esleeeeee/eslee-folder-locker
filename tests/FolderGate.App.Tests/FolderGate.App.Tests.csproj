@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <!-- Windows Forms types (tray menu items) are referenced with fully
+         qualified names in tray tests; enabling UseWindowsForms here would add
+         its global usings and make Size/ComboBox ambiguous in the WPF tests. -->
+    <DisableImplicitNamespaceImports_WindowsForms>true</DisableImplicitNamespaceImports_WindowsForms>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
