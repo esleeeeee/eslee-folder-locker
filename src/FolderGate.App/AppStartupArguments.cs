@@ -2,13 +2,15 @@ using FolderGate.Core.Localization;
 
 namespace FolderGate.App;
 
-public sealed record AppStartupArguments(string? UnlockPath, string? RootPath, bool ResumeTemporaryUnlocks)
+public sealed record AppStartupArguments(string? UnlockPath, string? RootPath, string? DataRootPath, bool ResumeTemporaryUnlocks, bool StartInTray)
 {
     public static AppStartupArguments Parse(IReadOnlyList<string> args)
     {
         string? unlockPath = null;
         string? rootPath = null;
+        string? dataRootPath = null;
         bool resumeTemporaryUnlocks = false;
+        bool startInTray = false;
 
         for (int i = 0; i < args.Count; i++)
         {
@@ -31,6 +33,12 @@ public sealed record AppStartupArguments(string? UnlockPath, string? RootPath, b
                 continue;
             }
 
+            if (string.Equals(token, "--data-root", StringComparison.OrdinalIgnoreCase))
+            {
+                dataRootPath = ReadRequiredValue(args, ref i, token);
+                continue;
+            }
+
             if (string.Equals(token, "--resume-temporary-unlocks", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(token, "--relock-expired", StringComparison.OrdinalIgnoreCase))
             {
@@ -38,10 +46,16 @@ public sealed record AppStartupArguments(string? UnlockPath, string? RootPath, b
                 continue;
             }
 
+            if (string.Equals(token, "--tray", StringComparison.OrdinalIgnoreCase))
+            {
+                startInTray = true;
+                continue;
+            }
+
             throw new ArgumentException(AppText.UnknownStartupArgument(token));
         }
 
-        return new AppStartupArguments(unlockPath, rootPath, resumeTemporaryUnlocks);
+        return new AppStartupArguments(unlockPath, rootPath, dataRootPath, resumeTemporaryUnlocks, startInTray);
     }
 
     private static string ReadRequiredValue(IReadOnlyList<string> args, ref int index, string optionName)

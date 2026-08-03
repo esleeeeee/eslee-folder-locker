@@ -76,4 +76,37 @@ public sealed class UserInteractionService : IUserInteractionService
         };
         window.ShowDialog();
     }
+
+    public MasterSetupRequest? AskMasterPasswordSetup()
+    {
+        MasterPasswordSetupWindow dialog = new()
+        {
+            Owner = _owner
+        };
+        return dialog.ShowDialog() == true
+            ? new MasterSetupRequest(dialog.Password, dialog.Hint)
+            : null;
+    }
+
+    public MasterChangeRequest? AskMasterPasswordChange()
+    {
+        MasterPasswordChangeWindow dialog = new()
+        {
+            Owner = _owner
+        };
+        return dialog.ShowDialog() == true
+            ? new MasterChangeRequest(dialog.CurrentPassword, dialog.NewPassword)
+            : null;
+    }
+
+    public MasterHintRequest? AskMasterHintChange(string? currentHint)
+    {
+        MasterHintChangeWindow dialog = new(currentHint)
+        {
+            Owner = _owner
+        };
+        return dialog.ShowDialog() == true
+            ? new MasterHintRequest(dialog.CurrentPassword, dialog.Hint)
+            : null;
+    }
 }

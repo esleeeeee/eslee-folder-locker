@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
 using FolderGate.Core.Storage;
@@ -10,11 +11,13 @@ public sealed class ElevatedToolRunner
 {
     private readonly AppPaths _paths;
     private readonly ToolLocator _toolLocator;
+    private readonly JsonOperationLogger _logger;
 
     public ElevatedToolRunner(AppPaths paths, ToolLocator toolLocator)
     {
         _paths = paths;
         _toolLocator = toolLocator;
+        _logger = new JsonOperationLogger(paths);
     }
 
     public Task<int> RunHelperAsync(string command, RegisteredFolder folder, string operationId, LockMode? mode = null, TimeSpan? duration = null)
@@ -50,8 +53,7 @@ public sealed class ElevatedToolRunner
         };
 
         startInfo.ArgumentList.Add(command);
-        startInfo.ArgumentList.Add("--root");
-        startInfo.ArgumentList.Add(_paths.ProjectRoot);
+        AddDataLocationArguments(startInfo);
         startInfo.ArgumentList.Add("--target-id");
         startInfo.ArgumentList.Add(folder.Id);
         startInfo.ArgumentList.Add("--operation-id");
@@ -72,20 +74,53 @@ public sealed class ElevatedToolRunner
         return startInfo;
     }
 
+    /// <summary>
+    /// Elevated processes must operate on the same data root as the launching user.
+    /// UAC elevation can run the target process as a different (admin) account whose
+    /// %LOCALAPPDATA% differs, so the data location is always passed explicitly.
+    /// </summary>
+    private void AddDataLocationArguments(ProcessStartInfo startInfo)
+    {
+        if (_paths.Layout == AppDataLayout.Installed)
+        {
+            startInfo.ArgumentList.Add("--data-root");
+            startInfo.ArgumentList.Add(_paths.DataRoot);
+        }
+        else
+        {
+            startInfo.ArgumentList.Add("--root");
+            startInfo.ArgumentList.Add(_paths.ProjectRoot);
+        }
+    }
+
     public Task OpenRecoveryToolAsync()
     {
-        string recoveryPath = _toolLocator.FindExecutable("FolderGate.RecoveryTool");
+        string operationId = Guid.NewGuid().ToString("N");
+        string? recoveryPath = _toolLocator.TryFindExecutable("FolderGate.RecoveryTool", out IReadOnlyList<string> searchedDirectories);
+        if (recoveryPath is null)
+        {
+            string searched = string.Join("; ", searchedDirectories);
+            _logger.Info(operationId, "recovery-tool", "RecoveryToolLaunch", null,
+                $"executable not found; searched: {searched}");
+            throw new InvalidOperationException(AppText.RecoveryToolNotFound(searched));
+        }
+
+        // The recovery tool is an interactive console application. It must be
+        // launched with a visible window; ProcessWindowStyle.Hidden here was the
+        // cause of the "recovery tool does not open" bug — the tool started,
+        // prompted on an invisible console, and waited for input forever.
         ProcessStartInfo startInfo = new()
         {
             FileName = recoveryPath,
             WorkingDirectory = _paths.ProjectRoot,
             UseShellExecute = true,
             Verb = "runas",
-            WindowStyle = ProcessWindowStyle.Hidden
+            WindowStyle = ProcessWindowStyle.Normal
         };
-        startInfo.ArgumentList.Add("--root");
-        startInfo.ArgumentList.Add(_paths.ProjectRoot);
-        return RunProcessAsync(startInfo);
+        AddDataLocationArguments(startInfo);
+
+        _logger.Info(operationId, "recovery-tool", "RecoveryToolLaunch", recoveryPath, "starting recovery tool");
+        return RunRecoveryProcessAsync(startInfo, operationId, recoveryPath);
     }
 
     public static void OpenExplorer(string path)
@@ -99,17 +134,33 @@ public sealed class ElevatedToolRunner
         Process.Start(startInfo);
     }
 
-    private static async Task<int> RunProcessAsync(ProcessStartInfo startInfo)
+    private async Task<int> RunRecoveryProcessAsync(ProcessStartInfo startInfo, string operationId, string recoveryPath)
     {
         try
         {
             using Process process = Process.Start(startInfo)
                 ?? throw new InvalidOperationException(AppText.ProcessNotStarted);
-            return await WaitForExitAsync(process).ConfigureAwait(true);
+            int exitCode = await WaitForExitAsync(process).ConfigureAwait(true);
+            _logger.Info(operationId, "recovery-tool", "RecoveryToolLaunch", recoveryPath, $"recovery tool exited with code {exitCode}");
+            return exitCode;
         }
         catch (Win32Exception ex) when ((uint)ex.NativeErrorCode == 1223)
         {
-            throw new InvalidOperationException(AppText.UacCanceled, ex);
+            // The user declined the UAC prompt — distinct from a missing or broken
+            // executable, and not an installation problem.
+            _logger.Info(operationId, "recovery-tool", "RecoveryToolLaunch", recoveryPath, "UAC canceled by user");
+            throw new InvalidOperationException(AppText.RecoveryToolUacCanceled, ex);
+        }
+        catch (Win32Exception ex)
+        {
+            _logger.Failure(operationId, "recovery-tool", "RecoveryToolLaunch", recoveryPath, ex);
+            throw new InvalidOperationException(
+                AppText.RecoveryToolLaunchFailed($"{ex.Message} (Win32 {ex.NativeErrorCode})"), ex);
+        }
+        catch (FileNotFoundException ex)
+        {
+            _logger.Failure(operationId, "recovery-tool", "RecoveryToolLaunch", recoveryPath, ex);
+            throw new InvalidOperationException(AppText.RecoveryToolNotFound(recoveryPath), ex);
         }
     }
 
