@@ -177,7 +177,7 @@ Since v1.2.0 the app shows a system tray icon while running.
 
 - Double-click the tray icon to open the main window.
 - Right-click menu: open the app, the locked-folder list (selecting one starts the password unlock flow directly), open the recovery tool, settings, and exit.
-- Closing the main window minimizes to the tray by default; the app keeps running. Use the tray menu's `Exit` to quit completely. The accompanying "still running" tip appears **only once** per user data root.
+- Closing the main window minimizes to the tray **silently** by default — no balloon tip, toast, or popup; the app keeps running. Use the tray menu's `Exit` to quit completely.
 - `Settings` lets you change the close behavior (minimize to tray / exit) and enable start-at-login.
 - Auto-start launches quietly in the tray and can also be enabled as an optional installer task. The installer registers `--tray`, while enabling it from the app settings registers `--tray --data-root "<data path>"` with the installed data root spelled out. Both behave identically on the default installed data root, but the registered command strings differ.
 - Only one main app instance runs per user session; a second launch activates the existing window instead of opening a new one.

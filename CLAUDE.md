@@ -62,8 +62,8 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
   `eslee-folder-locker-temporary-relock`(임시 재잠금, `StartupRelockService`). **값 이름을 합치거나 서로 덮어쓰게 만들지 마세요.**
   자동 실행 등록 경로는 둘입니다: 설치 프로그램 선택 항목은 `--tray`만, 앱 설정은 `--tray --data-root "<데이터 루트>"`를 기록합니다.
   동작은 같지만 문자열이 다르므로 등록 여부는 값 존재로만 판단합니다.
-- 트레이 상주 안내는 `FolderGateConfig.TrayResidentTipShown`에 영구 저장되며, 창이 실제로 트레이로 숨을 때만 검사·기록합니다.
-  `--tray` 조용한 시작이나 `CloseToTray=false`에서는 표시 완료로 처리하지 마세요.
+- 창을 트레이로 숨길 때는 **어떤 알림도 표시하지 않습니다** (풍선·토스트·팝업 금지, 최초 1회도 없음 — 확정 요구사항).
+  트레이 관련 알림 기능을 다시 추가하지 마세요.
 - 메인 앱은 데이터 루트별 named mutex로 단일 인스턴스를 유지하고, 두 번째 실행은 named event로 기존 창을 활성화합니다.
   `--unlock-path`(탐색기 해제 창)와 `--resume-temporary-unlocks`는 이 단일 인스턴스 제한을 받지 않습니다.
 

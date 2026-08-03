@@ -16,7 +16,7 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 
 The `RequiresElevation` tests are excluded from the standard command because they require an elevated Windows terminal.
 
-As of v1.2.0 the standard suite contains 109 tests (Core 61, App 41, Integration 7), all passing on both `AppLanguage=ko` and `AppLanguage=en` builds.
+As of v1.2.0 the standard suite contains 104 tests (Core 61, App 36, Integration 7), all passing on both `AppLanguage=ko` and `AppLanguage=en` builds.
 
 ## Elevated Validation
 
@@ -53,10 +53,9 @@ The elevated tests cover:
 - Installed/legacy data layout resolution and the LocalAppData default.
 - Portable data migration: copy-verify-activate, source preservation, existing-target refusal, corrupt-source failure, missing-backup warnings.
 - Startup arguments: `--root`, `--data-root`, `--tray`, unlock aliases, and resume flags.
-- System tray: unlockable-folder selection and labeling rules, auto-start command construction for both layouts, distinct Run value names for auto-start vs. temporary relock, and the minimize-to-tray default with settings roundtrip.
-- Tray resident tip persistence: shown once per user data root, still suppressed after a simulated app restart, never marked as shown by construction alone (`--tray` quiet start) or while `CloseToTray` is disabled, and a pre-existing shown flag is respected.
+- System tray: unlockable-folder selection and labeling rules, auto-start command construction for both layouts, distinct Run value names for auto-start vs. temporary relock, and the minimize-to-tray default with settings roundtrip. Hiding to the tray is silent by design — no balloon tip, toast, or popup exists to test.
 - Tray menu resource lifetime: every superseded locked-folder item generation is disposed (verified over 200 rebuilds via the `Disposed` event), only the latest lock states are shown, double dispose is safe, a config load failure surfaces a disabled "list unavailable" entry and is logged instead of being hidden as an empty list, and the tray icon stays usable after its source resource stream is closed.
-- Config compatibility: a config file written without the tray fields loads with the documented defaults.
+- Config compatibility: a config file written without the tray field loads with the documented default.
 
 ## Installer Artifacts
 
@@ -64,8 +63,8 @@ Built with `.\installer\Build-Installers.ps1 -Version 1.2.0 -Language both`:
 
 | File | SHA-256 |
 | --- | --- |
-| `eslee-folder-locker-setup-v1.2.0-ko.exe` | `16F980DA7BB160BFD8BC59D90EE7080E735C5A970028004CCCDD82E9A436A65B` |
-| `eslee-folder-locker-setup-v1.2.0-en.exe` | `9B8D1EC3498E3EFD06282382856B6345820CDC0F09DF573AB0E4FF9BF0A575CF` |
+| `eslee-folder-locker-setup-v1.2.0-ko.exe` | `CA27DA38EAB8820972E084EF7C998EC0E3713B351D43A676BFDF24E5DFB899C3` |
+| `eslee-folder-locker-setup-v1.2.0-en.exe` | `63C965A7FDF41E9C3C3A109505F2B7DF0CCAC5090ED73ECFDDE97759C170CD83` |
 
 ## Data Safety
 

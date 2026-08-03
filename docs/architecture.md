@@ -20,7 +20,7 @@ eslee폴더잠금기(FolderGate 엔진)는 NTFS ACL 메타데이터를 변경해
 | Installed | 설치본(기본). `--data-root` 인자 또는 마커 미발견 | `%LOCALAPPDATA%\eslee-folder-locker\{config,backups,logs,security}` |
 | LegacyRoot | `--root` 인자, 개발 트리(`FolderGate.sln` 상향 탐색), 레거시 포터블(`data\configs`+`data\backups`) | `<루트>\data\{configs,backups,logs,security}` |
 
-트레이 상주 안내는 `FolderGateConfig.TrayResidentTipShown`에 영구 저장되어 사용자 데이터 루트당 한 번만 표시됩니다. 창이 실제로 트레이로 숨을 때(`MainWindow.HiddenToTray`)만 검사·기록하므로 `--tray` 조용한 시작이나 `CloseToTray=false` 상태에서는 표시 완료로 처리되지 않습니다. 자동 실행 등록은 설치 프로그램(선택 항목, `--tray`)과 앱 설정(`--tray --data-root "<데이터 루트>"`) 두 경로가 있으며, 설치형 기본 데이터 루트에서는 동작이 같지만 저장되는 명령 문자열이 다릅니다.
+창을 닫아 트레이로 숨기는 동작은 의도적으로 무음입니다: 풍선 알림, 토스트, 팝업을 최초 1회를 포함해 어떤 경우에도 표시하지 않습니다. 자동 실행 등록은 설치 프로그램(선택 항목, `--tray`)과 앱 설정(`--tray --data-root "<데이터 루트>"`) 두 경로가 있으며, 설치형 기본 데이터 루트에서는 동작이 같지만 저장되는 명령 문자열이 다릅니다.
 
 설치본은 프로젝트 루트나 `FolderGate.sln` 탐색에 의존하지 않으며, 설치 폴더가 읽기 전용이어도 동작합니다. UAC 승격은 다른 관리자 계정으로 실행될 수 있어 `%LOCALAPPDATA%`가 달라질 수 있으므로, 승격 프로세스(권한 도우미, 복구 도구)에는 항상 `--data-root` 또는 `--root`를 명시적으로 전달합니다.
 
