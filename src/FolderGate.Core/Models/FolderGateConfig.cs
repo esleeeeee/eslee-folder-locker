@@ -24,5 +24,14 @@ public sealed class FolderGateConfig
     /// </summary>
     public bool CloseToTray { get; set; } = true;
 
+    /// <summary>
+    /// True once the "app keeps running in the tray" tip has been shown for this
+    /// user data root. Persisted so the tip appears exactly once across app
+    /// restarts, not once per process. Defaults to false so configs written by
+    /// older versions (without this field) show the tip on their first real
+    /// close-to-tray.
+    /// </summary>
+    public bool TrayResidentTipShown { get; set; }
+
     public List<RegisteredFolder> Folders { get; set; } = [];
 }
