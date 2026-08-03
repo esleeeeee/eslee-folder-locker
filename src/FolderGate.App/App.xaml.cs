@@ -71,7 +71,6 @@ public partial class App : System.Windows.Application
                 openSettings: () => SettingsWindow.ShowFor(paths, _mainWindowInstance),
                 exitApplication: ExitFromTray,
                 refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage());
-            _mainWindowInstance.HiddenToTray += () => _trayIcon?.ShowMinimizedToTrayTip();
 
             // --tray: quiet start for Windows login auto-start. Startup dialogs
             // (migration offer, first-run master setup) are skipped here; every

@@ -37,7 +37,7 @@ public sealed class ConfigStoreTests
     }
 
     [TestMethod]
-    public void TrayResidentTipShown_DefaultsFalseRoundtripsAndToleratesLegacyJson()
+    public void LegacyConfigWithoutTrayFields_LoadsWithDefaults()
     {
         string root = CreateTestRoot();
 
@@ -46,19 +46,10 @@ public sealed class ConfigStoreTests
             AppPaths paths = AppPaths.Resolve(root);
             ConfigStore store = new(paths);
 
-            Assert.IsFalse(store.Load().TrayResidentTipShown, "The tip must default to not-yet-shown.");
-
-            FolderGateConfig config = store.Load();
-            config.TrayResidentTipShown = true;
-            store.Save(config);
-            Assert.IsTrue(store.Load().TrayResidentTipShown);
-
-            // A config written by an older version has neither tray field; it must
-            // load cleanly with the defaults.
+            // A config written by an older version has no tray field; it must
+            // load cleanly with the documented default.
             File.WriteAllText(paths.ConfigFilePath, "{\"Version\":1,\"Folders\":[]}");
-            FolderGateConfig legacy = store.Load();
-            Assert.IsFalse(legacy.TrayResidentTipShown);
-            Assert.IsTrue(legacy.CloseToTray);
+            Assert.IsTrue(store.Load().CloseToTray);
         }
         finally
         {

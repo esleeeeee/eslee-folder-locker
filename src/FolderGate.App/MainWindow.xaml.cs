@@ -34,16 +34,14 @@ public partial class MainWindow : Window
     /// </summary>
     public bool ForceClose { get; set; }
 
-    /// <summary>Raised when the window hides to the tray instead of closing.</summary>
-    public event Action? HiddenToTray;
-
     protected override void OnClosing(CancelEventArgs e)
     {
+        // Hiding to the tray is silent by design: no balloon tip, toast, or
+        // popup, on the first close or any later one.
         if (!ForceClose && LoadCloseToTray())
         {
             e.Cancel = true;
             Hide();
-            HiddenToTray?.Invoke();
             return;
         }
 

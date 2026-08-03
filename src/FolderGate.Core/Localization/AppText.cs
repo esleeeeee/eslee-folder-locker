@@ -748,10 +748,6 @@ public static class AppText
         ? "Exit"
         : "종료";
 
-    public static string TrayStillRunningTip => LanguageCode == "en"
-        ? "eslee Folder Locker keeps running in the system tray. Use the tray icon's Exit menu to quit completely."
-        : "eslee폴더잠금기가 시스템 트레이에서 계속 실행됩니다. 완전히 종료하려면 트레이 아이콘의 종료 메뉴를 사용하세요.";
-
     public static string TrayFolderListUnavailable => LanguageCode == "en"
         ? "Could not read the locked folder list"
         : "잠긴 폴더 목록을 읽을 수 없습니다";

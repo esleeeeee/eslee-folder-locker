@@ -8,6 +8,9 @@ namespace FolderGate.App.Services;
 /// <summary>
 /// System tray icon shown while the app runs.
 ///
+/// The app never raises a balloon tip, toast, or popup when the window hides to
+/// the tray: closing the window simply hides it, silently, every time.
+///
 /// Resource ownership: the fixed menu items, the bold font for the open-app
 /// entry, and the cloned tray icon are created exactly once and disposed in
 /// <see cref="Dispose"/> (idempotent). Only the locked-folder submenu is
@@ -25,7 +28,6 @@ public sealed class TrayIconService : IDisposable
     private readonly AppPaths _paths;
     private readonly ConfigStore _configStore;
     private readonly JsonOperationLogger _logger;
-    private readonly TrayResidentTipState _tipState;
     private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
     private readonly System.Windows.Forms.ContextMenuStrip _menu;
     private readonly System.Windows.Forms.ToolStripMenuItem _lockedFoldersRoot;
@@ -50,7 +52,6 @@ public sealed class TrayIconService : IDisposable
         _paths = paths;
         _configStore = new ConfigStore(paths);
         _logger = new JsonOperationLogger(paths);
-        _tipState = new TrayResidentTipState(paths);
         _showMainWindow = showMainWindow;
         _openRecoveryTool = openRecoveryTool;
         _openSettings = openSettings;
@@ -95,24 +96,6 @@ public sealed class TrayIconService : IDisposable
         _notifyIcon.DoubleClick += (_, _) => _showMainWindow();
 
         RefreshLockedFolders();
-    }
-
-    /// <summary>
-    /// Called from the main window's HiddenToTray event, i.e. only when the
-    /// window actually closes to the tray (never on --tray startup and never
-    /// while CloseToTray is off). Shown once per user data root; the flag is
-    /// persisted by <see cref="TrayResidentTipState"/>.
-    /// </summary>
-    public void ShowMinimizedToTrayTip()
-    {
-        if (_disposed || !_tipState.TryAcquireFirstShow())
-        {
-            return;
-        }
-
-        _notifyIcon.BalloonTipTitle = AppText.ProductName;
-        _notifyIcon.BalloonTipText = AppText.TrayStillRunningTip;
-        _notifyIcon.ShowBalloonTip(4000);
     }
 
     private void RefreshLockedFolders()
