@@ -1,325 +1,300 @@
 # eslee Folder Locker
 
+A local folder-locking app for Windows that restricts access to selected folders and lets you lock and unlock them with a password.
+
 [⬇️ **Download the latest release**](https://github.com/esleeeeee/eslee-folder-locker/releases/latest)
 
 **Document language:** [한국어](README.md) · English
 
-`eslee Folder Locker` is a personal Windows folder-locking utility for local NTFS folders. It is designed for situations where you want to keep a folder from being casually opened in File Explorer without manually editing Windows permissions every time.
+This app does not encrypt your files or move them anywhere. Files stay exactly where they are; the app changes the folder's Windows access permissions (ACL) so your current user account cannot open it. The permissions from before the lock are backed up and restored when you unlock.
 
-This is not a file encryption product. Files stay in their original location, and the app does not read, compress, move, rewrite, or inspect file contents. Instead, it changes Windows NTFS permissions so normal user-context access is denied.
+It is a good fit for keeping specific folders off-limits when you share one PC and one account with family or friends. It is not a security product against people with administrator rights or Windows permission knowledge — for truly sensitive data, use BitLocker or separate Windows accounts as well.
 
-The internal project and engine name remains `FolderGate` for compatibility. The public Korean product name is `eslee폴더잠금기`.
+## What you can do with it
 
-This project was implemented entirely through vibe coding. Product behavior, UI flow, NTFS ACL handling, recovery tooling, tests, release automation, and documentation were iterated through natural-language collaboration with an AI coding agent.
+- Lock specific folders so that others using your account cannot open them
+- Unlock with a password — permanently, or temporarily for 1 minute to 1 day with automatic re-locking
+- Unlock a locked folder straight from the File Explorer right-click menu
+- Close the window and keep the app in the system tray (the icon area at the right of the taskbar) for quick access
+- Try to restore folder permissions with a separate recovery tool if the main app cannot run
 
-## When Would You Use This?
+## Download
 
-The app is intended for personal Windows PCs where you want a lightweight local access barrier.
+Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest) and download the **installer** for your language.
 
-Example use cases:
-
-- Temporarily block casual access to a private work folder
-- Reduce accidental browsing or modification through File Explorer
-- Avoid full encryption when you only need a simple local access restriction
-- Unlock the folder later with a password
-
-This is not a strong security boundary. Administrators and users who understand Windows permissions can bypass or reverse it. For sensitive data, use Windows account separation, BitLocker, per-file encryption, or a dedicated security product.
-
-## Basic Usage
-
-Starting with v1.2.0 the installer is the primary distribution.
-
-1. Download the English installer from the release page.
-2. Run the installer and follow the wizard.
-3. Launch `eslee Folder Locker` from the Start menu or the desktop shortcut.
-4. On first run, set the master recovery password. Folders cannot be locked until it is set.
-5. Add the folder you want to lock.
-6. Set a folder password the first time you lock.
-7. Apply Quick mode or Hardened mode.
-8. Unlock from the app or from the File Explorer right-click menu.
-
-Windows may require the .NET 8 Desktop Runtime if it is not already installed.
-
-## Download Files
-
-Release packages are split by language.
-
-- Korean installer: `eslee-folder-locker-setup-vX.Y.Z-ko.exe`
-- English installer: `eslee-folder-locker-setup-vX.Y.Z-en.exe`
-- No-install zip: `eslee-folder-locker-vX.Y.Z-ko-win-x64.zip` / `...-en-win-x64.zip`
-
-Main installed executables (English package):
-
-```text
-eslee-folder-locker.exe
-eslee-folder-locker-helper.exe
-eslee-folder-locker-recovery.exe
-```
-
-Most users only need to run `eslee-folder-locker.exe`. The helper and recovery tool are used when locking, unlocking, or restoring permissions.
-
-## Where User Data Is Stored
-
-Since v1.2.0, configuration, ACL backups, master recovery password data, and logs live in a per-user data folder instead of the install directory:
-
-```text
-%LOCALAPPDATA%\eslee-folder-locker\
-  config\    settings and registered folders
-  backups\   pre-lock ACL backups
-  security\  master recovery password verifier
-  logs\      operation logs
-```
-
-This guarantees:
-
-- The app works even when the install directory (Program Files) is read-only.
-- Changing the install path or updating the app preserves user data.
-- Uninstalling never auto-deletes ACL backups or security data; reinstalling picks the data up again.
-
-## Master Recovery Password
-
-The master recovery password is a separate, last-resort password that gates access to the recovery tool. It does not replace the folder password used for normal unlocking.
-
-| Credential | Purpose |
+| Your language | File to download |
 | --- | --- |
-| Folder password | Normal folder unlock |
-| Master recovery password | Recovery tool access and emergency ACL restore |
-| Windows administrator (UAC) | Approving actual ACL changes |
+| English | `eslee-folder-locker-setup-vVERSION-en.exe` |
+| 한국어 | `eslee-folder-locker-setup-vVERSION-ko.exe` |
 
-Behavior:
+- The EXE with `setup` in its name is the installer. That is the file most users need.
+- `Source code (zip)` and `Source code (tar.gz)` are source archives that GitHub attaches automatically. **They are not installers** — you can ignore them.
+- The `...-win-x64.zip` files are a no-install bundle of the executables. Unless you specifically need that, the installer is recommended.
 
-- On first run the app shows the master recovery password setup screen. Until setup completes, locking, re-locking, timed unlock, and the recovery tool are blocked.
-- The recovery tool requires the master recovery password even when its executable is launched directly. Before authentication it shows no folder paths, backup lists, file names, or timestamps.
-- There is no failed-attempt limit. You can retry immediately, any number of times.
-- There are no length or character-class rules. Any non-empty string works: spaces, Korean, letters, digits, symbols, and pasting are all allowed.
-- An optional hint can be set. The hint is stored in plain text and anyone at the recovery tool screen can view it via `Show hint` (F1) — never write the password itself in the hint.
-- Use the `Change master password` and `Change recovery hint` buttons in the app; both always require the current master password.
+### Windows may warn you on first run
 
-**Important warning**
+The installer is not code-signed, so Windows SmartScreen may show a "Windows protected your PC" warning the first time you run it. To continue, click **More info**, then **Run anyway**.
 
-If you forget the master recovery password, the recovery tool cannot be used. The developer cannot view or reset it, no recovery codes exist, and reinstalling does not reset it. The original permissions of locked folders may become unrecoverable. Remembering or safely storing this password is your responsibility. This is intended behavior.
+An unsigned file is not automatically unsafe, and a signed one is not automatically safe. What matters is that you downloaded the file from this repository's official Releases page.
 
-## Migrating From The Portable Version
+## Install
 
-If you used the portable (zip) v1.1.x builds, the installed app offers to migrate your previous data on first launch.
+Instructions are for Windows 11. You need an NTFS drive and x64 Windows; if the .NET 8 Desktop Runtime is missing, Windows will offer to install it on first run.
 
-- Candidates are discovered only from real evidence: the Explorer menu registration, the auto-relock startup entry, and a legacy `data` folder next to the executables. No drive-wide scanning.
-- You can also pick the previous folder manually.
-- Migration copies; the original data is never deleted or modified.
-- If migration fails, the new location is not activated and the original data remains authoritative.
+1. Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest).
+2. Download and run the English installer (`...-setup-...-en.exe`).
+3. If SmartScreen appears, click **More info** → **Run anyway**.
+4. Follow the wizard. The default location is `C:\Program Files\eslee Folder Locker`.
+5. Enable the optional tasks if you want them — both are optional and can be changed later.
+   - **Create a desktop shortcut**
+   - **Start automatically at Windows login (in the tray)**
+6. When setup finishes, keep **Launch eslee Folder Locker** checked to start right away.
 
-## How Folder Locking Works
+Installing also registers the File Explorer right-click entry (`Unlock with eslee Folder Locker`).
 
-`eslee Folder Locker` uses Windows NTFS ACLs. ACLs are how Windows controls access to files and folders.
+## First-time setup
 
-The simplified flow is:
+### 1. Set the master recovery password
 
-```text
-Back up current permissions
-        ↓
-Identify the current Windows user SID
-        ↓
-Add a deny permission to the target folder
-        ↓
-On unlock, remove the app-added rule or restore the backed-up ACL
+On first launch the app shows the **Set master recovery password** screen. This is not the password you lock folders with — it is a separate password that guards the recovery tool for emergencies.
+
+- Enter the new password and its confirmation, and add a hint if you like.
+- Read the warning and tick **I understand that this password cannot be recovered if forgotten** to enable **Complete setup**.
+- You can click **Set up later** to skip. Until this password is set you cannot lock folders; clicking Lock will guide you back to this screen.
+
+> **Important:** if you forget the master recovery password, the recovery tool cannot be used. There is no reset, no recovery code, no password lookup, and reinstalling does not reset it. Choose something you can remember, or store it somewhere safe.
+
+### 2. Register a folder and lock it
+
+1. Click **Add folder** in the main window and pick the folder to lock.
+2. The first time, set the **folder password** used for unlocking. It must be at least 4 characters and is shared by all registered folders.
+3. Choose the lock mode on the right (**Quick mode** or **Hardened mode**).
+4. Click **Lock** and review the confirmation dialog.
+5. Approve the Windows administrator prompt (UAC) — changing permissions requires admin approval.
+6. When the lock finishes, the folder's state in the list changes to `Locked`. Opening it in File Explorer is now denied.
+
+## Which lock mode should I choose?
+
+| Situation | Recommended |
+| --- | --- |
+| You just want to keep people out of the folder | **Quick mode** |
+| You want restrictions applied to every file and subfolder individually | **Hardened mode** |
+| The folder has a very large number of files and you want it fast | **Quick mode** |
+
+- **Quick mode** restricts only the selected folder itself. It finishes almost instantly regardless of file count, and is enough for the common goal of blocking File Explorer access.
+- **Hardened mode** backs up and restricts the permissions of every file and subfolder. With many items, locking and unlocking take longer and the backups grow.
+
+Hardened mode is not simply "more secure". Quick mode is the right starting point for most people.
+
+## Unlocking
+
+### From the app
+
+1. Select the locked folder in the list and click **Unlock**.
+2. Enter the folder password.
+3. Pick an option under **Unlock duration**:
+   - **Unlock permanently**: stays unlocked until you lock it again.
+   - **1 minute / 5 minutes / 10 minutes / 30 minutes / 1 hour / 1 day**: automatically re-locks after the selected time.
+4. Approve the administrator prompt (UAC). The unlocked folder then opens in File Explorer.
+
+### From File Explorer
+
+1. Right-click the locked folder.
+2. On Windows 11 the entry may be under **Show more options**; holding `Shift` while right-clicking opens the full menu directly.
+3. Choose **Unlock with eslee Folder Locker**.
+4. Enter the folder password and pick the unlock duration.
+
+### Temporary unlock and automatic re-locking
+
+When you unlock with a time limit, the app re-locks the folder when the time expires. If the PC was shut down or you logged out before that, the app checks at your next Windows login and re-locks — immediately if the time has already passed.
+
+Timed unlock schedules an automatic re-lock, so it is available only after the master recovery password has been set. Permanent unlock is always available.
+
+## Using the system tray
+
+While the app runs, an icon sits in the system tray.
+
+- **Clicking the window's X button hides the app to the tray instead of exiting.** No balloon, toast, or popup is shown. The app may look gone, but it keeps running in the tray.
+- **Double-click** the tray icon to reopen the main window.
+- **Right-click** the tray icon for the menu:
+  - **Open eslee Folder Locker**: open the main window
+  - **Locked folders**: the current list of locked folders — selecting one opens the password prompt directly
+  - **Open recovery tool**
+  - **Settings**
+  - **Exit**: quit the app completely
+- To quit completely, use **Exit** in the tray menu.
+- If you prefer the X button to really exit, change **When the main window is closed** to **Exit the app completely** in **Settings**.
+- Only one instance runs at a time. Launching the app again brings the existing window to the front instead of opening a new one.
+
+## Folder password vs. master recovery password
+
+The app uses two different passwords.
+
+| Password | Where it is used |
+| --- | --- |
+| Folder password | Normal unlocking (app, Explorer right-click, tray) |
+| Master recovery password | Entering the recovery tool |
+
+- They are not interchangeable. The master recovery password cannot unlock folders normally, and the folder password cannot open the recovery tool.
+- The master recovery password only needs to be non-empty. There are no length or character rules and no limit on failed attempts. A password made only of spaces is technically allowed but easy to get wrong later, so it is not recommended.
+- The hint is optional. It is stored unencrypted and anyone at the recovery tool screen can view it — never write the password itself into the hint.
+- Both passwords can be changed from the main window: **Change password** (folder), **Change master password**, and **Change recovery hint**. Changing always requires the current password.
+
+> **Once more:** a forgotten master recovery password cannot be recovered, and the recovery tool becomes unusable.
+
+## Recovery tool
+
+The recovery tool is a separate program for these situations:
+
+- Unlocking from the main app does not work correctly
+- You need to restore a folder to its pre-lock permissions from a saved backup
+
+How it works:
+
+- Start it with the **Open recovery tool** button in the main window or the Start menu shortcut.
+- After approving the administrator prompt (UAC), you must enter the **master recovery password**. Until the password is correct, no folder or backup information is shown at all.
+- After authenticating, choose the folder and backup, then type `RESTORE` when prompted to run the restore.
+- The tool depends on saved backups. If backup files were deleted or damaged, recovery may not be possible.
+- The recovery tool is **not a password reset tool.** It cannot recover a forgotten folder password or master recovery password.
+
+See the [recovery guide](docs/recovery-guide.md) for details.
+
+## Start at Windows login
+
+Auto-start is optional.
+
+- You can enable it during installation with **Start automatically at Windows login (in the tray)**.
+- After installation, toggle it any time in the app's **Settings**.
+- When auto-started, the app begins quietly in the tray without opening the main window.
+- During a quiet tray start, first-run setup and data migration prompts are skipped; they appear the next time you open the app normally.
+
+## Uninstall, update, reinstall
+
+- **Update**: running a newer installer upgrades in place. Settings, registered folders, permission backups, and password data are kept.
+- **Uninstall**: if locked folders remain, the uninstaller warns you and cancels by default. Fully unlock all folders in the app before uninstalling.
+- Uninstalling never auto-deletes your data (settings, permission backups, master password data, logs). It stays under `%LOCALAPPDATA%\eslee-folder-locker`.
+- **Reinstalling** picks that data up again. Even if you uninstalled with folders still locked, installing again lets you continue unlocking and recovery.
+
+> **Caution:** deleting the `%LOCALAPPDATA%\eslee-folder-locker` folder by hand is not a reset method. Removing the permission backups and security data there can make locked folders unrecoverable. Before deleting it, make absolutely sure no folder is still locked.
+
+## Good to know
+
+- Runs on Windows 11, NTFS drives, x64.
+- Locking, unlocking, and recovery need a Windows administrator (UAC) approval. Normal app use does not.
+- No encryption. It cannot stop administrators on the same account, users who can edit permissions, or someone reading the disk from another OS.
+- No internet connection. There are no accounts, ads, analytics, or auto-updates.
+- The installer is not code-signed, so SmartScreen may warn on first run.
+- A forgotten master recovery password cannot be recovered.
+- Permission backup files are stored unencrypted in the user data folder.
+- Dangerous paths cannot be locked: entire drives (`C:\` etc.), Windows system folders, Program Files, the whole user profile, and the OneDrive root.
+- Korean and English are supported; the language is chosen by which installer you download.
+
+## Privacy and local data
+
+The app sends nothing anywhere. Settings, registered folder information, permission backups, security data, and logs are stored on your PC under `%LOCALAPPDATA%\eslee-folder-locker`. If you use the Explorer right-click menu or auto-start, the matching launch entries are also added to the Windows per-user registry; they are removed when you turn those features off in the app or uninstall.
+
+What is stored under `%LOCALAPPDATA%\eslee-folder-locker`:
+
+- The paths and lock states of registered folders
+- The original password is not stored. The app stores only a hash and salt used to verify password attempts.
+- The master password hint is stored as you typed it (plain text).
+- Pre-lock permission backups (unencrypted)
+- Operation logs (may include operation type, time, and target folder paths)
+
+When attaching logs to a GitHub issue, remove or mask personal folder names and paths first.
+
+## Troubleshooting
+
+### Windows blocks the installer
+
+- **Check first**: make sure the file came from this repository's [official releases page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest).
+- **Fix**: if the file did come from the official releases page, click **More info** → **Run anyway** in the SmartScreen dialog. The warning may appear because the installer is unsigned.
+
+### I can't add a folder
+
+- **Check first**: entire drives, Windows system folders, Program Files, the whole user profile, and the OneDrive root cannot be registered. Removable drives and non-NTFS drives are not supported.
+- **Fix**: pick a regular folder on a local fixed NTFS drive — for example, a specific subfolder inside Documents.
+
+### I cancelled the administrator prompt during lock/unlock
+
+- **Symptom**: a message like "UAC elevation was canceled" appears and nothing changes.
+- **Fix**: changing permissions requires admin approval. Run the same action again and click **Yes** this time. Cancelling does not leave the folder in a broken state.
+
+### I clicked X and the app disappeared
+
+- **Symptom**: the window closed but the app seems to still be doing things.
+- **Explanation**: it did not exit — it moved to the system tray, silently by design.
+- **Fix**: double-click the tray icon, or right-click it and choose **Open eslee Folder Locker**. Use **Exit** in the tray menu to quit completely. You can make X really exit under **Settings**.
+
+### The Explorer right-click entry is missing
+
+- **Check first**: on Windows 11 it may be under **Show more options**, or use `Shift + right-click`.
+- **Fix**: if it is still missing, click **Register Explorer menu** in the app's main window.
+
+### A temporary unlock didn't re-lock
+
+- **Check first**: automatic re-locking works while you are logged in. If the PC was off, it re-locks after your next login.
+- **Fix**: to re-lock immediately, select the folder in the app and click **Lock**. If it keeps happening, check **View logs** for errors.
+
+### I forgot the master recovery password
+
+- Unfortunately there is no way back. There is no reset, no recovery code, no administrator or developer override, and the password cannot be replaced without knowing the current one.
+- **Normal unlocking still works if you know the folder password.** However, there is no way to view or replace a forgotten master recovery password, and the recovery tool stays unusable.
+- Deleting the security data file is not a fix and makes recovery harder.
+
+### The recovery tool won't run
+
+- **Check first**: make sure you did not cancel the administrator prompt, and that a master recovery password has been set — the tool is unavailable before that.
+- **Fix**: reinstall the latest version. If it still fails, open a [GitHub issue](https://github.com/esleeeeee/eslee-folder-locker/issues) with the contents of **View logs** (personal paths removed).
+
+### The uninstaller warns about locked folders
+
+- **Explanation**: uninstalling with folders still locked makes later unlocking awkward, so the uninstaller cancels by default.
+- **Fix**: open the app, fully unlock every folder, then uninstall. If you already uninstalled, reinstalling picks up the existing data so you can continue.
+
+If your problem is not solved, open a [GitHub issue](https://github.com/esleeeeee/eslee-folder-locker/issues) with the symptom, the steps to reproduce it, and the log contents (personal paths removed).
+
+## How it works
+
+In short:
+
+```mermaid
+flowchart TD
+    A[Register folder] --> B[Back up current permissions]
+    B --> C[Apply access restriction]
+    C --> D[Verify password to unlock]
+    D --> E[Restore backed-up permissions]
 ```
 
-While locked, normal user-context operations are expected to fail:
+1. Before locking, the app backs up the folder's Windows access permissions.
+2. It then adds a restriction so your current account cannot access the folder.
+3. Unlocking removes that restriction or restores the backed-up permissions.
+4. If something goes wrong, the recovery tool tries to restore permissions from the saved backup.
 
-- Opening the folder
-- Listing folder contents
-- Reading files
-- Writing files
-- Creating new files
-- Creating child folders
-- Deleting files
-- Renaming files
-- Copying external files into the locked folder
+For internals, see the [architecture](docs/architecture.md) and [ACL design](docs/acl-design.md) documents.
 
-The original permissions are saved as JSON ACL backups. The recovery tool uses those backups to restore the original ACL state.
+## Developer documentation
 
-## Quick Mode And Hardened Mode
-
-| Mode | What it does | Recommended for |
-| --- | --- | --- |
-| Quick mode | Applies the lock only to the selected folder root. | Blocking ordinary File Explorer entry quickly |
-| Hardened mode | Recursively processes child folders and files, backing up and changing each ACL. | Stronger blocking across existing child items |
-
-Hardened mode can take longer when a folder contains many items. It does not launch `icacls`, PowerShell, or `cmd.exe` once per file. A single elevated helper process uses .NET file enumeration APIs and Windows ACL APIs directly.
-
-## Unlock From File Explorer
-
-The app can register a File Explorer right-click unlock command.
-
-On Windows 11, the command may appear under `Show more options`. `Shift + right-click` opens the expanded context menu directly.
-
-English menu text:
-
-```text
-Unlock with eslee Folder Locker
-```
-
-After entering the correct password, you can choose how long the folder should stay unlocked:
-
-- 1 minute
-- 5 minutes
-- 10 minutes
-- 30 minutes
-- 1 hour
-- 1 day
-- Permanent unlock
-
-Temporary unlock stores an absolute UTC expiration time. If the PC is turned off before the selected duration expires, the app attempts to relock after the next Windows login. If the expiration time already passed while the PC was off, it attempts to relock immediately.
-
-## System Tray
-
-Since v1.2.0 the app shows a system tray icon while running.
-
-- Double-click the tray icon to open the main window.
-- Right-click menu: open the app, the locked-folder list (selecting one starts the password unlock flow directly), open the recovery tool, settings, and exit.
-- Closing the main window minimizes to the tray **silently** by default — no balloon tip, toast, or popup; the app keeps running. Use the tray menu's `Exit` to quit completely.
-- `Settings` lets you change the close behavior (minimize to tray / exit) and enable start-at-login.
-- Auto-start launches quietly in the tray and can also be enabled as an optional installer task. The installer registers `--tray`, while enabling it from the app settings registers `--tray --data-root "<data path>"` with the installed data root spelled out. Both behave identically on the default installed data root, but the registered command strings differ.
-- Only one main app instance runs per user session; a second launch activates the existing window instead of opening a new one.
-
-The tray's locked-folder menu reflects the current lock states every time it opens, and unlocking uses the same per-folder password flow as the Explorer context menu.
-
-## What Happens If I Uninstall?
-
-Do not uninstall while folders are still locked.
-
-- The uninstaller warns strongly when locked folders remain and cancels by default; continuing requires two explicit confirmations.
-- Uninstalling never deletes the settings, ACL backups, or master recovery password data under `%LOCALAPPDATA%\eslee-folder-locker`.
-- Reinstalling picks up the existing data and recovery state, so folders can be unlocked or restored afterwards.
-
-If you already uninstalled while folders were locked:
-
-1. Download and install the same or a newer installer from GitHub.
-2. Run the app or the recovery tool; existing data is detected automatically.
-3. In the recovery tool, enter the master recovery password and select the ACL backup to restore.
-
-If you also deleted the ACL backups under `%LOCALAPPDATA%\eslee-folder-locker`, the app cannot reconstruct the original permissions automatically. A Windows administrator must manually inspect the folder permissions and remove the deny rules or repair the ACL.
-
-## Paths The App Blocks
-
-To reduce the chance of locking system paths or making recovery difficult, the app refuses risky targets:
-
-- Drive roots
-- Windows system folders
-- Program Files
-- ProgramData
-- User profile root
-- OneDrive root
-- This project folder and its parent paths
-- The `%LOCALAPPDATA%\eslee-folder-locker` data folder
-
-For example, paths like `C:\`, `D:\`, `C:\Windows`, or the entire user profile should not be locked.
-
-## Tested Behavior
-
-Integration tests are designed to use temporary folders under `tests`, not real user folders.
-
-Covered behavior includes:
-
-- Locked folders deny opening, listing, reading, writing, creating, deleting, renaming, and copying
-- Unlock restores the exact original ACL SDDL
-- Cancellation and errors roll back already changed items in reverse order
-- RecoveryTool can restore ACL backups from a separate process
-- RecoveryTool requires master password authentication even when launched directly, and reveals no folder data before authentication
-- Master password setup, verification, change, hint, corruption detection, and unlimited-retry behavior
-- Portable data migration copy-verify-activate flow, including source preservation on failure
-- Hardened mode handles 10,000+ items without per-item external process launches
-- UTC backup timestamps are shown to users in local time
-- Password validation and WPF dialog layout checks
-
-## Build From Source
-
-You need the .NET 8 SDK.
+Building requires the .NET 8 SDK.
 
 ```powershell
 git clone https://github.com/esleeeeee/eslee-folder-locker.git
 Set-Location eslee-folder-locker
-dotnet restore .\FolderGate.sln
-dotnet build .\FolderGate.sln
-```
-
-Build the Korean UI:
-
-```powershell
-dotnet build .\FolderGate.sln -p:AppLanguage=ko
-```
-
-Build the English UI:
-
-```powershell
 dotnet build .\FolderGate.sln -p:AppLanguage=en
-```
-
-Standard tests:
-
-```powershell
 dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 ```
 
-Elevation-required recovery tests:
+Build the Korean UI with `-p:AppLanguage=ko`. Installers are built with `installer\Build-Installers.ps1` (requires Inno Setup 6).
 
-```powershell
-dotnet test .\tests\FolderGate.IntegrationTests\FolderGate.IntegrationTests.csproj --filter "TestCategory=RequiresElevation"
-```
+- [Architecture](docs/architecture.md) — project layout, data paths, master password design
+- [ACL design](docs/acl-design.md) — how permissions are changed
+- [Recovery guide](docs/recovery-guide.md) — detailed recovery tool usage
+- [Limitations](docs/limitations.md) — the security model's boundaries
+- [Test results](docs/test-results.md) — how to run the tests and what they cover
+- [CHANGELOG](CHANGELOG.md) — version history
 
-The elevation-required tests must be run from an elevated terminal.
-
-## Project Layout
-
-```text
-src/
-  FolderGate.App/             WPF desktop app
-  FolderGate.Core/            Models, validation, password, ACL, and storage logic
-  FolderGate.ElevatedHelper/  Performs actual ACL work after UAC elevation
-  FolderGate.RecoveryTool/    Standalone ACL recovery tool
-
-tests/
-  FolderGate.App.Tests/
-  FolderGate.Core.Tests/
-  FolderGate.IntegrationTests/
-
-installer/
-  Inno Setup script and installer build script
-
-assets/icons/
-  App icon source and Windows ICO
-
-tools/
-  Icon generation script, release privacy check script
-```
-
-## Technology
-
-- C#
-- .NET 8
-- WPF
-- Windows NTFS ACL
-- `System.Security.AccessControl`
-- PBKDF2-SHA256
-- JSON / JSON Lines
-- MSTest
-- GitHub Actions
-
-## Current Scope And Security Notes
-
-This utility provides lightweight local access control for a personal Windows PC.
-
-It cannot stop:
-
-- Administrators
-- Users who can take ownership or edit ACLs
-- Offline disk access
-- Malware
-- Forensic tools
-- Backup operator privileges
-
-Do not rely on this app as the only protection for sensitive data. Use BitLocker, Windows account separation, or a dedicated encryption tool when you need stronger security.
+The internal project name and namespaces remain `FolderGate` for compatibility. The project was developed end to end through vibe coding with an AI coding agent.
 
 ## License
 
-MIT License
+No separate license file is currently provided.
