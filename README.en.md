@@ -191,12 +191,12 @@ Auto-start is optional.
 
 ## Privacy and local data
 
-The app sends nothing anywhere. All data stays on your PC under `%LOCALAPPDATA%\eslee-folder-locker`.
+The app sends nothing anywhere. Settings, registered folder information, permission backups, security data, and logs are stored on your PC under `%LOCALAPPDATA%\eslee-folder-locker`. If you use the Explorer right-click menu or auto-start, the matching launch entries are also added to the Windows per-user registry; they are removed when you turn those features off in the app or uninstall.
 
-What is stored:
+What is stored under `%LOCALAPPDATA%\eslee-folder-locker`:
 
 - The paths and lock states of registered folders
-- Passwords are stored only as **verification values**, not as the original text. The original password cannot be derived from what is stored.
+- The original password is not stored. The app stores only a hash and salt used to verify password attempts.
 - The master password hint is stored as you typed it (plain text).
 - Pre-lock permission backups (unencrypted)
 - Operation logs (may include operation type, time, and target folder paths)
@@ -208,7 +208,7 @@ When attaching logs to a GitHub issue, remove or mask personal folder names and 
 ### Windows blocks the installer
 
 - **Check first**: make sure the file came from this repository's [official releases page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest).
-- **Fix**: in the SmartScreen dialog click **More info** → **Run anyway**. The warning is expected because the installer is unsigned.
+- **Fix**: if the file did come from the official releases page, click **More info** → **Run anyway** in the SmartScreen dialog. The warning may appear because the installer is unsigned.
 
 ### I can't add a folder
 
@@ -238,8 +238,8 @@ When attaching logs to a GitHub issue, remove or mask personal folder names and 
 
 ### I forgot the master recovery password
 
-- Unfortunately there is no way back. There is no reset, no recovery code, and no developer override.
-- The recovery tool becomes unusable, but **normal unlocking still works if you know the folder password.** Fully unlock every folder, then start over — that is the only path.
+- Unfortunately there is no way back. There is no reset, no recovery code, no administrator or developer override, and the password cannot be replaced without knowing the current one.
+- **Normal unlocking still works if you know the folder password.** However, there is no way to view or replace a forgotten master recovery password, and the recovery tool stays unusable.
 - Deleting the security data file is not a fix and makes recovery harder.
 
 ### The recovery tool won't run
@@ -297,4 +297,4 @@ The internal project name and namespaces remain `FolderGate` for compatibility. 
 
 ## License
 
-MIT License
+No separate license file is currently provided.
