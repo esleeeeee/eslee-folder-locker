@@ -98,6 +98,80 @@ public sealed class TrayIconService : IDisposable
         RefreshLockedFolders();
     }
 
+    /// <summary>
+    /// Tray Folder Hosted 모드 전환용 아이콘 표시 제어입니다. 앱의 백그라운드 동작은
+    /// 그대로 유지되며 아이콘만 숨겨집니다. UI 스레드에서 호출해야 합니다.
+    /// </summary>
+    public void SetTrayIconVisible(bool visible)
+    {
+        if (!_disposed)
+        {
+            _notifyIcon.Visible = visible;
+        }
+    }
+
+    /// <summary>Tray Folder가 렌더링할 현재 트레이 메뉴 스냅숏입니다. UI 스레드에서 호출해야 합니다.</summary>
+    public IReadOnlyList<TrayHostMenuItem> BuildHostedMenuItems() =>
+        TrayHostedMenu.Build(
+            () => _configStore.Load(),
+            ex => _logger.Failure(Guid.NewGuid().ToString("N"), "tray", "TrayMenu", null, ex));
+
+    /// <summary>
+    /// Tray Folder 메뉴에서 클릭된 항목을 실행합니다. 자체 트레이 메뉴의 클릭 핸들러와
+    /// 같은 동작을 UI 큐에 넘기고, 알려진 항목인지 여부만 즉시 돌려줍니다.
+    /// UI 스레드에서 호출해야 합니다.
+    /// </summary>
+    public bool TryStartMenuAction(string actionId)
+    {
+        if (_disposed || string.IsNullOrWhiteSpace(actionId))
+        {
+            return false;
+        }
+
+        if (actionId.StartsWith(TrayHostedMenu.UnlockActionPrefix, StringComparison.Ordinal))
+        {
+            string targetPath = actionId[TrayHostedMenu.UnlockActionPrefix.Length..];
+            if (string.IsNullOrWhiteSpace(targetPath))
+            {
+                return false;
+            }
+
+            PostMenuAction(() => _ = UnlockFromTrayAsync(targetPath));
+            return true;
+        }
+
+        switch (actionId)
+        {
+            case TrayHostedMenu.OpenAppActionId:
+                PostMenuAction(_showMainWindow);
+                return true;
+            case TrayHostedMenu.OpenRecoveryActionId:
+                PostMenuAction(_openRecoveryTool);
+                return true;
+            case TrayHostedMenu.OpenSettingsActionId:
+                PostMenuAction(_openSettings);
+                return true;
+            case TrayHostedMenu.ExitActionId:
+                PostMenuAction(_exitApplication);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void PostMenuAction(Action action) =>
+        _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                _logger.Failure(Guid.NewGuid().ToString("N"), "tray", "TrayMenuAction", null, ex);
+            }
+        });
+
     private void RefreshLockedFolders()
     {
         if (_disposed)

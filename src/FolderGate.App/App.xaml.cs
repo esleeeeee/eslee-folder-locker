@@ -17,6 +17,7 @@ public partial class App : System.Windows.Application
     private EventWaitHandle? _activationEvent;
     private RegisteredWaitHandle? _activationWait;
     private TrayIconService? _trayIcon;
+    private TrayHostLink? _trayHostLink;
     private MainWindow? _mainWindowInstance;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -72,6 +73,24 @@ public partial class App : System.Windows.Application
                 exitApplication: ExitFromTray,
                 refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage());
 
+            // Tray Folder 연동: Hosted 모드에서는 아이콘만 숨기고 잠금 기능은 그대로
+            // 유지됩니다. 연결이 끊어지면 링크가 아이콘을 자동 복구합니다.
+            JsonOperationLogger trayHostLogger = new(paths);
+            _trayHostLink = new TrayHostLink(
+                TrayHostLink.BuildDefaultPipeName(),
+                Environment.ProcessId,
+                visible => Dispatcher.InvokeAsync(() => _trayIcon?.SetTrayIconVisible(visible)).Task,
+                () => Dispatcher.InvokeAsync(ShowMainWindowFromTray).Task,
+                () => Dispatcher.InvokeAsync(
+                    () => _trayIcon?.BuildHostedMenuItems()
+                        ?? (IReadOnlyList<TrayHostMenuItem>)Array.Empty<TrayHostMenuItem>()).Task,
+                actionId => Dispatcher.InvokeAsync(() => _trayIcon?.TryStartMenuAction(actionId) ?? false).Task,
+                (eventName, message) => trayHostLogger.Info(
+                    Guid.NewGuid().ToString("N"), "tray", eventName, null, message),
+                (eventName, exception) => trayHostLogger.Failure(
+                    Guid.NewGuid().ToString("N"), "tray", eventName, null, exception));
+            _trayHostLink.Start();
+
             // --tray: quiet start for Windows login auto-start. Startup dialogs
             // (migration offer, first-run master setup) are skipped here; every
             // guarded action re-checks its own gate, and the prompts reappear on
@@ -93,6 +112,7 @@ public partial class App : System.Windows.Application
     {
         _activationWait?.Unregister(null);
         _activationEvent?.Dispose();
+        _trayHostLink?.Dispose();
         _trayIcon?.Dispose();
         if (_singleInstanceMutex is not null)
         {
