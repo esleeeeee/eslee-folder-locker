@@ -791,6 +791,18 @@ public sealed class MainViewModel : ObservableObject
         RefreshFolders(SelectedFolder?.Id);
     }
 
+    /// <summary>
+    /// Surfaces an available update in the status bar. Deliberately unobtrusive:
+    /// no dialog, no interruption of any running operation.
+    /// </summary>
+    public void NotifyUpdateAvailable(string latestVersion)
+    {
+        if (!IsBusy)
+        {
+            StatusMessage = AppText.UpdateAvailableStatusBar(latestVersion);
+        }
+    }
+
     private void RefreshFolders(string? selectedId = null)
     {
         _config = _configStore.Load();

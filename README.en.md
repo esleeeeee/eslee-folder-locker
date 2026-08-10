@@ -182,7 +182,7 @@ Auto-start is optional.
 - Runs on Windows 11, NTFS drives, x64.
 - Locking, unlocking, and recovery need a Windows administrator (UAC) approval. Normal app use does not.
 - No encryption. It cannot stop administrators on the same account, users who can edit permissions, or someone reading the disk from another OS.
-- No internet connection. There are no accounts, ads, analytics, or auto-updates.
+- There are no accounts, ads, analytics, or auto-updates. The app's only internet access is querying GitHub's public release information to check for a new version; if that check fails, locking is unaffected.
 - The installer is not code-signed, so SmartScreen may warn on first run.
 - A forgotten master recovery password cannot be recovered.
 - Permission backup files are stored unencrypted in the user data folder.
@@ -191,7 +191,7 @@ Auto-start is optional.
 
 ## Privacy and local data
 
-The app sends nothing anywhere. Settings, registered folder information, permission backups, security data, and logs are stored on your PC under `%LOCALAPPDATA%\eslee-folder-locker`. If you use the Explorer right-click menu or auto-start, the matching launch entries are also added to the Windows per-user registry; they are removed when you turn those features off in the app or uninstall.
+The app's only internet access is the update check: an anonymous query of GitHub's public release information that sends none of your data. When a new version exists the app only tells you — it never installs anything by itself. Settings, registered folder information, permission backups, security data, and logs are stored on your PC under `%LOCALAPPDATA%\eslee-folder-locker`. If you use the Explorer right-click menu or auto-start, the matching launch entries are also added to the Windows per-user registry; they are removed when you turn those features off in the app or uninstall.
 
 What is stored under `%LOCALAPPDATA%\eslee-folder-locker`:
 

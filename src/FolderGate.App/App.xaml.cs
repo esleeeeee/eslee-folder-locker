@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows;
 using FolderGate.App.Services;
 using FolderGate.Core.Localization;
+using FolderGate.Core.Models;
 using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
@@ -99,6 +100,11 @@ public partial class App : System.Windows.Application
             {
                 _mainWindowInstance.Show();
             }
+
+            // Fire-and-forget periodic update check (at most once per interval).
+            // Runs after the window/tray are up so a slow or absent network can
+            // never delay startup or affect locking.
+            _ = RunStartupUpdateCheckAsync(paths);
 
             return;
         }
@@ -213,6 +219,64 @@ public partial class App : System.Windows.Application
         }
 
         Shutdown(0);
+    }
+
+    /// <summary>
+    /// Startup update check: skipped while the last successful check is younger
+    /// than <see cref="UpdateCheckService.StartupCheckInterval"/> (a previously
+    /// seen newer version is still surfaced in the status bar). All failures are
+    /// logged quietly and never affect startup or locking.
+    /// </summary>
+    private async Task RunStartupUpdateCheckAsync(AppPaths paths)
+    {
+        try
+        {
+            ConfigStore configStore = new(paths);
+            FolderGateConfig config = configStore.Load();
+
+            if (config.LastUpdateCheckUtc is { } lastCheck &&
+                DateTimeOffset.UtcNow - lastCheck < UpdateCheckService.StartupCheckInterval)
+            {
+                if (UpdateCheckService.IsNewer(config.LastKnownLatestVersion, UpdateCheckService.CurrentVersion))
+                {
+                    _mainWindowInstance?.ViewModel.NotifyUpdateAvailable(config.LastKnownLatestVersion!);
+                }
+
+                return;
+            }
+
+            UpdateCheckResult result = await new UpdateCheckService().CheckAsync().ConfigureAwait(true);
+            if (!result.Success)
+            {
+                new JsonOperationLogger(paths).Info(
+                    Guid.NewGuid().ToString("N"), "update", "UpdateCheck", null,
+                    $"startup update check failed: {result.Error}");
+                return;
+            }
+
+            // Back on the dispatcher thread (ConfigureAwait(true)), so this save
+            // is serialized with every other UI-thread config write.
+            config = configStore.Load();
+            config.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+            config.LastKnownLatestVersion = result.LatestVersion;
+            configStore.Save(config);
+
+            if (result.IsUpdateAvailable)
+            {
+                _mainWindowInstance?.ViewModel.NotifyUpdateAvailable(result.LatestVersion!);
+            }
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                new JsonOperationLogger(paths).Failure(Guid.NewGuid().ToString("N"), "update", "UpdateCheck", null, ex);
+            }
+            catch (Exception)
+            {
+                // Never let the update check take the app down.
+            }
+        }
     }
 
     private static void TryMigrateExplorerContextMenu(AppPaths paths)

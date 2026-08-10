@@ -58,6 +58,42 @@ public sealed class ConfigStoreTests
     }
 
     [TestMethod]
+    public void UpdateCheckFields_DefaultNullRoundtripAndTolerateLegacyJson()
+    {
+        string root = CreateTestRoot();
+
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(root);
+            ConfigStore store = new(paths);
+
+            FolderGateConfig fresh = store.Load();
+            Assert.IsNull(fresh.LastUpdateCheckUtc, "A never-checked config must report null.");
+            Assert.IsNull(fresh.LastKnownLatestVersion);
+
+            DateTimeOffset checkedAt = DateTimeOffset.UtcNow;
+            fresh.LastUpdateCheckUtc = checkedAt;
+            fresh.LastKnownLatestVersion = "1.2.2";
+            store.Save(fresh);
+
+            FolderGateConfig loaded = store.Load();
+            Assert.AreEqual(checkedAt, loaded.LastUpdateCheckUtc);
+            Assert.AreEqual("1.2.2", loaded.LastKnownLatestVersion);
+
+            // Configs written by versions without the update fields must load
+            // cleanly with the defaults.
+            File.WriteAllText(paths.ConfigFilePath, "{\"Version\":1,\"Folders\":[]}");
+            FolderGateConfig legacy = store.Load();
+            Assert.IsNull(legacy.LastUpdateCheckUtc);
+            Assert.IsNull(legacy.LastKnownLatestVersion);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [TestMethod]
     public void CloseToTray_DefaultsTrueAndRoundtrips()
     {
         string root = CreateTestRoot();

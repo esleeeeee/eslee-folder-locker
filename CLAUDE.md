@@ -83,6 +83,15 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 - 로그에 비밀번호, 길이, 문자, 해시, salt, 힌트 내용을 기록하지 마세요.
 - ACL 백업 암호화는 의도적으로 제외했습니다(백업 가용성 우선). 근거는 `docs/limitations.md` 참고.
 
+## 업데이트 확인 (v1.2.2부터)
+
+- `UpdateCheckService`의 GitHub `/releases/latest` 익명 조회가 이 앱의 **유일한 네트워크 접근**입니다.
+  다른 네트워크 기능을 추가하면 README ko/en의 개인정보 문구도 함께 갱신해야 합니다.
+- **자동 업데이트를 구현하지 마세요.** 새 버전 안내와 Release 페이지 열기까지만 제공합니다.
+- draft·prerelease는 비교 대상에서 제외합니다. 네트워크 실패는 로그에만 기록하고
+  잠금·복구·트레이 동작에 어떤 영향도 주지 않아야 합니다.
+- 시작 시 자동 확인은 `LastUpdateCheckUtc` 기준 24시간에 1회로 제한됩니다 (config에 저장).
+
 ## 설치 파일 빌드
 
 ```bash

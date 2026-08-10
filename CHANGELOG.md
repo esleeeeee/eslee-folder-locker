@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.2.2
+
+### English
+
+- Added version display and an update check. The main window subtitle and the settings window show the running version, and the settings window gains a "Check for updates" button plus an "Open release page" button. The check compares against the latest stable GitHub release only — drafts and prereleases are ignored.
+- On startup the app quietly checks at most once every 24 hours; when a newer version is already known, the main status bar mentions it. There is no auto-update: updating is always done by downloading the installer from the release page yourself.
+- The update check is the app's only network access — a single anonymous query of the public release information that sends no personal data. Any network failure is logged quietly and never affects locking, recovery, the tray, or Tray Folder integration.
+
+### Korean
+
+- 버전 표시와 업데이트 확인이 추가되었습니다. 메인 창 부제목과 설정 창에 실행 중인 버전이 표시되고, 설정 창에 "업데이트 확인" 버튼과 "Release 페이지 열기" 버튼이 생겼습니다. 확인은 GitHub의 최신 정식 Release만 기준으로 하며 draft와 prerelease는 무시합니다.
+- 시작 시 24시간에 최대 1회 조용히 확인하고, 새 버전이 확인되어 있으면 메인 상태 표시줄에 알려줍니다. 자동 업데이트는 없습니다. 업데이트는 항상 Release 페이지에서 설치 파일을 직접 내려받아 진행합니다.
+- 업데이트 확인은 이 앱의 유일한 네트워크 접근으로, 공개 Release 정보를 익명으로 1회 조회할 뿐 개인 데이터를 보내지 않습니다. 네트워크 오류는 로그에만 조용히 기록되며 잠금·복구·트레이·Tray Folder 연동에 영향을 주지 않습니다.
+
 ## v1.2.1
 
 ### English
