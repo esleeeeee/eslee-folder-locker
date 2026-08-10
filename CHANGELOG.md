@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.2.1
+
+### English
+
+- Added the eslee Tray Folder integration: the app connects to Tray Folder over a named pipe, the Tray Folder tile shows run state, left-click opens the main window, and right-click serves the existing tray menu including the live locked-folder list with per-folder unlock.
+- Hosted mode hides the app's own tray icon while Tray Folder manages it; the icon restores automatically when Tray Folder exits or the connection drops, and the saved mode reapplies on reconnect.
+- Locking, recovery, the master recovery password, and all user data are unchanged. Without Tray Folder the app behaves exactly as before.
+
+### Korean
+
+- eslee Tray Folder 연동을 추가했습니다. 앱이 Named Pipe로 Tray Folder에 연결되어 타일에서 실행 상태를 보여주고, 좌클릭으로 메인 창을 열며, 우클릭으로 기존 트레이 메뉴(잠긴 폴더 목록의 폴더별 잠금 해제 포함)를 그대로 사용할 수 있습니다.
+- Hosted 모드에서는 자체 트레이 아이콘을 숨기고 Tray Folder가 대신 관리하며, Tray Folder가 종료되거나 연결이 끊어지면 아이콘이 자동으로 복구되고 재연결 시 저장된 모드가 다시 적용됩니다.
+- 잠금·복구 기능, 마스터 복구 비밀번호, 사용자 데이터는 변경되지 않습니다. Tray Folder 없이도 기존과 동일하게 동작합니다.
+
 ## v1.2.0
 
 ### English
