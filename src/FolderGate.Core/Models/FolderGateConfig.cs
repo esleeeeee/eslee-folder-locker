@@ -24,5 +24,19 @@ public sealed class FolderGateConfig
     /// </summary>
     public bool CloseToTray { get; set; } = true;
 
+    /// <summary>
+    /// When the last update check against GitHub completed successfully. Null
+    /// (including configs written by older versions) means never checked; the
+    /// startup check runs at most once per interval based on this value.
+    /// </summary>
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
+
+    /// <summary>
+    /// Latest stable release version seen by the most recent successful update
+    /// check (normalized, no "v" prefix). Lets the settings window show the last
+    /// known result without a network call.
+    /// </summary>
+    public string? LastKnownLatestVersion { get; set; }
+
     public List<RegisteredFolder> Folders { get; set; } = [];
 }

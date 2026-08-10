@@ -34,9 +34,10 @@
                 <TextBlock Text="{x:Static text:AppText.ProductName}"
                            FontSize="26"
                            FontWeight="SemiBold" />
-                <TextBlock Text="{x:Static text:AppText.MainSubtitle}"
-                           Foreground="#555"
-                           Margin="0,4,0,0" />
+                <TextBlock Foreground="#555"
+                           Margin="0,4,0,0">
+                    <Run Text="{x:Static text:AppText.MainSubtitle}" /><Run Text=" · " /><Run x:Name="VersionRun" />
+                </TextBlock>
             </StackPanel>
             <TextBlock DockPanel.Dock="Right"
                        Text="{Binding StatusMessage}"

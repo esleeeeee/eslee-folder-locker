@@ -24,6 +24,7 @@ public partial class MainWindow : Window
         ToolLocator toolLocator = new(paths);
         ViewModel = new MainViewModel(paths, new UserInteractionService(this), new ElevatedToolRunner(paths, toolLocator));
         DataContext = ViewModel;
+        VersionRun.Text = "v" + UpdateCheckService.CurrentVersion;
     }
 
     public MainViewModel ViewModel { get; }

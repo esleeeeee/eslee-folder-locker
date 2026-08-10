@@ -748,6 +748,48 @@ public static class AppText
         ? "Exit"
         : "종료";
 
+    // ----- Version and update check -----
+
+    public static string UpdateSectionLabel => LanguageCode == "en"
+        ? "Version & updates"
+        : "버전과 업데이트";
+
+    public static string CurrentVersionLabel => LanguageCode == "en"
+        ? "Current version"
+        : "현재 버전";
+
+    public static string CheckForUpdatesButton => LanguageCode == "en"
+        ? "Check for updates"
+        : "업데이트 확인";
+
+    public static string OpenReleasePageButton => LanguageCode == "en"
+        ? "Open release page"
+        : "Release 페이지 열기";
+
+    public static string UpdateStatusChecking => LanguageCode == "en"
+        ? "Checking for updates..."
+        : "업데이트를 확인하는 중...";
+
+    public static string UpdateStatusLatest => LanguageCode == "en"
+        ? "You are on the latest version."
+        : "최신 버전을 사용 중입니다.";
+
+    public static string UpdateStatusAvailable(string version) => LanguageCode == "en"
+        ? $"A new version v{version} is available. Download the installer from the release page."
+        : $"새 버전 v{version}을(를) 사용할 수 있습니다. Release 페이지에서 설치 파일을 내려받으세요.";
+
+    public static string UpdateStatusFailed => LanguageCode == "en"
+        ? "Update check failed. Check your network connection. Locking features are unaffected."
+        : "업데이트 확인에 실패했습니다. 네트워크 연결을 확인하세요. 잠금 기능에는 영향이 없습니다.";
+
+    public static string UpdateStatusNotChecked => LanguageCode == "en"
+        ? "Updates have not been checked yet."
+        : "아직 업데이트를 확인하지 않았습니다.";
+
+    public static string UpdateAvailableStatusBar(string version) => LanguageCode == "en"
+        ? $"New version v{version} available — see Settings."
+        : $"새 버전 v{version} 사용 가능 — 설정에서 확인하세요.";
+
     public static string TrayFolderListUnavailable => LanguageCode == "en"
         ? "Could not read the locked folder list"
         : "잠긴 폴더 목록을 읽을 수 없습니다";
