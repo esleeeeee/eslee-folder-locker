@@ -1,5 +1,7 @@
 # eslee Folder Locker
 
+Current release preparation: **v1.2.3** — [changes, validation and limits](.github/release-notes/v1.2.3.md).
+
 A local folder-locking app for Windows that restricts access to selected folders and lets you lock and unlock them with a password.
 
 [⬇️ **Download the latest release**](https://github.com/esleeeeee/eslee-folder-locker/releases/latest)
@@ -109,6 +111,8 @@ Hardened mode is not simply "more secure". Quick mode is the right starting poin
 When you unlock with a time limit, the app re-locks the folder when the time expires. If the PC was shut down or you logged out before that, the app checks at your next Windows login and re-locks — immediately if the time has already passed.
 
 Timed unlock schedules an automatic re-lock, so it is available only after the master recovery password has been set. Permanent unlock is always available.
+
+The login resume runner isolates failures per folder. A failed folder gets up to two more attempts after 30 and 60 seconds while other folders continue. Failures preserve access and recovery information and appear in the main window’s last operation time and result. If retries are exhausted, review that result and re-lock manually. Corrupt security credentials prevent new lock attempts.
 
 ## Using the system tray
 
