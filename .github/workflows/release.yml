@@ -7,6 +7,13 @@ on:
 
 permissions:
   contents: write
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-release:
@@ -20,6 +27,16 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+
+      - name: Validate tag and installer compiler
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $source = ([xml](Get-Content Directory.Build.props -Raw)).Project.PropertyGroup.Version
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $version -ne $source) { throw 'Tag must match source version.' }
+          if (-not (Test-Path ".github/release-notes/v$version.md")) { throw 'Missing release notes.' }
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
 
       - name: Restore
         run: dotnet restore .\FolderGate.sln
@@ -35,6 +52,13 @@ jobs:
 
       - name: Build English
         run: dotnet build .\FolderGate.sln -c Release --no-restore -p:AppLanguage=en
+
+      - name: Test English safe projects
+        run: |
+          dotnet test .\tests\FolderGate.Core.Tests\FolderGate.Core.Tests.csproj -c Release --no-build -p:AppLanguage=en
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build -p:AppLanguage=en
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Publish Korean app
         run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=ko -o .\artifacts\publish-ko
@@ -75,14 +99,14 @@ jobs:
       - name: Build installers
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          $version = "$env:GITHUB_REF_NAME".TrimStart("v")
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           foreach ($lang in "ko", "en") {
             & $iscc `
               "/DAppLanguage=$lang" `
               "/DAppVersion=$version" `
-              "/DSourceDir=${{ github.workspace }}\artifacts\publish-$lang" `
-              "/DOutputDir=${{ github.workspace }}\artifacts\installer" `
+              "/DSourceDir=$env:GITHUB_WORKSPACE\artifacts\publish-$lang" `
+              "/DOutputDir=$env:GITHUB_WORKSPACE\artifacts\installer" `
               .\installer\eslee-folder-locker.iss
             if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $lang" }
           }
@@ -91,16 +115,31 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path .\artifacts\release -Force | Out-Null
-          Compress-Archive -Path .\artifacts\publish-ko\* -DestinationPath ".\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-ko-win-x64.zip" -Force
-          Compress-Archive -Path .\artifacts\publish-en\* -DestinationPath ".\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-en-win-x64.zip" -Force
+          Compress-Archive -Path .\artifacts\publish-ko\* -DestinationPath ".\artifacts\release\eslee-folder-locker-$env:GITHUB_REF_NAME-ko-win-x64.zip" -Force
+          Compress-Archive -Path .\artifacts\publish-en\* -DestinationPath ".\artifacts\release\eslee-folder-locker-$env:GITHUB_REF_NAME-en-win-x64.zip" -Force
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+      - name: Record release provenance
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version-ko.exe", "artifacts/installer/eslee-folder-locker-setup-v$version-en.exe", "artifacts/release/eslee-folder-locker-v$version-ko-win-x64.zip", "artifacts/release/eslee-folder-locker-v$version-en-win-x64.zip")
+          ./scripts/Write-ReleaseManifest.ps1 -Version $version -AssetPaths $assets -VerifiedChecks @('Korean Core/App safe tests', 'English Core/App safe tests', 'Release privacy check', 'Korean/English publish and Inno installers')
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: eslee-folder-locker ${{ github.ref_name }}
-          body_path: .github/release-notes/${{ github.ref_name }}.md
-          files: |
-            .\artifacts\installer\*.exe
-            .\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-ko-win-x64.zip
-            .\artifacts\release\eslee-folder-locker-${{ github.ref_name }}-en-win-x64.zip
-          make_latest: true
+          name: release-${{ github.ref_name }}
+          path: |
+            artifacts/installer/
+            artifacts/release/
+            artifacts/release-manifest-*.json
+            artifacts/SHA256SUMS-*.txt
+
+      - name: Create new GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version-ko.exe", "artifacts/installer/eslee-folder-locker-setup-v$version-en.exe", "artifacts/release/eslee-folder-locker-v$version-ko-win-x64.zip", "artifacts/release/eslee-folder-locker-v$version-en-win-x64.zip", "artifacts/release-manifest-v$version.json", "artifacts/SHA256SUMS-v$version.txt")
+          gh release create "v$version" --verify-tag --title "eslee Folder Locker v$version" --notes-file ".github/release-notes/v$version.md" @assets
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed; existing releases are never overwritten.' }
