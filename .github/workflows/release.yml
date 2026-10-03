@@ -32,7 +32,9 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $source = ([xml](Get-Content Directory.Build.props -Raw)).Project.PropertyGroup.Version
+          $versions = @(([xml](Get-Content Directory.Build.props -Raw)).Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          if ($versions.Count -ne 1) { throw 'Exactly one nonempty source version is required.' }
+          $source = [string]$versions[0]
           if ($version -notmatch '^\d+\.\d+\.\d+$' -or $version -ne $source) { throw 'Tag must match source version.' }
           if (-not (Test-Path ".github/release-notes/v$version.md")) { throw 'Missing release notes.' }
           choco install innosetup --no-progress -y
