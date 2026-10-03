@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <AppLanguage Condition="'$(AppLanguage)' == ''">ko</AppLanguage>
-    <Version>1.2.3</Version>
-    <FileVersion>1.2.3.0</FileVersion>
-    <InformationalVersion>1.2.3</InformationalVersion>
+    <Version>1.2.4</Version>
+    <FileVersion>1.2.4.0</FileVersion>
+    <InformationalVersion>1.2.4</InformationalVersion>
     <RepositoryRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)'))</RepositoryRoot>
     <PathMap>$(RepositoryRoot)=/_/</PathMap>
     <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
