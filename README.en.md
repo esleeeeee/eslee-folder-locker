@@ -1,6 +1,6 @@
 # eslee Folder Locker
 
-Current release preparation: **v1.2.3** — [changes, validation and limits](.github/release-notes/v1.2.3.md).
+Current release preparation: **v1.2.4** — [changes, validation and limits](.github/release-notes/v1.2.4.md).
 
 A local folder-locking app for Windows that restricts access to selected folders and lets you lock and unlock them with a password.
 
