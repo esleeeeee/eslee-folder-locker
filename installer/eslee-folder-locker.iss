@@ -1,7 +1,7 @@
 ; eslee Folder Locker installer script (Inno Setup 6).
 ; Build per language:
-;   ISCC /DAppLanguage=ko /DAppVersion=1.2.0 /DSourceDir=..\artifacts\publish-ko installer\eslee-folder-locker.iss
-;   ISCC /DAppLanguage=en /DAppVersion=1.2.0 /DSourceDir=..\artifacts\publish-en installer\eslee-folder-locker.iss
+;   ISCC /DAppLanguage=ko /DAppVersion=1.2.3 /DSourceDir=..\artifacts\publish-ko installer\eslee-folder-locker.iss
+;   ISCC /DAppLanguage=en /DAppVersion=1.2.3 /DSourceDir=..\artifacts\publish-en installer\eslee-folder-locker.iss
 ;
 ; Both language installers share one AppId, so installing either upgrades the
 ; existing installation in place (switching binary language is supported).
@@ -13,7 +13,7 @@
   #define AppLanguage "ko"
 #endif
 #ifndef AppVersion
-  #define AppVersion "1.2.0"
+  #define AppVersion "1.2.3"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\artifacts\publish-" + AppLanguage

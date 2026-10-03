@@ -1,0 +1,41 @@
+name: Safe regression tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ko, en]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # Explicit safe projects only: no elevated ACL, shutdown, or app-launch acceptance tests.
+      - name: Test FolderGate.Core.Tests
+        run: dotnet test tests/FolderGate.Core.Tests/FolderGate.Core.Tests.csproj -c Release -p:AppLanguage=${{ matrix.language }} --logger "trx;LogFileName=FolderGate.Core.Tests.trx" --results-directory TestResults
+      - name: Test FolderGate.App.Tests
+        run: dotnet test tests/FolderGate.App.Tests/FolderGate.App.Tests.csproj -c Release -p:AppLanguage=${{ matrix.language }} --logger "trx;LogFileName=FolderGate.App.Tests.trx" --results-directory TestResults
+      - name: Record build provenance
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force TestResults | Out-Null
+          $provenance = @{ commit = $env:GITHUB_SHA; language = '${{ matrix.language }}'; sdk = (dotnet --version); files = @(Get-ChildItem src -Recurse -File | Where-Object { $_.FullName -match '[\\/]bin[\\/]Release[\\/]' -and $_.Extension -in '.dll', '.exe' } | ForEach-Object { @{ path = [IO.Path]::GetRelativePath($PWD.Path, $_.FullName); sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash } }) }
+          $provenance | ConvertTo-Json -Depth 5 | Set-Content TestResults/build-provenance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tests-${{ matrix.language }}
+          path: TestResults/

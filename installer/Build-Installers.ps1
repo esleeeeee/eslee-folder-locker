@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 Builds the Korean and English eslee Folder Locker installers.
 
@@ -11,7 +11,7 @@ Requires: .NET SDK, Inno Setup 6 (ISCC.exe on PATH or in a standard location).
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.2.0",
+    [string]$Version = "1.2.3",
     [ValidateSet("ko", "en", "both")]
     [string]$Language = "both"
 )
