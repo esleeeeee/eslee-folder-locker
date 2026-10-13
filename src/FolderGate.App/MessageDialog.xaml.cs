@@ -61,9 +61,10 @@ public partial class MessageDialog : ThemedWindow
         DialogKind kind,
         string primaryText,
         string? secondaryText = null,
-        bool danger = false)
+        bool danger = false,
+        bool topmost = false)
     {
-        MessageDialog dialog = new(heading, message, kind, primaryText, secondaryText, danger);
+        MessageDialog dialog = new(heading, message, kind, primaryText, secondaryText, danger) { Topmost = topmost };
         if (owner is { IsLoaded: true, IsVisible: true })
         {
             dialog.Owner = owner;

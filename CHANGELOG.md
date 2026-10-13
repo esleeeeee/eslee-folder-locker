@@ -15,6 +15,8 @@
 - Per-folder password: in a folder's "..." menu, "Set a password for this folder" / "Change this folder's password" and "Use the shared password again". Other folders keep the shared password (Settings > Security). Changing a folder password asks for its current password.
 - Folders that are missing or on an offline drive show a warning and count as "Needs attention"; lock and unlock are disabled for them.
 - Per-folder "Recent activity" in the details pane.
+- Right-click a folder in the list for Unlock, Lock, Lock now, Open in File Explorer, and Remove folder.
+- Locked folder notice: while the app is running, opening a folder it locked in File Explorer shows the app's own notice with an Unlock button instead of the Windows "You don't currently have permission to access this folder" dialog (Settings > File Explorer, on by default). The app watches for that File Explorer dialog without injecting anything into Explorer and leaves any dialog it cannot match with certainty alone.
 - Accessibility: screen readers announce folder names, unlock durations, and the icon buttons by name, and the Settings switches are saved however they are changed (mouse, keyboard, or assistive tools).
 - Reliability fixes: a folder is never locked twice (a second lock used to make later unlocks keep the folder denied); operations on the same folder are serialized across processes, including the recovery tool; a temporary unlock that another operation took over is not re-locked; when a temporarily unlocked folder is moved or its drive is disconnected, the re-lock is skipped and the folder stays marked as temporarily unlocked instead of failing, and the login re-lock no longer asks for UAC confirmation for it; configuration changes made during an operation are no longer overwritten; configuration writes are safer with several processes running; a folder in the "recovery required" state no longer offers Lock (use the recovery tool or unlock).
 - Unchanged: data location, master recovery password rules, ACL backups, tray behavior, and the update check, which is still the app's only network access. The app still does not encrypt anything.
@@ -32,6 +34,8 @@
 - 폴더 전용 비밀번호: 폴더의 "⋯" 메뉴에서 "이 폴더 전용 비밀번호 설정/변경"과 "공통 비밀번호로 되돌리기"를 쓸 수 있습니다. 다른 폴더는 공통 비밀번호(설정 > 보안)를 그대로 씁니다. 폴더 전용 비밀번호를 바꿀 때는 현재 비밀번호를 묻습니다.
 - 폴더를 찾을 수 없거나 드라이브가 연결되어 있지 않으면 경고가 표시되고 "확인 필요"로 집계되며, 해당 폴더의 잠금과 해제 버튼이 비활성화됩니다.
 - 상세 화면에 폴더별 "최근 기록"이 표시됩니다.
+- 목록에서 폴더를 우클릭하면 잠금 해제, 잠금, 지금 다시 잠그기, 탐색기에서 열기, 폴더 제거를 쓸 수 있습니다.
+- 잠긴 폴더 안내: 앱이 실행 중일 때 앱이 잠근 폴더를 파일 탐색기에서 열면 Windows의 "현재 이 폴더에 액세스할 수 있는 권한이 없습니다" 창 대신 잠금 해제 버튼이 있는 앱 안내가 뜹니다(설정 > 파일 탐색기, 기본 켜짐). 탐색기에 아무것도 주입하지 않고 그 창이 뜨는 것만 감지하며, 확실히 판단할 수 없는 창은 그대로 둡니다.
 - 접근성: 화면 낭독기가 폴더 이름, 잠금 해제 시간, 아이콘 버튼을 이름으로 읽고, 설정 창의 스위치는 마우스·키보드·보조 기술 어느 방법으로 바꿔도 저장됩니다.
 - 안정성 수정: 폴더가 두 번 잠기지 않습니다(두 번째 잠금 때문에 이후 해제해도 폴더가 계속 막혀 있던 문제). 같은 폴더에 대한 작업은 복구 도구를 포함해 프로세스 사이에서도 한 번에 하나씩 처리됩니다. 다른 작업이 넘겨받은 임시 해제는 다시 잠그지 않습니다. 임시 해제한 폴더가 옮겨지거나 드라이브가 분리되면 재잠금을 건너뛰고 임시 해제 상태로 남기며, 로그인 시 재잠금도 이 폴더에 대해 UAC 확인을 묻지 않습니다. 작업 중에 바뀐 설정이 덮어써지지 않습니다. 여러 프로세스가 동시에 실행될 때 설정 파일 쓰기가 더 안전해졌습니다. "복구 필요" 상태의 폴더에는 더 이상 잠금 버튼이 표시되지 않습니다(복구 도구나 잠금 해제를 사용하세요).
 - 변경 없음: 데이터 위치, 마스터 복구 비밀번호 규칙, ACL 백업, 트레이 동작, 업데이트 확인(앱의 유일한 네트워크 접근)은 그대로입니다. 앱은 여전히 아무것도 암호화하지 않습니다.

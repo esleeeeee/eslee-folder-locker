@@ -101,6 +101,19 @@ public partial class MainWindow : ThemedWindow
         SettingsWindow.ShowFor(_paths, this, ViewModel);
     }
 
+    private void FolderList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // Only on a folder, never on the empty part of the list.
+        if (e.OriginalSource is not DependencyObject source ||
+            ItemsControl.ContainerFromElement(FolderList, source) is not ListBoxItem item)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        item.IsSelected = true;
+    }
+
     private void MoreButton_Click(object sender, RoutedEventArgs e)
     {
         if (MoreButton.ContextMenu is { } menu)

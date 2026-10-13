@@ -285,6 +285,27 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xE7BA;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.SettingsLockedNoticeTitle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsLockedNoticeDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <CheckBox x:Name="LockedNoticeOption"
+                                          Grid.Column="2"
+                                          Style="{DynamicResource ToggleSwitch}"
+                                          Margin="16,0,0,0"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="{x:Static text:AppText.SettingsLockedNoticeTitle}"
+                                          Checked="LockedNoticeOption_Changed"
+                                          Unchecked="LockedNoticeOption_Changed" />
+                            </Grid>
+                            <Separator Margin="0" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Style="{StaticResource RowIcon}" Text="&#xE81C;" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="{x:Static text:AppText.SettingsLogsTitle}" />

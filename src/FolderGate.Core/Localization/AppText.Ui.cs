@@ -359,4 +359,19 @@ public static partial class AppText
     public static string No => LanguageCode == "en" ? "No" : "아니요";
 
     public static string HidePasswordToggle => LanguageCode == "en" ? "Hide" : "숨기기";
+
+    // ===== Locked folder notice (replaces File Explorer's permission dialog) =====
+    public static string LockedFolderNoticeTitle => LanguageCode == "en" ? "Locked folder" : "잠긴 폴더";
+
+    public static string LockedFolderNoticeMessage(string folderName) => LanguageCode == "en"
+        ? $"'{folderName}' is locked by eslee Folder Locker. To open it, unlock it with its password."
+        : $"'{folderName}' 폴더는 eslee Folder Locker로 잠겨 있습니다. 열려면 비밀번호로 잠금을 해제하세요.";
+
+    public static string SettingsLockedNoticeTitle => LanguageCode == "en"
+        ? "Show this app's notice for locked folders"
+        : "잠긴 폴더를 열 때 앱 안내 표시";
+
+    public static string SettingsLockedNoticeDescription => LanguageCode == "en"
+        ? "Opening a locked folder in File Explorer shows this app's notice with an Unlock button instead of the Windows permission dialog. Works while the app is running."
+        : "파일 탐색기에서 잠긴 폴더를 열면 Windows 권한 경고 대신 잠금 해제 버튼이 있는 앱 안내를 띄웁니다. 앱이 실행 중일 때 동작합니다.";
 }

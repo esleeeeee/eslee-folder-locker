@@ -258,7 +258,50 @@
                              ItemsSource="{Binding FoldersView}"
                              SelectedItem="{Binding SelectedFolder, Mode=TwoWay}"
                              ItemTemplate="{StaticResource FolderItemTemplate}"
-                             AutomationProperties.Name="{x:Static text:AppText.FoldersHeader}" />
+                             AutomationProperties.Name="{x:Static text:AppText.FoldersHeader}"
+                             ContextMenuOpening="FolderList_ContextMenuOpening">
+                        <!-- Right-click on a folder: the commands act on the selected
+                             folder, and the right click selects it first. Actions that
+                             do not apply to the folder's state are hidden. -->
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{x:Static text:AppText.Unlock}"
+                                          Command="{Binding UnlockCommand}"
+                                          Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE785;" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{x:Static text:AppText.Lock}"
+                                          Command="{Binding LockCommand}"
+                                          Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE72E;" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{x:Static text:AppText.RelockNow}"
+                                          Command="{Binding RelockNowCommand}"
+                                          Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE72E;" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{x:Static text:AppText.OpenInExplorer}"
+                                          Command="{Binding OpenInExplorerCommand}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE838;" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator Margin="4" />
+                                <MenuItem Header="{x:Static text:AppText.RemoveFolder}"
+                                          Command="{Binding RemoveFolderCommand}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE74D;" Foreground="{DynamicResource CriticalForegroundBrush}" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                    </ListBox>
                     <TextBlock Text="{x:Static text:AppText.NoSearchResults}"
                                Style="{DynamicResource CaptionText}"
                                Margin="8,16,8,0"

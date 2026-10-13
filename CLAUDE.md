@@ -151,6 +151,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers
 - 자동 잠금(`SessionLockRelockService`)은 Windows 잠금(`SessionLock`)과 절전(`Suspend`)에서만 임시 해제의 만료 시각을 당깁니다.
   **로그아웃·종료에는 반응하지 않습니다**(도우미가 재잠금 도중 종료될 수 있음). 완전히 해제된 폴더는 UAC 없이 잠글 수 없으므로 자동 잠금 대상이 아닙니다.
 - 찾을 수 없는 폴더·분리된 드라이브(`FolderPresenceProbe`)는 잠금/해제를 비활성화합니다. 잠긴 폴더 자체의 속성을 읽어 존재 여부를 판단하지 마세요.
+- 잠긴 폴더 안내(`LockedFolderAccessWatcher`)는 out-of-context WinEvent 훅과 UI Automation으로 탐색기의 권한 경고 창을 **읽기만** 합니다. 탐색기에 DLL을 주입하거나 탐색기 동작을 바꾸지 마세요.
+  `LockedFolderAccessMatcher`가 잠긴 폴더 하나로 확실히 판단할 때만 그 창을 닫고 앱 안내를 띄우며, 애매하면 Windows 창을 그대로 둡니다. 해제는 탐색기 우클릭과 같은 `--unlock-path` 흐름을 씁니다.
+- Windows 11 새 우클릭 메뉴 항목은 패키지 ID(코드 서명된 sparse package)가 필요해 지원하지 않습니다. 자체 서명 인증서를 신뢰 저장소에 설치하는 방식은 쓰지 마세요.
 
 ## ACL 작업 안전 규칙
 

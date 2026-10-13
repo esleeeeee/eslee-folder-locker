@@ -23,6 +23,8 @@ public partial class App : System.Windows.Application
     private TrayHostLink? _trayHostLink;
     private MainWindow? _mainWindowInstance;
     private AppPaths? _paths;
+    private LockedFolderAccessWatcher? _lockedFolderWatcher;
+    private bool _lockedNoticeOpen;
     private SessionLockRelockService? _sessionLockRelock;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -123,6 +125,9 @@ public partial class App : System.Windows.Application
                     Guid.NewGuid().ToString("N"), "tray", eventName, null, exception));
             _trayHostLink.Start();
             _sessionLockRelock = new SessionLockRelockService(paths);
+            ConfigStore watcherConfig = new(paths);
+            _lockedFolderWatcher = new LockedFolderAccessWatcher(watcherConfig.Load, ShowLockedFolderNotice, Dispatcher);
+            _lockedFolderWatcher.Start();
 
             // --tray: quiet start for Windows login auto-start. Startup dialogs
             // (migration offer, first-run master setup) are skipped here; every
@@ -151,6 +156,7 @@ public partial class App : System.Windows.Application
         _activationWait?.Unregister(null);
         _activationEvent?.Dispose();
         _sessionLockRelock?.Dispose();
+        _lockedFolderWatcher?.Dispose();
         _trayHostLink?.Dispose();
         _trayIcon?.Dispose();
         if (_singleInstanceMutex is not null)
@@ -249,6 +255,47 @@ public partial class App : System.Windows.Application
     /// single-instance mutex is released first so the new instance becomes the
     /// main one instead of just activating this window.
     /// </summary>
+    /// <summary>
+    /// Shown instead of File Explorer's permission dialog for a folder this app
+    /// locked. Unlocking runs the same prompt as the Explorer right-click entry.
+    /// </summary>
+    private void ShowLockedFolderNotice(RegisteredFolder folder)
+    {
+        if (_lockedNoticeOpen)
+        {
+            return;
+        }
+
+        _lockedNoticeOpen = true;
+        try
+        {
+            string name = string.IsNullOrWhiteSpace(folder.DisplayName) ? Path.GetFileName(folder.Path.TrimEnd('\\')) : folder.DisplayName;
+            // Topmost: the app is in the background while File Explorer has focus.
+            if (MessageDialog.Show(null, AppText.LockedFolderNoticeTitle, AppText.LockedFolderNoticeMessage(name),
+                    DialogKind.Warning, AppText.Unlock, AppText.Close, topmost: true) &&
+                Environment.ProcessPath is { } executable && _paths is not null)
+            {
+                System.Diagnostics.ProcessStartInfo startInfo = new(executable) { UseShellExecute = false };
+                startInfo.ArgumentList.Add("--unlock-path");
+                startInfo.ArgumentList.Add(folder.Path);
+                foreach (string argument in ElevatedToolRunner.DataLocationArguments(_paths))
+                {
+                    startInfo.ArgumentList.Add(argument);
+                }
+
+                System.Diagnostics.Process.Start(startInfo);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            AppDialog.Error(null, ex.Message);
+        }
+        finally
+        {
+            _lockedNoticeOpen = false;
+        }
+    }
+
     public void RestartApplication()
     {
         string? executable = Environment.ProcessPath;

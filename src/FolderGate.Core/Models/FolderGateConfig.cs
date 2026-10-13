@@ -48,9 +48,16 @@ public sealed class FolderGateConfig
 
     /// <summary>
     /// When true, temporarily unlocked folders are re-locked as soon as Windows is
-    /// locked (Win+L), the user signs out, or the PC goes to sleep. Off by default.
+    /// locked (Win+L) or the PC goes to sleep. Off by default.
     /// </summary>
     public bool RelockOnSessionLock { get; set; }
+
+    /// <summary>
+    /// When true (default), the running app replaces File Explorer's "you don't
+    /// have permission" dialog for a folder it locked with its own notice, which
+    /// offers to unlock the folder.
+    /// </summary>
+    public bool ShowLockedFolderNotice { get; set; } = true;
 
     /// <summary>
     /// Duration preselected in the unlock dialog, in minutes. 0 preselects

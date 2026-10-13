@@ -50,6 +50,7 @@ public partial class SettingsWindow : ThemedWindow
         };
         AutoStartOption.IsChecked = _autoStartService.IsEnabled();
         RelockOnSessionLockOption.IsChecked = config.RelockOnSessionLock;
+        LockedNoticeOption.IsChecked = config.ShowLockedFolderNotice;
         DefaultUnlockChoice.ItemsSource = UnlockDurationOption.Defaults;
         DefaultUnlockChoice.SelectedIndex = UnlockDurationOption.IndexOf(config.DefaultUnlockMinutes);
         _loading = false;
@@ -167,6 +168,17 @@ public partial class SettingsWindow : ThemedWindow
 
         bool enabled = RelockOnSessionLockOption.IsChecked == true;
         SaveConfig(config => config.RelockOnSessionLock = enabled);
+    }
+
+    private void LockedNoticeOption_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        bool enabled = LockedNoticeOption.IsChecked == true;
+        SaveConfig(config => config.ShowLockedFolderNotice = enabled);
     }
 
     private void DefaultUnlockChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
