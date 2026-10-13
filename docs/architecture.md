@@ -1,13 +1,13 @@
-# eslee폴더잠금기 Architecture
+# eslee Folder Locker Architecture
 
-eslee폴더잠금기(FolderGate 엔진)는 NTFS ACL 메타데이터를 변경해 파일 탐색기의 일반 접근을 차단하는 로컬 전용 Windows 11 WPF 애플리케이션입니다. 파일 내용을 암호화, 복사, 이동, 압축, 이름 변경, 재작성, 검사하지 않습니다.
+eslee Folder Locker(FolderGate 엔진)는 NTFS ACL 메타데이터를 변경해 파일 탐색기의 일반 접근을 차단하는 로컬 전용 Windows 11 WPF 애플리케이션입니다. 파일 내용을 암호화, 복사, 이동, 압축, 이름 변경, 재작성, 검사하지 않습니다.
 
 ## Projects
 
-- `FolderGate.App`: WPF UI입니다. `AppLanguage=ko|en` 빌드 속성으로 한국어/영어 표시 문자열을 분리합니다. 일반 사용자 권한으로 실행되며 잠금, 잠금 해제, 복구 작업이 필요할 때만 UAC 승격을 요청합니다. 실행 중 시스템 트레이 아이콘을 표시하고(잠긴 폴더 빠른 해제 메뉴 포함), 창 닫기 시 기본적으로 트레이로 최소화하며, 사용자 세션·데이터 루트당 단일 인스턴스로 동작합니다(두 번째 실행은 기존 창 활성화). 로그인 자동 실행(`--tray` 조용한 시작)은 임시 재잠금 등록과 별개의 Run 값으로 등록됩니다.
+- `FolderGate.App`: WPF UI입니다. `AppLanguage=ko|en` 빌드 속성으로 한국어/영어 표시 문자열을 분리합니다. 일반 사용자 권한으로 실행되며 잠금, 잠금 해제, 복구 작업이 필요할 때만 UAC 승격을 요청합니다. 실행 중 시스템 트레이 아이콘을 표시하고(잠긴 폴더 빠른 해제 메뉴 포함), 창 닫기 시 기본적으로 트레이로 최소화하며, 사용자 세션·데이터 루트당 단일 인스턴스로 동작합니다(두 번째 실행은 기존 창 활성화). 로그인 자동 실행(`--tray` 조용한 시작)은 임시 재잠금 등록과 별개의 Run 값으로 등록됩니다. 일부 GPU 드라이버/Direct3D 9 조합에서 하드웨어 렌더링 WPF 창이 빈 흰 사각형으로 표시되는 문제를 피하기 위해 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 소프트웨어 렌더링을 사용합니다. v1.3.0부터 실행 파일명이 한국어/영어 빌드 모두 영어로 통일되어, 시작 시 `LegacyExecutableMigrationService`가 이전 한국어 exe(`eslee폴더잠금기.exe`)를 가리키던 자동 실행·임시 재잠금 Run 값을 새 exe로 다시 씁니다. 해당 값이 이전 한국어 exe 이름을 가리키고, 그 파일이 더 이상 존재하지 않으며, 실행 중인 앱과 같은 폴더였던 경우에만 적용되므로 개발 빌드가 설치본 등록을 가로채지 않습니다.
 - `FolderGate.Core`: 도메인 모델, 비밀번호 해시, 마스터 복구 자격 증명, JSON 설정/로그 저장소, 경로 검증, ACL 백업 직렬화, ACL 변경 서비스, 포터블 데이터 마이그레이션을 포함합니다.
-- `FolderGate.ElevatedHelper`: 승격 실행되는 콘솔 도우미입니다. 한국어 배포 alias는 `eslee폴더잠금기_권한도우미.exe`, 영어 배포 alias는 `eslee-folder-locker-helper.exe`입니다.
-- `FolderGate.RecoveryTool`: 독립 콘솔 복구 도구입니다. 실행 시 자체적으로 마스터 복구 비밀번호 인증을 수행합니다. 한국어 배포 alias는 `eslee폴더잠금기_복구도구.exe`, 영어 배포 alias는 `eslee-folder-locker-recovery.exe`입니다.
+- `FolderGate.ElevatedHelper`: 승격 실행되는 콘솔 도우미입니다. 배포 파일명은 한국어/영어 빌드 모두 `eslee-folder-locker-helper.exe`입니다.
+- `FolderGate.RecoveryTool`: 독립 콘솔 복구 도구입니다. 실행 시 자체적으로 마스터 복구 비밀번호 인증을 수행합니다. 배포 파일명은 한국어/영어 빌드 모두 `eslee-folder-locker-recovery.exe`입니다.
 - `FolderGate.Core.Tests`, `FolderGate.App.Tests`: 단위 및 UI 검증 테스트입니다.
 - `FolderGate.IntegrationTests`: `tests` 아래 임시 폴더만 사용하는 ACL 통합 테스트입니다.
 
@@ -41,9 +41,9 @@ eslee폴더잠금기(FolderGate 엔진)는 NTFS ACL 메타데이터를 변경해
 3. 최초 실행 시 마스터 복구 비밀번호를 설정합니다. 설정 전에는 새 잠금, 재잠금, 시간제 해제, 복구 도구가 차단됩니다.
 4. 최초 등록 시 폴더 비밀번호를 설정합니다. 폴더 비밀번호는 최소 4자 이상이며 PBKDF2-SHA256 hash와 salt만 저장됩니다.
 5. 잠금 또는 잠금 해제 요청 시 UI가 비밀번호와 사용자 확인을 처리합니다.
-6. 실제 ACL 작업은 `FolderGate.ElevatedHelper.exe` 또는 `eslee폴더잠금기_권한도우미.exe`를 `runas`로 실행해 수행합니다.
+6. 실제 ACL 작업은 `FolderGate.ElevatedHelper.exe` 또는 `eslee-folder-locker-helper.exe`를 `runas`로 실행해 수행합니다.
 7. 복구 도구는 UAC 승격 후 자체 화면에서 마스터 복구 비밀번호를 검증하고, 성공한 뒤에만 대상과 ACL 백업을 표시하며, `RESTORE` 확인 후 원래 ACL을 복구합니다.
 
 ## Security Boundary
 
-eslee폴더잠금기는 암호화 보안 경계가 아닙니다. 관리자, 소유자, 백업 운영자, ACL 지식이 있는 사용자는 잠금을 우회하거나 복구할 수 있습니다. 앱의 목적은 파일 탐색기를 통한 우발적이거나 가벼운 접근을 줄이는 것입니다.
+eslee Folder Locker는 암호화 보안 경계가 아닙니다. 관리자, 소유자, 백업 운영자, ACL 지식이 있는 사용자는 잠금을 우회하거나 복구할 수 있습니다. 앱의 목적은 파일 탐색기를 통한 우발적이거나 가벼운 접근을 줄이는 것입니다.

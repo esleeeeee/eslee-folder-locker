@@ -4,13 +4,13 @@
 
 ## 프로젝트 개요
 
-`eslee폴더잠금기` (영문 `eslee folder locker`)는 Windows 11용 로컬 폴더 잠금 애플리케이션입니다.
+`eslee Folder Locker`는 Windows 11용 로컬 폴더 잠금 애플리케이션입니다.
 NTFS ACL 메타데이터를 변경해 파일 탐색기에서의 일반적인 접근을 제한합니다.
 
 **이 프로그램은 암호화 제품이 아닙니다.** 파일 내용을 읽거나, 암호화하거나, 이동하거나, 압축하지 않습니다.
 관리자 권한이나 ACL 지식이 있는 사용자는 우회할 수 있습니다. 문서와 커밋 메시지에서 이 경계를 과장하지 마세요.
 
-내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee폴더잠금기`입니다.
+내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee Folder Locker`이며, v1.3.0부터(2026-10-13 소유자 결정) 한국어/영어 빌드 모두 같은 영어 이름을 쓰고 실행 파일명도 두 빌드 모두 영어(`eslee-folder-locker.exe` 등)입니다.
 이름을 통일한다는 이유로 네임스페이스나 어셈블리명을 바꾸지 마세요.
 
 ## 빌드와 테스트
@@ -111,11 +111,16 @@ powershell -File .\installer\Build-Installers.ps1 -Version 1.2.0 -Language both
 1. `HKCU\Software\Classes\{Directory,Folder}\shell\eslee-folder-locker-unlock` — Explorer 우클릭 메뉴.
    앱을 한 번 실행하면 `App.OnStartup` → `MigrateLegacyInstallIfPresent()`가 실행 중인 exe 경로로 자동 갱신합니다.
 2. `HKCU\...\CurrentVersion\Run` → `eslee-folder-locker-temporary-relock` — 임시 해제 재잠금 등록.
-   **자동 갱신되지 않습니다.** `StartupRelockService.Install()`은 임시 해제 시에만 호출됩니다.
+   `StartupRelockService.Install()`은 임시 해제 시에만 호출됩니다. v1.3.0부터는 같은 설치 폴더의 삭제된 이전 한국어 exe를 가리키는 항목만 새 exe로 다시 씁니다(설치 프로그램 + 앱 시작 시). 그 밖의 경로 변경은 여전히 자동 갱신되지 않습니다.
 3. `config`의 `LatestBackupPath` — 백업 파일 절대경로. 잠금 해제 시 그대로 사용됩니다.
    파일이 없으면 예외 대신 빈 엔트리로 폴백해 Deny ACE만 제거합니다. 폴더는 열리지만 **원본 ACL은 복원되지 않습니다.**
 
 소스 파일에 로컬 절대경로를 하드코딩하지 마세요.
+
+### 레거시 이름과 렌더링 규칙
+
+- 이전 한국어 exe 이름(`eslee폴더잠금기*.exe`)은 마이그레이션 용도로만 남아 있습니다(`ToolLocator.LegacyKoreanAppExecutableName`, 설치 프로그램 `[InstallDelete]` + `MigrateLegacyRunValue`, `LegacyExecutableMigrationService`). v1.2.x 이하에서의 업그레이드를 지원하는 동안 제거하지 마세요.
+- 앱은 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 WPF 소프트웨어 렌더링을 강제합니다. 일부 GPU/Direct3D 9 환경에서 창이 빈 흰 사각형으로 표시되는 문제 때문이므로 제거하지 마세요.
 
 ## ACL 작업 안전 규칙
 

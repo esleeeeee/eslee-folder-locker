@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.3.0
+
+### English
+
+- The Korean build now uses the English product name `eslee Folder Locker` everywhere it shows the product name (window title, taskbar, Task Manager, tray, Explorer menu such as `eslee Folder Locker로 잠금 해제`, installer), matching the English build.
+- Both language builds now ship the same executable names: `eslee-folder-locker.exe`, `eslee-folder-locker-helper.exe`, and `eslee-folder-locker-recovery.exe`. The Start menu recovery shortcut is `eslee Folder Locker 복구 도구` (Korean) or `eslee Folder Locker Recovery Tool` (English).
+- Upgrading from v1.2.x keeps working: the installer removes the old Korean executables and recovery shortcut and repoints the auto-start and temporary re-lock Run entries to the new executable, keeping their arguments. The app repeats this for the current user at startup, but only for entries that name the old Korean executable in the app's own folder after that file is gone, so development builds never take over an installed registration. The Explorer right-click entry is refreshed by the existing startup migration. The data folder `%LOCALAPPDATA%\eslee-folder-locker`, settings, ACL backups, and the master recovery password are unchanged.
+- Fixed windows appearing as blank white rectangles on some GPU driver / Direct3D 9 combinations (main window and password/unlock dialogs were unusable). The app now uses software rendering.
+
+### Korean
+
+- 한국어 빌드도 UI 전반(탐색기 우클릭 메뉴, 트레이 메뉴, 설치 프로그램 등)에서 영어 제품명 `eslee Folder Locker`를 사용합니다. 영어 빌드와 동일합니다.
+- 두 언어 빌드 모두 같은 실행 파일 이름을 사용합니다: `eslee-folder-locker.exe`, `eslee-folder-locker-helper.exe`, `eslee-folder-locker-recovery.exe`. 시작 메뉴 복구 도구 바로가기는 한국어 `eslee Folder Locker 복구 도구`, 영어 `eslee Folder Locker Recovery Tool`입니다.
+- v1.2.x에서의 업그레이드가 그대로 동작합니다. 설치 프로그램이 이전 한국어 실행 파일과 복구 도구 바로가기를 지우고, 로그인 자동 실행과 임시 재잠금 Run 항목을 인자는 그대로 둔 채 새 실행 파일로 다시 씁니다. 앱도 시작할 때 현재 사용자에 대해 같은 작업을 반복하며, 이전 한국어 실행 파일을 가리키고 그 파일이 사라졌으며 앱 자신의 폴더에 있던 항목에만 적용되어 개발 빌드가 설치본 등록을 가로채지 않습니다. 탐색기 우클릭 메뉴는 기존 시작 시 마이그레이션이 갱신합니다. 데이터 폴더 `%LOCALAPPDATA%\eslee-folder-locker`, 설정, ACL 백업, 마스터 복구 비밀번호는 변경되지 않습니다.
+- 일부 GPU 드라이버/Direct3D 9 조합에서 창이 빈 흰 사각형으로 표시되어(메인 창과 비밀번호·잠금 해제 창을 쓸 수 없던) 문제를 고쳤습니다. 앱이 소프트웨어 렌더링을 사용합니다.
+
 ## v1.2.2
 
 ### English

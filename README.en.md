@@ -175,6 +175,7 @@ Auto-start is optional.
 ## Uninstall, update, reinstall
 
 - **Update**: running a newer installer upgrades in place. Settings, registered folders, permission backups, and password data are kept.
+- **Note for v1.3.0**: from v1.3.0 the Korean build also uses the English product name `eslee Folder Locker` and the same English executable names (`eslee-folder-locker.exe` and so on). When upgrading from v1.2.x or earlier, auto-start at login and the File Explorer right-click entry are migrated to the new executable automatically, and your data (`%LOCALAPPDATA%\eslee-folder-locker`) is kept.
 - **Uninstall**: if locked folders remain, the uninstaller warns you and cancels by default. Fully unlock all folders in the app before uninstalling.
 - Uninstalling never auto-deletes your data (settings, permission backups, master password data, logs). It stays under `%LOCALAPPDATA%\eslee-folder-locker`.
 - **Reinstalling** picks that data up again. Even if you uninstalled with folders still locked, installing again lets you continue unlocking and recovery.

@@ -11,7 +11,7 @@ Requires: .NET SDK, Inno Setup 6 (ISCC.exe on PATH or in a standard location).
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.2.4",
+    [string]$Version = "1.3.0",
     [ValidateSet("ko", "en", "both")]
     [string]$Language = "both"
 )
