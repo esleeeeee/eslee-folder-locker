@@ -180,6 +180,7 @@
                 <Button Style="{DynamicResource AccentButton}"
                         HorizontalAlignment="Stretch"
                         MinHeight="36"
+                        AutomationProperties.Name="{x:Static text:AppText.AddFolder}"
                         Command="{Binding AddFolderCommand}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE710;"
@@ -194,6 +195,7 @@
                         MinHeight="36"
                         Margin="8,0,0,0"
                         ToolTip="{x:Static text:AppText.LockAll}"
+                        AutomationProperties.Name="{x:Static text:AppText.LockAll}"
                         Command="{Binding LockAllCommand}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72E;"
@@ -423,6 +425,7 @@
                                         MinWidth="120"
                                         Margin="0,0,8,0"
                                         Command="{Binding UnlockCommand}"
+                                        AutomationProperties.Name="{x:Static text:AppText.Unlock}"
                                         Visibility="{Binding IsUnlockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE785;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -433,6 +436,7 @@
                                         MinWidth="120"
                                         Margin="0,0,8,0"
                                         Command="{Binding LockCommand}"
+                                        AutomationProperties.Name="{x:Static text:AppText.Lock}"
                                         Visibility="{Binding IsLockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE72E;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -443,6 +447,7 @@
                                         MinWidth="120"
                                         Margin="0,0,8,0"
                                         Command="{Binding RelockNowCommand}"
+                                        AutomationProperties.Name="{x:Static text:AppText.RelockNow}"
                                         Visibility="{Binding IsRelockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE72E;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -452,6 +457,7 @@
                                 <Button x:Name="ExtendButton"
                                         Margin="0,0,8,0"
                                         Click="ExtendButton_Click"
+                                        AutomationProperties.Name="{x:Static text:AppText.ExtendUnlock}"
                                         Visibility="{Binding IsRelockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE823;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -470,6 +476,7 @@
                                         MinWidth="120"
                                         Margin="0,0,8,0"
                                         Command="{Binding OpenRecoveryToolCommand}"
+                                        AutomationProperties.Name="{x:Static text:AppText.OpenRecoveryTool}"
                                         Visibility="{Binding IsRecoveryPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE90F;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -482,6 +489,7 @@
                                         Visibility="{Binding ShowUnlockSecondary, Converter={x:Static controls:Converters.BoolToVisibility}}" />
                                 <Button Style="{DynamicResource SubtleButton}"
                                         Command="{Binding OpenInExplorerCommand}"
+                                        AutomationProperties.Name="{x:Static text:AppText.OpenInExplorer}"
                                         Visibility="{Binding CanOpenInExplorer, Converter={x:Static controls:Converters.BoolToVisibility}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE838;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />

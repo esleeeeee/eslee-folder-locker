@@ -125,6 +125,9 @@ public sealed class UnlockDurationOption
 
     public TimeSpan? Duration { get; }
 
+    /// <summary>The name screen readers announce for the option.</summary>
+    public override string ToString() => Label;
+
     /// <summary>Index of the option for <paramref name="minutes"/> (0 = permanent); 0 when it is null or unknown.</summary>
     public static int IndexOf(int? minutes)
     {

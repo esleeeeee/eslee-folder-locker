@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     private TrayIconService? _trayIcon;
     private TrayHostLink? _trayHostLink;
     private MainWindow? _mainWindowInstance;
+    private AppPaths? _paths;
     private SessionLockRelockService? _sessionLockRelock;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -51,6 +52,7 @@ public partial class App : System.Windows.Application
         }
 
         AppPaths paths = AppPaths.Resolve(arguments.RootPath, arguments.DataRootPath);
+        _paths = paths;
         try
         {
             AppText.SetLanguage(new ConfigStore(paths).Load().Language);
@@ -271,7 +273,18 @@ public partial class App : System.Windows.Application
             _singleInstanceMutex = null;
         }
 
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable) { UseShellExecute = false });
+        // Keep the data location: an app started with --data-root or --root must
+        // come back on the same data, not on the default one.
+        System.Diagnostics.ProcessStartInfo startInfo = new(executable) { UseShellExecute = false };
+        if (_paths is not null)
+        {
+            foreach (string argument in ElevatedToolRunner.DataLocationArguments(_paths))
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+        }
+
+        System.Diagnostics.Process.Start(startInfo);
         ExitFromTray();
     }
 

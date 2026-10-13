@@ -21,7 +21,10 @@ public partial class SettingsWindow : ThemedWindow
 {
     private readonly ConfigStore _configStore;
     private readonly AutoStartService _autoStartService;
-    private readonly bool _loading;
+    // True while the window sets control values itself, so the change handlers
+    // (which also run for screen readers and keyboard, not only mouse clicks)
+    // do not save or apply them again.
+    private bool _loading;
     private bool _updateCheckRunning;
 
     public SettingsWindow(AppPaths paths, MainViewModel? viewModel)
@@ -127,8 +130,13 @@ public partial class SettingsWindow : ThemedWindow
         SaveConfig(config => config.CloseToTray = closeToTray);
     }
 
-    private void AutoStartOption_Click(object sender, RoutedEventArgs e)
+    private void AutoStartOption_Changed(object sender, RoutedEventArgs e)
     {
+        if (_loading)
+        {
+            return;
+        }
+
         bool enable = AutoStartOption.IsChecked == true;
         try
         {
@@ -143,13 +151,20 @@ public partial class SettingsWindow : ThemedWindow
         }
         catch (Exception ex)
         {
+            _loading = true;
             AutoStartOption.IsChecked = _autoStartService.IsEnabled();
+            _loading = false;
             AppDialog.Error(this, ex.Message, AppText.SettingsTitle);
         }
     }
 
-    private void RelockOnSessionLockOption_Click(object sender, RoutedEventArgs e)
+    private void RelockOnSessionLockOption_Changed(object sender, RoutedEventArgs e)
     {
+        if (_loading)
+        {
+            return;
+        }
+
         bool enabled = RelockOnSessionLockOption.IsChecked == true;
         SaveConfig(config => config.RelockOnSessionLock = enabled);
     }

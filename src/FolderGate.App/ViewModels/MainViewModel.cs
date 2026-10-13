@@ -252,7 +252,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool ShowModeChoice => SelectedFolder?.State is FolderLockState.Unlocked;
 
-    public bool CanOpenInExplorer => SelectedFolder?.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked;
+    public bool CanOpenInExplorer => SelectedFolder is { IsMissing: false, State: FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked };
 
     public bool IsSelectedBusy => IsBusy && SelectedFolder is not null && _runningOperations.ContainsKey(SelectedFolder.Id);
 
@@ -1524,6 +1524,8 @@ public sealed class MainViewModel : ObservableObject
                 DateTimeOffset latest = now + TemporaryUnlockSchedule.MaximumRemaining;
                 DateTimeOffset extended = start.AddMinutes(minutes);
                 folder.TemporaryUnlockUntilUtc = extended < latest ? extended : latest;
+                folder.LastOperationUtc = now;
+                folder.LastResult = AppText.ExtendedUntil(FolderItemViewModel.FormatLocalTime(folder.TemporaryUnlockUntilUtc.Value));
                 newDeadline = folder.TemporaryUnlockUntilUtc;
                 return true;
             });

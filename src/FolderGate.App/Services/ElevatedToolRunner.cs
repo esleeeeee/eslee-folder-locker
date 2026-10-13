@@ -117,17 +117,17 @@ public sealed class ElevatedToolRunner
     /// </summary>
     private void AddDataLocationArguments(ProcessStartInfo startInfo)
     {
-        if (_paths.Layout == AppDataLayout.Installed)
+        foreach (string argument in DataLocationArguments(_paths))
         {
-            startInfo.ArgumentList.Add("--data-root");
-            startInfo.ArgumentList.Add(_paths.DataRoot);
-        }
-        else
-        {
-            startInfo.ArgumentList.Add("--root");
-            startInfo.ArgumentList.Add(_paths.ProjectRoot);
+            startInfo.ArgumentList.Add(argument);
         }
     }
+
+    /// <summary>The arguments that point another process at <paramref name="paths"/>.</summary>
+    public static IReadOnlyList<string> DataLocationArguments(AppPaths paths) =>
+        paths.Layout == AppDataLayout.Installed
+            ? ["--data-root", paths.DataRoot]
+            : ["--root", paths.ProjectRoot];
 
     public Task OpenRecoveryToolAsync()
     {

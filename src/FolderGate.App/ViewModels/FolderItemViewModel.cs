@@ -69,6 +69,9 @@ public sealed class FolderItemViewModel : ObservableObject
 
     public bool IsMissing => Presence != FolderPresence.Present;
 
+    /// <summary>The name screen readers announce for the list item.</summary>
+    public override string ToString() => DisplayName;
+
     public bool HasOwnPassword => Model.Password is not null;
 
     public string LastOperationText => Model.LastOperationUtc is null
