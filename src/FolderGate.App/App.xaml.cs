@@ -33,6 +33,7 @@ public partial class App : System.Windows.Application
         RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
         base.OnStartup(e);
+        ThemeService.Install(this, AppThemePreference.System);
 
         AppStartupArguments arguments;
         try
@@ -41,12 +42,13 @@ public partial class App : System.Windows.Application
         }
         catch (ArgumentException ex)
         {
-            System.Windows.MessageBox.Show(ex.Message, AppText.ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDialog.Error(null, ex.Message);
             Shutdown(2);
             return;
         }
 
         AppPaths paths = AppPaths.Resolve(arguments.RootPath, arguments.DataRootPath);
+        ApplySavedTheme(paths);
         TryMigrateExplorerContextMenu(paths);
         TryMigrateLegacyRunEntries(paths);
         if (arguments.ResumeTemporaryUnlocks)
@@ -68,6 +70,9 @@ public partial class App : System.Windows.Application
                 return;
             }
 
+            // Startup dialogs are WPF windows; closing one must not end the app
+            // before the main window exists (last-window-close shutdown).
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
             if (!arguments.StartInTray)
             {
                 TryOfferPortableMigration(paths);
@@ -76,11 +81,12 @@ public partial class App : System.Windows.Application
 
             _mainWindowInstance = new MainWindow(paths);
             MainWindow = _mainWindowInstance;
+            ShutdownMode = ShutdownMode.OnLastWindowClose;
             _trayIcon = new TrayIconService(
                 paths,
                 showMainWindow: ShowMainWindowFromTray,
                 openRecoveryTool: OpenRecoveryToolFromTray,
-                openSettings: () => SettingsWindow.ShowFor(paths, _mainWindowInstance),
+                openSettings: () => SettingsWindow.ShowFor(paths, _mainWindowInstance, _mainWindowInstance?.ViewModel),
                 exitApplication: ExitFromTray,
                 refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage());
 
@@ -302,6 +308,18 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private static void ApplySavedTheme(AppPaths paths)
+    {
+        try
+        {
+            ThemeService.Apply(new ConfigStore(paths).Load().Theme);
+        }
+        catch
+        {
+            // A missing or unreadable config keeps the Windows-matching theme.
+        }
+    }
+
     private static void TryMigrateLegacyRunEntries(AppPaths paths)
     {
         try
@@ -348,9 +366,7 @@ public partial class App : System.Windows.Application
             MigrationAnalysis analysis = migration.Analyze(prompt.SelectedRootPath);
             if (!analysis.IsValid)
             {
-                System.Windows.MessageBox.Show(
-                    $"{AppText.MigrationFailedPrefix}: {analysis.Error}",
-                    AppText.MigrationPromptTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Error(null, $"{AppText.MigrationFailedPrefix}: {analysis.Error}", AppText.MigrationPromptTitle);
                 return;
             }
 
@@ -358,10 +374,7 @@ public partial class App : System.Windows.Application
             summary.Append(AppText.MigrationSummary(analysis.FolderCount, analysis.LockedFolderCount, analysis.BackupFileCount));
             AppendWarnings(summary, analysis.Warnings);
 
-            MessageBoxResult confirmed = System.Windows.MessageBox.Show(
-                summary.ToString(), AppText.MigrationPromptTitle, MessageBoxButton.YesNo,
-                analysis.Warnings.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Question);
-            if (confirmed != MessageBoxResult.Yes)
+            if (!AppDialog.Confirm(null, AppText.MigrationPromptTitle, summary.ToString()))
             {
                 return;
             }
@@ -371,21 +384,23 @@ public partial class App : System.Windows.Application
             {
                 StringBuilder done = new(AppText.MigrationSucceeded);
                 AppendWarnings(done, result.Warnings);
-                System.Windows.MessageBox.Show(done.ToString(), AppText.MigrationPromptTitle,
-                    MessageBoxButton.OK, result.Warnings.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                if (result.Warnings.Count > 0)
+                {
+                    AppDialog.Warning(null, done.ToString(), AppText.MigrationPromptTitle);
+                }
+                else
+                {
+                    AppDialog.Info(null, done.ToString(), AppText.MigrationPromptTitle);
+                }
             }
             else
             {
-                System.Windows.MessageBox.Show(
-                    $"{AppText.MigrationFailedPrefix}: {result.Error}",
-                    AppText.MigrationPromptTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Error(null, $"{AppText.MigrationFailedPrefix}: {result.Error}", AppText.MigrationPromptTitle);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
-                $"{AppText.MigrationFailedPrefix}: {ex.Message}",
-                AppText.MigrationPromptTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDialog.Error(null, $"{AppText.MigrationFailedPrefix}: {ex.Message}", AppText.MigrationPromptTitle);
         }
     }
 
@@ -414,16 +429,12 @@ public partial class App : System.Windows.Application
             if (state == MasterSecurityState.Corrupted)
             {
                 master.LogCorruptedStateDetected("startup");
-                System.Windows.MessageBox.Show(
-                    AppText.MasterCorruptedMessage,
-                    AppText.MasterCorruptedTitle,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                AppDialog.Warning(null, AppText.MasterCorruptedMessage, AppText.MasterCorruptedTitle);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(ex.Message, AppText.ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDialog.Error(null, ex.Message);
         }
     }
 

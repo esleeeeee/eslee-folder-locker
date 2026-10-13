@@ -3,7 +3,7 @@ using FolderGate.Core.Security;
 
 namespace FolderGate.Core.Localization;
 
-public static class AppText
+public static partial class AppText
 {
 #if APP_LANGUAGE_EN
     public const string LanguageCode = "en";

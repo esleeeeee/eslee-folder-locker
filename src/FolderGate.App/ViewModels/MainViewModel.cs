@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
+using System.Windows.Data;
+using FolderGate.App.Controls;
 using FolderGate.App.Services;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
@@ -38,9 +41,16 @@ public sealed class MainViewModel : ObservableObject
     private string _operationPhase = "-";
     private double _operationProgressPercent;
     private bool _isProgressIndeterminate;
+    private string _searchText = string.Empty;
+    private FolderFilter _filter = FolderFilter.All;
+    private string? _busyFolderId;
 
     public MainViewModel(AppPaths paths, IUserInteractionService interaction, ElevatedToolRunner toolRunner)
     {
+        FoldersView = CollectionViewSource.GetDefaultView(Folders);
+        FoldersView.Filter = item => item is FolderItemViewModel folder &&
+                                     folder.MatchesFilter(_filter) &&
+                                     folder.MatchesSearch(_searchText);
         _paths = paths;
         _interaction = interaction;
         _toolRunner = toolRunner;
@@ -65,28 +75,181 @@ public sealed class MainViewModel : ObservableObject
         CancelOperationCommand = new RelayCommand(CancelCurrentOperation, () => IsBusy && _activeOperationId is not null);
         ChangeMasterPasswordCommand = new RelayCommand(ChangeMasterPassword, () => !IsBusy);
         ChangeMasterHintCommand = new RelayCommand(ChangeMasterHint, () => !IsBusy);
+        OpenInExplorerCommand = new RelayCommand(OpenSelectedInExplorer, () => CanOpenInExplorer);
 
         RefreshFolders();
     }
 
     public ObservableCollection<FolderItemViewModel> Folders { get; } = [];
 
+    /// <summary>Folders filtered by <see cref="SearchText"/> and <see cref="Filter"/>.</summary>
+    public ICollectionView FoldersView { get; }
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value ?? string.Empty))
+            {
+                RefreshView();
+            }
+        }
+    }
+
+    public FolderFilter Filter
+    {
+        get => _filter;
+        set
+        {
+            if (SetProperty(ref _filter, value))
+            {
+                OnPropertyChanged(nameof(IsFilterAll));
+                OnPropertyChanged(nameof(IsFilterLocked));
+                OnPropertyChanged(nameof(IsFilterUnlocked));
+                OnPropertyChanged(nameof(IsFilterAttention));
+                RefreshView();
+            }
+        }
+    }
+
+    public bool IsFilterAll
+    {
+        get => Filter == FolderFilter.All;
+        set
+        {
+            if (value)
+            {
+                Filter = FolderFilter.All;
+            }
+        }
+    }
+
+    public bool IsFilterLocked
+    {
+        get => Filter == FolderFilter.Locked;
+        set
+        {
+            if (value)
+            {
+                Filter = FolderFilter.Locked;
+            }
+        }
+    }
+
+    public bool IsFilterUnlocked
+    {
+        get => Filter == FolderFilter.Unlocked;
+        set
+        {
+            if (value)
+            {
+                Filter = FolderFilter.Unlocked;
+            }
+        }
+    }
+
+    public bool IsFilterAttention
+    {
+        get => Filter == FolderFilter.Attention;
+        set
+        {
+            if (value)
+            {
+                Filter = FolderFilter.Attention;
+            }
+        }
+    }
+
+    public int TotalCount => Folders.Count;
+
+    public int LockedCount => Folders.Count(folder => folder.MatchesFilter(FolderFilter.Locked));
+
+    public int UnlockedCount => Folders.Count(folder => folder.MatchesFilter(FolderFilter.Unlocked));
+
+    public int AttentionCount => Folders.Count(folder => folder.MatchesFilter(FolderFilter.Attention));
+
+    public bool HasAttention => AttentionCount > 0 || Filter == FolderFilter.Attention;
+
+    public bool HasFolders => Folders.Count > 0;
+
+    public bool HasNoMatches => HasFolders && FoldersView.IsEmpty;
+
+    public string FolderCountText => AppText.FolderCount(Folders.Count);
+
     public FolderItemViewModel? SelectedFolder
     {
         get => _selectedFolder;
         set
         {
-            if (SetProperty(ref _selectedFolder, value) && value is not null)
+            if (SetProperty(ref _selectedFolder, value))
             {
-                SelectedMode = value.Model.Mode;
+                if (value is not null)
+                {
+                    SelectedMode = value.Model.Mode;
+                }
+
                 RaiseCommandStates();
-                OnPropertyChanged(nameof(SelectedPath));
-                OnPropertyChanged(nameof(SelectedState));
-                OnPropertyChanged(nameof(SelectedLastOperation));
-                OnPropertyChanged(nameof(SelectedLastResult));
+                NotifySelectionChanged();
             }
         }
     }
+
+    public bool HasSelection => SelectedFolder is not null;
+
+    public string SelectedTitle => SelectedFolder?.DisplayName ?? string.Empty;
+
+    public FolderLockState? SelectedStateValue => SelectedFolder?.State;
+
+    public string SelectedStateGlyph => SelectedFolder?.StateGlyph ?? Glyphs.Folder;
+
+    public string SelectedStatusTitle => SelectedFolder?.State switch
+    {
+        FolderLockState.Locked => AppText.StatusLockedTitle,
+        FolderLockState.TemporarilyUnlocked => AppText.StatusTemporaryTitle,
+        FolderLockState.Working => AppText.StatusWorkingTitle,
+        FolderLockState.RecoveryRequired => AppText.StatusRecoveryTitle,
+        FolderLockState.Unlocked => AppText.StatusUnlockedTitle,
+        _ => string.Empty
+    };
+
+    public string SelectedStatusBody => SelectedFolder?.State switch
+    {
+        FolderLockState.Locked => AppText.StatusLockedBody,
+        FolderLockState.TemporarilyUnlocked => AppText.StatusTemporaryBody(SelectedFolder.RelockTimeText),
+        FolderLockState.Working => AppText.StatusWorkingBody,
+        FolderLockState.RecoveryRequired => AppText.StatusRecoveryBody,
+        FolderLockState.Unlocked => AppText.StatusUnlockedBody,
+        _ => string.Empty
+    };
+
+    /// <summary>Lock is the main action of an unlocked or temporarily unlocked folder.</summary>
+    public bool IsLockPrimary => SelectedFolder?.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked;
+
+    /// <summary>Unlock is the main action of a locked folder.</summary>
+    public bool IsUnlockPrimary => SelectedFolder?.State is FolderLockState.Locked;
+
+    public bool IsRecoveryPrimary => SelectedFolder?.State is FolderLockState.RecoveryRequired;
+
+    /// <summary>Unlocking a temporarily unlocked folder makes the unlock permanent.</summary>
+    public bool ShowUnlockSecondary => SelectedFolder?.State is FolderLockState.TemporarilyUnlocked or FolderLockState.RecoveryRequired;
+
+    public bool ShowLockSecondary => SelectedFolder?.State is FolderLockState.RecoveryRequired;
+
+    public bool ShowModeChoice => SelectedFolder?.State is FolderLockState.Unlocked;
+
+    public bool CanOpenInExplorer => SelectedFolder?.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked;
+
+    public bool IsSelectedBusy => IsBusy && SelectedFolder is not null &&
+                                  string.Equals(SelectedFolder.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase);
+
+    public string SelectedModeText => SelectedFolder?.ModeText ?? "-";
+
+    public string SelectedLastOperationShort => SelectedFolder?.LastOperationShortText ?? "-";
+
+    public bool SelectedHasWarning => SelectedFolder?.HasWarning == true;
+
+    public string SelectedWarningText => SelectedFolder?.WarningText ?? string.Empty;
 
     public bool IsQuickMode
     {
@@ -139,6 +302,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _isBusy, value))
             {
                 RaiseCommandStates();
+                OnPropertyChanged(nameof(IsSelectedBusy));
             }
         }
     }
@@ -229,6 +393,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand ChangeMasterHintCommand { get; }
 
+    public RelayCommand OpenInExplorerCommand { get; }
+
     private async Task AddFolderAsync()
     {
         string? selectedPath = _interaction.SelectFolder();
@@ -237,10 +403,73 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        PathValidationResult validation = _pathValidator.ValidateDirectory(selectedPath);
-        if (!validation.IsValid || validation.NormalizedPath is null)
+        RegisterFolders([selectedPath]);
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Registers folders dropped onto the main window. Files are skipped; every
+    /// folder goes through the same validation as the folder picker.
+    /// </summary>
+    public void AddDroppedPaths(IReadOnlyList<string> paths)
+    {
+        List<string> folders = paths.Where(Directory.Exists).ToList();
+        int skipped = paths.Count - folders.Count;
+        if (folders.Count == 0)
         {
-            _interaction.ShowError(validation.ErrorMessage ?? AppText.InvalidFolderGeneric);
+            if (skipped > 0)
+            {
+                _interaction.ShowInfo(AppText.DropIgnoredFiles(skipped));
+            }
+
+            return;
+        }
+
+        RegisterFolders(folders);
+        if (skipped > 0)
+        {
+            StatusMessage = AppText.DropIgnoredFiles(skipped);
+        }
+    }
+
+    private void RegisterFolders(IReadOnlyList<string> paths)
+    {
+        _config = _configStore.Load();
+        List<(string Path, PathValidationResult Validation)> accepted = [];
+        List<string> problems = [];
+        foreach (string path in paths)
+        {
+            PathValidationResult validation = _pathValidator.ValidateDirectory(path);
+            if (!validation.IsValid || validation.NormalizedPath is null)
+            {
+                problems.Add(paths.Count == 1
+                    ? validation.ErrorMessage ?? AppText.InvalidFolderGeneric
+                    : $"{path}: {validation.ErrorMessage ?? AppText.InvalidFolderGeneric}");
+                continue;
+            }
+
+            bool duplicate = _config.Folders.Any(folder => WindowsPathComparer.AreSamePath(folder.Path, validation.NormalizedPath)) ||
+                             accepted.Any(item => WindowsPathComparer.AreSamePath(item.Validation.NormalizedPath!, validation.NormalizedPath));
+            if (duplicate)
+            {
+                problems.Add(paths.Count == 1 ? AppText.AlreadyRegisteredFolder : $"{path}: {AppText.AlreadyRegisteredFolder}");
+                continue;
+            }
+
+            accepted.Add((path, validation));
+        }
+
+        if (accepted.Count == 0)
+        {
+            if (problems.Count == 1 && paths.Count == 1 && problems[0] == AppText.AlreadyRegisteredFolder)
+            {
+                _interaction.ShowInfo(problems[0]);
+            }
+            else if (problems.Count > 0)
+            {
+                _interaction.ShowError(string.Join(Environment.NewLine, problems));
+            }
+
             return;
         }
 
@@ -255,29 +484,46 @@ public sealed class MainViewModel : ObservableObject
             _config.Password = _passwordService.CreatePasswordRecord(newPassword);
         }
 
-        if (_config.Folders.Any(folder => WindowsPathComparer.AreSamePath(folder.Path, validation.NormalizedPath)))
+        string ownerSid = WindowsIdentity.GetCurrent().User?.Value ?? string.Empty;
+        string? lastId = null;
+        foreach ((_, PathValidationResult validation) in accepted)
         {
-            _interaction.ShowInfo(AppText.AlreadyRegisteredFolder);
-            return;
+            RegisteredFolder registeredFolder = new()
+            {
+                DisplayName = new DirectoryInfo(validation.NormalizedPath!).Name,
+                Path = validation.NormalizedPath!,
+                Mode = SelectedMode,
+                State = FolderLockState.Unlocked,
+                OwnerSid = ownerSid,
+                HasReparsePointWarning = validation.Warnings.Count > 0,
+                LastOperationUtc = DateTimeOffset.UtcNow,
+                LastResult = validation.Warnings.Count > 0 ? validation.Warnings[0] : AppText.Registered
+            };
+            _config.Folders.Add(registeredFolder);
+            lastId = registeredFolder.Id;
         }
 
-        RegisteredFolder registeredFolder = new()
-        {
-            DisplayName = new DirectoryInfo(validation.NormalizedPath).Name,
-            Path = validation.NormalizedPath,
-            Mode = SelectedMode,
-            State = FolderLockState.Unlocked,
-            OwnerSid = WindowsIdentity.GetCurrent().User?.Value ?? string.Empty,
-            HasReparsePointWarning = validation.Warnings.Count > 0,
-            LastOperationUtc = DateTimeOffset.UtcNow,
-            LastResult = validation.Warnings.Count > 0 ? validation.Warnings[0] : AppText.Registered
-        };
-
-        _config.Folders.Add(registeredFolder);
         _configStore.Save(_config);
-        RefreshFolders(registeredFolder.Id);
-        StatusMessage = AppText.FolderRegistered;
-        await Task.CompletedTask;
+
+        // Make sure the new folder is visible even when a search or filter is active.
+        _searchText = string.Empty;
+        OnPropertyChanged(nameof(SearchText));
+        Filter = FolderFilter.All;
+        RefreshFolders(lastId);
+        StatusMessage = accepted.Count == 1 ? AppText.FolderRegistered : AppText.FoldersRegistered(accepted.Count);
+
+        if (problems.Count > 0)
+        {
+            _interaction.ShowError(string.Join(Environment.NewLine, problems));
+        }
+    }
+
+    private void OpenSelectedInExplorer()
+    {
+        if (SelectedFolder is { } folder && Directory.Exists(folder.Path))
+        {
+            ElevatedToolRunner.OpenExplorer(folder.Path);
+        }
     }
 
     private void RemoveSelectedFolder()
@@ -389,6 +635,7 @@ public sealed class MainViewModel : ObservableObject
         Process? process = null;
         try
         {
+            BeginFolderOperation(folder.Id);
             IsBusy = true;
             _activeOperationId = operationId;
             ResetOperationProgress();
@@ -444,6 +691,7 @@ public sealed class MainViewModel : ObservableObject
             process?.Dispose();
             _activeOperationId = null;
             IsProgressIndeterminate = false;
+            EndFolderOperation();
             IsBusy = false;
         }
     }
@@ -659,6 +907,7 @@ public sealed class MainViewModel : ObservableObject
         string operationId = Guid.NewGuid().ToString("N");
         try
         {
+            BeginFolderOperation(folder.Id);
             IsBusy = true;
             _activeOperationId = operationId;
             ResetOperationProgress();
@@ -698,6 +947,7 @@ public sealed class MainViewModel : ObservableObject
         {
             _activeOperationId = null;
             IsProgressIndeterminate = false;
+            EndFolderOperation();
             IsBusy = false;
         }
     }
@@ -746,6 +996,11 @@ public sealed class MainViewModel : ObservableObject
         OperationProgressPercent = snapshot.TotalCount <= 0
             ? 0
             : Math.Clamp(snapshot.CompletedCount * 100.0 / snapshot.TotalCount, 0, 100);
+        if (FindBusyItem() is { } busyItem)
+        {
+            busyItem.OperationProgressPercent = OperationProgressPercent;
+            busyItem.IsOperationIndeterminate = IsProgressIndeterminate;
+        }
 
         UpdateElapsed(snapshot.StartedUtc, DateTimeOffset.UtcNow, snapshot.CompletedCount, snapshot.TotalCount);
         StatusMessage = snapshot.Message;
@@ -809,18 +1064,97 @@ public sealed class MainViewModel : ObservableObject
         Folders.Clear();
         foreach (RegisteredFolder folder in _config.Folders.OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase))
         {
-            Folders.Add(new FolderItemViewModel(folder));
+            Folders.Add(new FolderItemViewModel(folder)
+            {
+                IsOperationRunning = IsBusy && string.Equals(folder.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase),
+                IsOperationIndeterminate = IsProgressIndeterminate,
+                OperationProgressPercent = OperationProgressPercent
+            });
         }
 
+        IEnumerable<FolderItemViewModel> visible = FoldersView.Cast<FolderItemViewModel>();
         SelectedFolder = selectedId is null
-            ? Folders.FirstOrDefault()
-            : Folders.FirstOrDefault(item => string.Equals(item.Id, selectedId, StringComparison.OrdinalIgnoreCase)) ?? Folders.FirstOrDefault();
+            ? visible.FirstOrDefault()
+            : visible.FirstOrDefault(item => string.Equals(item.Id, selectedId, StringComparison.OrdinalIgnoreCase)) ?? visible.FirstOrDefault();
 
+        NotifyListChanged();
+        NotifySelectionChanged();
+    }
+
+    private void RefreshView()
+    {
+        string? selectedId = SelectedFolder?.Id;
+        FoldersView.Refresh();
+        IEnumerable<FolderItemViewModel> visible = FoldersView.Cast<FolderItemViewModel>();
+        SelectedFolder = visible.FirstOrDefault(item => string.Equals(item.Id, selectedId, StringComparison.OrdinalIgnoreCase))
+                         ?? visible.FirstOrDefault();
+        NotifyListChanged();
+    }
+
+    private void NotifyListChanged()
+    {
+        OnPropertyChanged(nameof(TotalCount));
+        OnPropertyChanged(nameof(LockedCount));
+        OnPropertyChanged(nameof(UnlockedCount));
+        OnPropertyChanged(nameof(AttentionCount));
+        OnPropertyChanged(nameof(HasAttention));
+        OnPropertyChanged(nameof(HasFolders));
+        OnPropertyChanged(nameof(HasNoMatches));
+        OnPropertyChanged(nameof(FolderCountText));
+    }
+
+    private void NotifySelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(SelectedTitle));
         OnPropertyChanged(nameof(SelectedPath));
         OnPropertyChanged(nameof(SelectedState));
+        OnPropertyChanged(nameof(SelectedStateValue));
+        OnPropertyChanged(nameof(SelectedStateGlyph));
+        OnPropertyChanged(nameof(SelectedStatusTitle));
+        OnPropertyChanged(nameof(SelectedStatusBody));
         OnPropertyChanged(nameof(SelectedLastOperation));
+        OnPropertyChanged(nameof(SelectedLastOperationShort));
         OnPropertyChanged(nameof(SelectedLastResult));
+        OnPropertyChanged(nameof(SelectedModeText));
+        OnPropertyChanged(nameof(SelectedHasWarning));
+        OnPropertyChanged(nameof(SelectedWarningText));
+        OnPropertyChanged(nameof(IsLockPrimary));
+        OnPropertyChanged(nameof(IsUnlockPrimary));
+        OnPropertyChanged(nameof(IsRecoveryPrimary));
+        OnPropertyChanged(nameof(ShowUnlockSecondary));
+        OnPropertyChanged(nameof(ShowLockSecondary));
+        OnPropertyChanged(nameof(ShowModeChoice));
+        OnPropertyChanged(nameof(CanOpenInExplorer));
+        OnPropertyChanged(nameof(IsSelectedBusy));
+        OpenInExplorerCommand.RaiseCanExecuteChanged();
     }
+
+    private void BeginFolderOperation(string folderId)
+    {
+        _busyFolderId = folderId;
+        if (FindBusyItem() is { } item)
+        {
+            item.IsOperationIndeterminate = true;
+            item.OperationProgressPercent = 0;
+            item.IsOperationRunning = true;
+        }
+    }
+
+    private void EndFolderOperation()
+    {
+        if (FindBusyItem() is { } item)
+        {
+            item.IsOperationRunning = false;
+        }
+
+        _busyFolderId = null;
+        OnPropertyChanged(nameof(IsSelectedBusy));
+    }
+
+    private FolderItemViewModel? FindBusyItem() => _busyFolderId is null
+        ? null
+        : Folders.FirstOrDefault(item => string.Equals(item.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase));
 
     private string TryFindToolPath(string projectName)
     {

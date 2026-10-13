@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Windows;
+using FolderGate.App.Controls;
 using FolderGate.App.Services;
+using FolderGate.App.ViewModels;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
 using FolderGate.Core.Storage;
@@ -8,57 +10,96 @@ using FolderGate.Core.Storage;
 namespace FolderGate.App;
 
 /// <summary>
-/// App settings: window close behavior (minimize to tray vs. exit), Windows
-/// login auto-start, and the version/update section (current version, manual
-/// update check, release page link). Close-behavior and auto-start values apply
-/// only after Save succeeds; the update check is independent of Save. A failed
-/// update check only updates the status text — locking is never affected.
+/// App settings in the Windows 11 settings style. Theme, close behavior and
+/// auto-start apply as soon as they change (no Save button). The security,
+/// File Explorer and log rows run the main view model's commands, so they keep
+/// the exact gating, logging and error handling of the main window. The update
+/// check is independent of everything else; a failed check only updates the
+/// status text and locking is never affected.
 /// </summary>
-public partial class SettingsWindow : Window
+public partial class SettingsWindow : ThemedWindow
 {
     private readonly ConfigStore _configStore;
     private readonly AutoStartService _autoStartService;
+    private readonly bool _loading;
     private bool _updateCheckRunning;
 
-    public SettingsWindow(AppPaths paths)
+    public SettingsWindow(AppPaths paths, MainViewModel? viewModel)
     {
         InitializeComponent();
         _configStore = new ConfigStore(paths);
         _autoStartService = new AutoStartService(paths, new ToolLocator(paths));
 
+        _loading = true;
         FolderGateConfig config = _configStore.Load();
-        CloseToTrayOption.IsChecked = config.CloseToTray;
-        ExitOnCloseOption.IsChecked = !config.CloseToTray;
+        ThemeChoice.SelectedIndex = config.Theme switch
+        {
+            AppThemePreference.Light => 1,
+            AppThemePreference.Dark => 2,
+            _ => 0
+        };
+        CloseBehaviorChoice.SelectedIndex = config.CloseToTray ? 0 : 1;
         AutoStartOption.IsChecked = _autoStartService.IsEnabled();
+        _loading = false;
 
-        VersionText.Text = $"{AppText.CurrentVersionLabel}: v{UpdateCheckService.CurrentVersion}";
+        DataContext = viewModel;
+        SecuritySection.Visibility = viewModel is null ? Visibility.Collapsed : Visibility.Visible;
+
+        VersionText.Text = $"{AppText.ProductName} v{UpdateCheckService.CurrentVersion}";
         UpdateStatusText.Text = DescribeLastKnownState(config);
     }
 
-    public static void ShowFor(AppPaths paths, Window? owner)
+    public static void ShowFor(AppPaths paths, Window? owner, MainViewModel? viewModel)
     {
-        SettingsWindow window = new(paths);
+        SettingsWindow window = new(paths, viewModel);
         if (owner is { IsVisible: true })
         {
             window.Owner = owner;
         }
         else
         {
+            window.ShowInTaskbar = true;
             window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
 
         window.ShowDialog();
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private void ThemeChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
+        if (_loading)
+        {
+            return;
+        }
+
+        AppThemePreference preference = ThemeChoice.SelectedIndex switch
+        {
+            1 => AppThemePreference.Light,
+            2 => AppThemePreference.Dark,
+            _ => AppThemePreference.System
+        };
+
+        ThemeService.Apply(preference);
+        SaveConfig(config => config.Theme = preference);
+    }
+
+    private void CloseBehaviorChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        bool closeToTray = CloseBehaviorChoice.SelectedIndex != 1;
+        SaveConfig(config => config.CloseToTray = closeToTray);
+    }
+
+    private void AutoStartOption_Click(object sender, RoutedEventArgs e)
+    {
+        bool enable = AutoStartOption.IsChecked == true;
         try
         {
-            FolderGateConfig config = _configStore.Load();
-            config.CloseToTray = CloseToTrayOption.IsChecked == true;
-            _configStore.Save(config);
-
-            if (AutoStartOption.IsChecked == true)
+            if (enable)
             {
                 _autoStartService.Enable();
             }
@@ -66,12 +107,25 @@ public partial class SettingsWindow : Window
             {
                 _autoStartService.Disable();
             }
-
-            DialogResult = true;
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, ex.Message, AppText.SettingsTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            AutoStartOption.IsChecked = _autoStartService.IsEnabled();
+            AppDialog.Error(this, ex.Message, AppText.SettingsTitle);
+        }
+    }
+
+    private void SaveConfig(Action<FolderGateConfig> change)
+    {
+        try
+        {
+            FolderGateConfig config = _configStore.Load();
+            change(config);
+            _configStore.Save(config);
+        }
+        catch (Exception ex)
+        {
+            AppDialog.Error(this, ex.Message, AppText.SettingsTitle);
         }
     }
 
@@ -129,8 +183,13 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, ex.Message, AppText.SettingsTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDialog.Error(this, ex.Message, AppText.SettingsTitle);
         }
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private static string DescribeLastKnownState(FolderGateConfig config)

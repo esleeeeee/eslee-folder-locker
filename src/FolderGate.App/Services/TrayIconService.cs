@@ -203,7 +203,7 @@ public sealed class TrayIconService : IDisposable
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(ex.Message, AppText.ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDialog.Error(null, ex.Message);
         }
         finally
         {

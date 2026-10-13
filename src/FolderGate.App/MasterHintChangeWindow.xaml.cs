@@ -1,8 +1,9 @@
 using System.Windows;
+using FolderGate.App.Controls;
 
 namespace FolderGate.App;
 
-public partial class MasterHintChangeWindow : Window
+public partial class MasterHintChangeWindow : ThemedWindow
 {
     public MasterHintChangeWindow(string? currentHint)
     {

@@ -1,4 +1,6 @@
 using System.Windows;
+using FolderGate.App.Controls;
+using FolderGate.App.Services;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Storage;
 using Microsoft.Win32;
@@ -16,7 +18,7 @@ public enum MigrationPromptChoice
 /// found and no data exists at the new location. The window only collects the
 /// user's choice; the caller performs analysis, confirmation, and migration.
 /// </summary>
-public partial class MigrationPromptWindow : Window
+public partial class MigrationPromptWindow : ThemedWindow
 {
     public MigrationPromptWindow(IReadOnlyList<MigrationCandidate> candidates)
     {
@@ -36,8 +38,7 @@ public partial class MigrationPromptWindow : Window
     {
         if (CandidateList.SelectedItem is not MigrationCandidate candidate)
         {
-            System.Windows.MessageBox.Show(this, AppText.MigrationSourceConfigMissing, AppText.MigrationPromptTitle,
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppDialog.Warning(this, AppText.MigrationSourceConfigMissing, AppText.MigrationPromptTitle);
             return;
         }
 
@@ -61,8 +62,7 @@ public partial class MigrationPromptWindow : Window
 
         if (!PortableMigrationService.HasLegacyData(dialog.FolderName))
         {
-            System.Windows.MessageBox.Show(this, AppText.MigrationNoLegacyInSelected, AppText.MigrationPromptTitle,
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppDialog.Warning(this, AppText.MigrationNoLegacyInSelected, AppText.MigrationPromptTitle);
             return;
         }
 

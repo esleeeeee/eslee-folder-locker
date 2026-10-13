@@ -1,4 +1,5 @@
 using System.Windows;
+using FolderGate.App.Controls;
 using FolderGate.Core.Localization;
 
 namespace FolderGate.App;
@@ -10,7 +11,7 @@ namespace FolderGate.App;
 /// enforced by <see cref="FolderGate.Core.Security.MasterPasswordService"/> so
 /// a failure there leaves the stored credential untouched.
 /// </summary>
-public partial class MasterPasswordChangeWindow : Window
+public partial class MasterPasswordChangeWindow : ThemedWindow
 {
     public MasterPasswordChangeWindow()
     {
@@ -41,6 +42,7 @@ public partial class MasterPasswordChangeWindow : Window
 
     private void ShowWarning(string message)
     {
-        System.Windows.MessageBox.Show(this, message, AppText.MasterChangeTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+        ErrorText.Text = message;
+        ErrorPanel.Visibility = Visibility.Visible;
     }
 }

@@ -1,67 +1,278 @@
-<Window x:Class="FolderGate.App.SettingsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:text="clr-namespace:FolderGate.Core.Localization;assembly=FolderGate.Core"
-        Title="{x:Static text:AppText.SettingsTitle}"
-        Icon="pack://application:,,,/FolderGate.App;component/assets/icons/eslee-folder-locker.ico"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        SizeToContent="Height"
-        Width="480">
-    <StackPanel Margin="20">
-        <TextBlock Text="{x:Static text:AppText.SettingsCloseBehaviorLabel}"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,8" />
-        <RadioButton x:Name="CloseToTrayOption"
-                     Content="{x:Static text:AppText.SettingsCloseToTrayOption}"
-                     GroupName="CloseBehavior"
-                     Margin="0,0,0,6" />
-        <RadioButton x:Name="ExitOnCloseOption"
-                     Content="{x:Static text:AppText.SettingsExitOnCloseOption}"
-                     GroupName="CloseBehavior"
-                     Margin="0,0,0,16" />
+<controls:ThemedWindow x:Class="FolderGate.App.SettingsWindow"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:text="clr-namespace:FolderGate.Core.Localization;assembly=FolderGate.Core"
+                       xmlns:controls="clr-namespace:FolderGate.App.Controls"
+                       Title="{x:Static text:AppText.SettingsTitle}"
+                       Icon="pack://application:,,,/FolderGate.App;component/assets/icons/eslee-folder-locker.ico"
+                       WindowStartupLocation="CenterOwner"
+                       ShowInTaskbar="False"
+                       Width="700"
+                       Height="720"
+                       MinWidth="560"
+                       MinHeight="480">
+    <Window.Resources>
+        <Style x:Key="RowGrid" TargetType="Grid">
+            <Setter Property="Margin" Value="16,12" />
+            <Setter Property="MinHeight" Value="40" />
+        </Style>
+        <Style x:Key="RowIcon" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{x:Static controls:ThemeFonts.Icons}" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style x:Key="RowActions" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+    </Window.Resources>
 
-        <CheckBox x:Name="AutoStartOption"
-                  Content="{x:Static text:AppText.SettingsAutoStartLabel}"
-                  Margin="0,0,0,16" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-        <Separator Margin="0,0,0,12" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="28,22,28,20">
+                <TextBlock Text="{x:Static text:AppText.SettingsTitle}"
+                           Style="{DynamicResource TitleText}"
+                           Margin="0,0,0,18" />
 
-        <TextBlock Text="{x:Static text:AppText.UpdateSectionLabel}"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,8" />
-        <TextBlock x:Name="VersionText"
-                   Margin="0,0,0,4" />
-        <TextBlock x:Name="UpdateStatusText"
-                   TextWrapping="Wrap"
-                   Foreground="#555"
-                   Margin="0,0,0,8" />
-        <StackPanel Orientation="Horizontal"
-                    Margin="0,0,0,20">
-            <Button x:Name="CheckUpdateButton"
-                    Content="{x:Static text:AppText.CheckForUpdatesButton}"
-                    MinWidth="120"
-                    MinHeight="30"
-                    Margin="0,0,8,0"
-                    Click="CheckUpdate_Click" />
-            <Button Content="{x:Static text:AppText.OpenReleasePageButton}"
-                    MinWidth="140"
-                    MinHeight="30"
-                    Click="OpenReleasePage_Click" />
-        </StackPanel>
+                <!-- ===== Appearance ===== -->
+                <TextBlock Text="{x:Static text:AppText.SettingsAppearanceHeader}" Style="{DynamicResource SectionHeaderText}" />
+                <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                    <Grid Style="{StaticResource RowGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource RowIcon}" Text="&#xE790;" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static text:AppText.SettingsThemeLabel}" />
+                            <TextBlock Text="{x:Static text:AppText.SettingsThemeDescription}" Style="{DynamicResource CaptionText}" />
+                        </StackPanel>
+                        <ComboBox x:Name="ThemeChoice"
+                                  Grid.Column="2"
+                                  MinWidth="200"
+                                  Margin="16,0,0,0"
+                                  VerticalAlignment="Center"
+                                  SelectionChanged="ThemeChoice_SelectionChanged">
+                            <ComboBoxItem Content="{x:Static text:AppText.ThemeSystem}" />
+                            <ComboBoxItem Content="{x:Static text:AppText.ThemeLight}" />
+                            <ComboBoxItem Content="{x:Static text:AppText.ThemeDark}" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-            <Button Content="{x:Static text:AppText.SettingsSaveButton}"
+                <!-- ===== Behavior ===== -->
+                <TextBlock Text="{x:Static text:AppText.SettingsBehaviorHeader}" Style="{DynamicResource SectionHeaderText}" />
+                <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                    <StackPanel>
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource RowIcon}" Text="&#xE711;" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static text:AppText.SettingsCloseBehaviorLabel}"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <ComboBox x:Name="CloseBehaviorChoice"
+                                      Grid.Column="2"
+                                      MinWidth="200"
+                                      MaxWidth="300"
+                                      Margin="16,0,0,0"
+                                      VerticalAlignment="Center"
+                                      SelectionChanged="CloseBehaviorChoice_SelectionChanged">
+                                <ComboBoxItem>
+                                    <TextBlock Text="{x:Static text:AppText.SettingsCloseToTrayOption}" TextTrimming="CharacterEllipsis" />
+                                </ComboBoxItem>
+                                <ComboBoxItem>
+                                    <TextBlock Text="{x:Static text:AppText.SettingsExitOnCloseOption}" TextTrimming="CharacterEllipsis" />
+                                </ComboBoxItem>
+                            </ComboBox>
+                        </Grid>
+                        <Separator Margin="0" />
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource RowIcon}" Text="&#xE7E8;" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static text:AppText.SettingsAutoStartTitle}" />
+                                <TextBlock Text="{x:Static text:AppText.SettingsAutoStartDescription}" Style="{DynamicResource CaptionText}" />
+                            </StackPanel>
+                            <CheckBox x:Name="AutoStartOption"
+                                      Grid.Column="2"
+                                      Style="{DynamicResource ToggleSwitch}"
+                                      Margin="16,0,0,0"
+                                      VerticalAlignment="Center"
+                                      AutomationProperties.Name="{x:Static text:AppText.SettingsAutoStartTitle}"
+                                      Click="AutoStartOption_Click" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Security ===== -->
+                <StackPanel x:Name="SecuritySection">
+                    <TextBlock Text="{x:Static text:AppText.SettingsSecurityHeader}" Style="{DynamicResource SectionHeaderText}" />
+                    <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xE8D7;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.SettingsUnlockPasswordTitle}" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsUnlockPasswordDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                                    <Button Content="{x:Static text:AppText.ChangePassword}" Command="{Binding ChangePasswordCommand}" />
+                                </StackPanel>
+                            </Grid>
+                            <Separator Margin="0" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xEA18;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.SettingsMasterTitle}" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsMasterDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                                    <Button Content="{x:Static text:AppText.MasterChangeMenuButton}"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding ChangeMasterPasswordCommand}" />
+                                    <Button Content="{x:Static text:AppText.MasterHintMenuButton}"
+                                            Command="{Binding ChangeMasterHintCommand}" />
+                                </StackPanel>
+                            </Grid>
+                            <Separator Margin="0" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xE90F;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.OpenRecoveryTool}" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsRecoveryToolDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                                    <Button Content="{x:Static text:AppText.OpenRecoveryTool}" Command="{Binding OpenRecoveryToolCommand}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ===== File Explorer and logs ===== -->
+                    <TextBlock Text="{x:Static text:AppText.SettingsExplorerHeader}" Style="{DynamicResource SectionHeaderText}" />
+                    <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xE8B7;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.SettingsExplorerMenuTitle}" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsExplorerMenuDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                                    <Button Content="{x:Static text:AppText.RegisterExplorerMenu}"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding RegisterExplorerMenuCommand}" />
+                                    <Button Content="{x:Static text:AppText.UnregisterExplorerMenu}"
+                                            Command="{Binding UnregisterExplorerMenuCommand}" />
+                                </StackPanel>
+                            </Grid>
+                            <Separator Margin="0" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource RowIcon}" Text="&#xE81C;" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static text:AppText.SettingsLogsTitle}" />
+                                    <TextBlock Text="{x:Static text:AppText.SettingsLogsDescription}" Style="{DynamicResource CaptionText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                                    <Button Content="{x:Static text:AppText.ShowLogs}" Command="{Binding ShowLogsCommand}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===== About / updates ===== -->
+                <TextBlock Text="{x:Static text:AppText.SettingsAboutHeader}" Style="{DynamicResource SectionHeaderText}" />
+                <Border Style="{DynamicResource Card}" Padding="0">
+                    <Grid Style="{StaticResource RowGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource RowIcon}" Text="&#xE946;" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="VersionText" />
+                            <TextBlock x:Name="UpdateStatusText" Style="{DynamicResource CaptionText}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Style="{StaticResource RowActions}">
+                            <Button x:Name="CheckUpdateButton"
+                                    Content="{x:Static text:AppText.CheckForUpdatesButton}"
+                                    Margin="0,0,8,0"
+                                    Click="CheckUpdate_Click" />
+                            <Button Style="{DynamicResource SubtleButton}"
+                                    Click="OpenReleasePage_Click"
+                                    ToolTip="{x:Static text:AppText.OpenReleasePageButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{x:Static text:AppText.OpenReleasePageButton}" />
+                                    <TextBlock Text="&#xE8A7;"
+                                               FontFamily="{x:Static controls:ThemeFonts.Icons}"
+                                               FontSize="12"
+                                               Margin="6,0,0,0"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource PaneBackgroundBrush}"
+                BorderBrush="{DynamicResource DividerStrokeBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="28,14">
+            <Button HorizontalAlignment="Right"
                     MinWidth="96"
-                    MinHeight="34"
-                    Margin="0,0,8,0"
+                    Content="{x:Static text:AppText.Close}"
+                    IsCancel="True"
                     IsDefault="True"
-                    Click="Save_Click" />
-            <Button Content="{x:Static text:AppText.Cancel}"
-                    MinWidth="96"
-                    MinHeight="34"
-                    IsCancel="True" />
-        </StackPanel>
-    </StackPanel>
-</Window>
+                    Click="Close_Click" />
+        </Border>
+    </Grid>
+</controls:ThemedWindow>

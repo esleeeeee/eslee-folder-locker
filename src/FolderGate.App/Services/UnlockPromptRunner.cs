@@ -182,6 +182,6 @@ public sealed class UnlockPromptRunner
 
     private static void ShowError(string message)
     {
-        System.Windows.MessageBox.Show(message, AppText.ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
+        AppDialog.Error(null, message);
     }
 }

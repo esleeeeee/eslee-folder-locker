@@ -1,11 +1,12 @@
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Interop;
+using FolderGate.App.Controls;
 using FolderGate.Core.Localization;
 
 namespace FolderGate.App;
 
-public partial class PasswordDialog : Window
+public partial class PasswordDialog : ThemedWindow
 {
     private readonly bool _requiresConfirmation;
 
@@ -13,7 +14,11 @@ public partial class PasswordDialog : Window
     {
         InitializeComponent();
         Title = title;
+        HeaderText.Text = title;
+        HeaderGlyph.Text = includesUnlockDuration ? Glyphs.Unlock : Glyphs.Key;
         MessageText.Text = message;
+        PasswordInput.PasswordChanged += (_, _) => HideError();
+        ConfirmInput.PasswordChanged += (_, _) => HideError();
         _requiresConfirmation = requiresConfirmation;
         ConfirmPanel.Visibility = requiresConfirmation ? Visibility.Visible : Visibility.Collapsed;
         UnlockDurationPanel.Visibility = includesUnlockDuration ? Visibility.Visible : Visibility.Collapsed;
@@ -45,15 +50,23 @@ public partial class PasswordDialog : Window
         string? validationError = PasswordDialogValidator.Validate(PasswordInput.Password, ConfirmInput.Password, _requiresConfirmation);
         if (validationError is not null)
         {
-            System.Windows.MessageBox.Show(this, validationError, AppText.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            ErrorText.Text = validationError;
+            ErrorPanel.Visibility = Visibility.Visible;
+            PasswordInput.Focus();
             return;
         }
 
         DialogResult = true;
     }
 
+    private void HideError()
+    {
+        ErrorPanel.Visibility = Visibility.Collapsed;
+    }
+
     private void PasswordDialog_Loaded(object sender, RoutedEventArgs e)
     {
+        PasswordInput.Focus();
         if (Owner is not null)
         {
             CenterToOwner();

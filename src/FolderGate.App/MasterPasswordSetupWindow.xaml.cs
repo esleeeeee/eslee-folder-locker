@@ -1,4 +1,6 @@
 using System.Windows;
+using FolderGate.App.Controls;
+using FolderGate.App.Services;
 using FolderGate.Core.Localization;
 
 namespace FolderGate.App;
@@ -10,7 +12,7 @@ namespace FolderGate.App;
 /// rules, and no messages suggesting them. Whitespace-only passwords are
 /// allowed after an informational confirmation.
 /// </summary>
-public partial class MasterPasswordSetupWindow : Window
+public partial class MasterPasswordSetupWindow : ThemedWindow
 {
     public MasterPasswordSetupWindow()
     {
@@ -43,19 +45,11 @@ public partial class MasterPasswordSetupWindow : Window
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(password) &&
+            !AppDialog.Confirm(this, AppText.MasterSetupTitle, AppText.MasterWhitespaceOnlyCaution))
         {
-            // Whitespace-only is valid; inform without blocking.
-            MessageBoxResult result = System.Windows.MessageBox.Show(
-                this,
-                AppText.MasterWhitespaceOnlyCaution,
-                AppText.MasterSetupTitle,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
-            if (result != MessageBoxResult.Yes)
-            {
-                return;
-            }
+            // Whitespace-only is valid; the user is only informed, never blocked.
+            return;
         }
 
         DialogResult = true;
@@ -63,6 +57,7 @@ public partial class MasterPasswordSetupWindow : Window
 
     private void ShowWarning(string message)
     {
-        System.Windows.MessageBox.Show(this, message, AppText.MasterSetupTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+        ErrorText.Text = message;
+        ErrorPanel.Visibility = Visibility.Visible;
     }
 }

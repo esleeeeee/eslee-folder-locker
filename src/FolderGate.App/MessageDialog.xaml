@@ -1,0 +1,58 @@
+<controls:ThemedWindow x:Class="FolderGate.App.MessageDialog"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:controls="clr-namespace:FolderGate.App.Controls"
+                       Icon="pack://application:,,,/FolderGate.App;component/assets/icons/eslee-folder-locker.ico"
+                       ResizeMode="NoResize"
+                       SizeToContent="Height"
+                       Width="460"
+                       MinHeight="180"
+                       ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Margin="24,20,24,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="IconGlyph"
+                       Style="{DynamicResource IconText}"
+                       FontFamily="{x:Static controls:ThemeFonts.Icons}"
+                       FontSize="22"
+                       VerticalAlignment="Top"
+                       Margin="0,2,14,0" />
+            <StackPanel Grid.Column="1">
+                <TextBlock x:Name="HeadingText"
+                           Style="{DynamicResource SubtitleText}"
+                           FontSize="18"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,8" />
+                <TextBlock x:Name="MessageText"
+                           Style="{DynamicResource BodyText}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource PaneBackgroundBrush}"
+                BorderBrush="{DynamicResource DividerStrokeBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="PrimaryButton"
+                        MinWidth="96"
+                        Margin="0,0,8,0"
+                        IsDefault="True"
+                        Click="Primary_Click" />
+                <Button x:Name="SecondaryButton"
+                        MinWidth="96"
+                        IsCancel="True"
+                        Click="Secondary_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</controls:ThemedWindow>

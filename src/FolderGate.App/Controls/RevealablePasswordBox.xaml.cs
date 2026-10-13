@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using FolderGate.Core.Localization;
 
 namespace FolderGate.App.Controls;
 
@@ -69,6 +70,7 @@ public partial class RevealablePasswordBox : System.Windows.Controls.UserControl
         bool reveal = RevealToggle.IsChecked == true;
         VisibleInput.Visibility = reveal ? Visibility.Visible : Visibility.Collapsed;
         HiddenInput.Visibility = reveal ? Visibility.Collapsed : Visibility.Visible;
+        RevealToggle.ToolTip = reveal ? AppText.HidePasswordToggle : AppText.ShowPasswordToggle;
         FocusInput();
     }
 }

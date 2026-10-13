@@ -38,5 +38,11 @@ public sealed class FolderGateConfig
     /// </summary>
     public string? LastKnownLatestVersion { get; set; }
 
+    /// <summary>
+    /// Color theme of the app windows. Configs written by older versions have no
+    /// value and therefore follow the Windows app mode.
+    /// </summary>
+    public AppThemePreference Theme { get; set; } = AppThemePreference.System;
+
     public List<RegisteredFolder> Folders { get; set; } = [];
 }
