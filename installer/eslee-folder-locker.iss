@@ -1,6 +1,6 @@
 ; eslee Folder Locker installer script (Inno Setup 6).
 ; Build once for both languages:
-;   ISCC /DAppVersion=1.3.0 /DSourceDir=..\artifacts\publish installer\eslee-folder-locker.iss
+;   ISCC /DAppVersion=2.0.0 /DSourceDir=..\artifacts\publish installer\eslee-folder-locker.iss
 ;
 ; The multilingual installer preserves the AppId and upgrades in place.
 ; User data (config, ACL backups, master credential, logs) lives under
@@ -8,7 +8,7 @@
 ; uninstaller: ACL backups and the master credential must survive reinstalls.
 
 #ifndef AppVersion
-  #define AppVersion "1.3.0"
+  #define AppVersion "2.0.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\artifacts\publish"
@@ -18,10 +18,10 @@
 #endif
 
 #define AppDisplayName "eslee Folder Locker"
-; Since v1.3.0 all installs ship the same English executable names.
+; Since v2.0.0 all installs ship the same English executable names.
 #define MainExeName "eslee-folder-locker.exe"
 #define RecoveryExeName "eslee-folder-locker-recovery.exe"
-; Korean installs before v1.3.0 used these names; upgrades remove them and
+; Korean installs before v2.0.0 used these names; upgrades remove them and
 ; repoint per-user Run entries at MainExeName (see CurStepChanged).
 #define LegacyKoreanMainExeName "eslee폴더잠금기.exe"
 
@@ -81,7 +81,7 @@ Name: "desktopicon"; Description: "{cm:DesktopIconTask}"; Flags: unchecked
 Name: "autostart"; Description: "{cm:AutoStartTask}"; Flags: unchecked
 
 [InstallDelete]
-; Pre-1.3.0 Korean executable names and recovery shortcut (renamed to English).
+; Pre-2.0.0 Korean executable names and recovery shortcut (renamed to English).
 Type: files; Name: "{app}\{#LegacyKoreanMainExeName}"
 Type: files; Name: "{app}\eslee폴더잠금기_권한도우미.exe"
 Type: files; Name: "{app}\eslee폴더잠금기_복구도구.exe"
@@ -152,7 +152,7 @@ var
   Command: string;
   LegacyExe: string;
 begin
-  { Upgrades from Korean installs before v1.3.0: [InstallDelete] removed the old
+  { Upgrades from Korean installs before v2.0.0: [InstallDelete] removed the old
     main executable, so a Run entry still pointing at it would silently fail at
     the next login (no tray app, and no temporary-unlock relock). Replace only
     the quoted executable and keep the arguments, including any --data-root.

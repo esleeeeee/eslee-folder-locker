@@ -7,8 +7,8 @@ namespace FolderGate.App.Services;
 public sealed class ToolLocator
 {
     /// <summary>
-    /// Main app executable name used by Korean installs before v1.3.0. Since
-    /// v1.3.0 both language builds ship the English names below; this name is
+    /// Main app executable name used by Korean installs before v2.0.0. Since
+    /// v2.0.0 both language builds ship the English names below; this name is
     /// kept only so registrations that still point at it can be migrated.
     /// </summary>
     public const string LegacyKoreanAppExecutableName = "eslee폴더잠금기.exe";

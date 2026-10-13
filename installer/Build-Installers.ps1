@@ -11,7 +11,7 @@ Requires: .NET SDK, Inno Setup 6 (ISCC.exe on PATH or in a standard location).
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.3.0"
+    [string]$Version = "2.0.0"
 )
 
 Set-StrictMode -Version Latest
@@ -64,7 +64,7 @@ function Publish-App {
         }
     }
 
-    # All installs share the English executable names since v1.3.0.
+    # All installs share the English executable names since v2.0.0.
     Copy-Item (Join-Path $publishDir "FolderGate.App.exe") (Join-Path $publishDir "eslee-folder-locker.exe") -Force
     Copy-Item (Join-Path $publishDir "FolderGate.ElevatedHelper.exe") (Join-Path $publishDir "eslee-folder-locker-helper.exe") -Force
     Copy-Item (Join-Path $publishDir "FolderGate.RecoveryTool.exe") (Join-Path $publishDir "eslee-folder-locker-recovery.exe") -Force

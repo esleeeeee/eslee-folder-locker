@@ -14,7 +14,7 @@
     <ApplicationIcon>..\..\assets\icons\eslee-folder-locker.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- Same English product name for both runtime languages (since v1.3.0). -->
+  <!-- Same English product name for both runtime languages (since v2.0.0). -->
   <PropertyGroup>
     <Title>eslee Folder Locker</Title>
     <Product>eslee Folder Locker</Product>

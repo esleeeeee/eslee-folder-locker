@@ -6,7 +6,7 @@ using FolderGate.Core.Validation;
 namespace FolderGate.App.Services;
 
 /// <summary>
-/// v1.3.0 renamed the Korean build's main executable from
+/// v2.0.0 renamed the Korean build's main executable from
 /// <see cref="ToolLocator.LegacyKoreanAppExecutableName"/> to the English name
 /// shared by both language builds, and the installer deletes the old file. Run
 /// entries (app auto-start and temporary-relock resume) that were registered
