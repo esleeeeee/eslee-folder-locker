@@ -117,6 +117,48 @@ public sealed class ConfigStoreTests
         }
     }
 
+    [TestMethod]
+    public void Language_DefaultsToSystemForNewAndLegacyConfigs()
+    {
+        string root = CreateTestRoot();
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(root);
+            ConfigStore store = new(paths);
+            Assert.AreEqual(AppLanguagePreference.System, store.Load().Language);
+
+            File.WriteAllText(paths.ConfigFilePath, "{\"Version\":1,\"Folders\":[]}");
+            Assert.AreEqual(AppLanguagePreference.System, store.Load().Language);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [DataTestMethod]
+    [DataRow(AppLanguagePreference.System)]
+    [DataRow(AppLanguagePreference.Korean)]
+    [DataRow(AppLanguagePreference.English)]
+    public void Language_RoundtripsAsString(AppLanguagePreference preference)
+    {
+        string root = CreateTestRoot();
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(root);
+            ConfigStore store = new(paths);
+            store.Save(new FolderGateConfig { Language = preference });
+
+            Assert.AreEqual(preference, store.Load().Language);
+            using System.Text.Json.JsonDocument json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(paths.ConfigFilePath));
+            Assert.AreEqual(preference.ToString(), json.RootElement.GetProperty("Language").GetString());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static string CreateTestRoot()
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestRuns", Guid.NewGuid().ToString("N")));

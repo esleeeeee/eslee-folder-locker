@@ -44,88 +44,58 @@ jobs:
         run: dotnet restore .\FolderGate.sln
 
       - name: Build
-        run: dotnet build .\FolderGate.sln -c Release --no-restore -p:AppLanguage=ko
+        run: dotnet build .\FolderGate.sln -c Release --no-restore
 
       - name: Test core project
-        run: dotnet test .\tests\FolderGate.Core.Tests\FolderGate.Core.Tests.csproj -c Release --no-build -p:AppLanguage=ko
+        run: dotnet test .\tests\FolderGate.Core.Tests\FolderGate.Core.Tests.csproj -c Release --no-build
 
       - name: Test app project
-        run: dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build -p:AppLanguage=ko
+        run: dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build
 
-      - name: Build English
-        run: dotnet build .\FolderGate.sln -c Release --no-restore -p:AppLanguage=en
+      - name: Publish app
+        run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
-      - name: Test English safe projects
-        run: |
-          dotnet test .\tests\FolderGate.Core.Tests\FolderGate.Core.Tests.csproj -c Release --no-build -p:AppLanguage=en
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet test .\tests\FolderGate.App.Tests\FolderGate.App.Tests.csproj -c Release --no-build -p:AppLanguage=en
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish elevated helper
+        run: dotnet publish .\src\FolderGate.ElevatedHelper\FolderGate.ElevatedHelper.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
-      - name: Publish Korean app
-        run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=ko -o .\artifacts\publish-ko
-
-      - name: Publish Korean elevated helper
-        run: dotnet publish .\src\FolderGate.ElevatedHelper\FolderGate.ElevatedHelper.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=ko -o .\artifacts\publish-ko
-
-      - name: Publish Korean recovery tool
-        run: dotnet publish .\src\FolderGate.RecoveryTool\FolderGate.RecoveryTool.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=ko -o .\artifacts\publish-ko
-
-      - name: Create Korean executable aliases
-        shell: pwsh
-        run: |
-          Copy-Item .\artifacts\publish-ko\FolderGate.App.exe .\artifacts\publish-ko\eslee-folder-locker.exe -Force
-          Copy-Item .\artifacts\publish-ko\FolderGate.ElevatedHelper.exe .\artifacts\publish-ko\eslee-folder-locker-helper.exe -Force
-          Copy-Item .\artifacts\publish-ko\FolderGate.RecoveryTool.exe .\artifacts\publish-ko\eslee-folder-locker-recovery.exe -Force
-
-      - name: Publish English app
-        run: dotnet publish .\src\FolderGate.App\FolderGate.App.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=en -o .\artifacts\publish-en
-
-      - name: Publish English elevated helper
-        run: dotnet publish .\src\FolderGate.ElevatedHelper\FolderGate.ElevatedHelper.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=en -o .\artifacts\publish-en
-
-      - name: Publish English recovery tool
-        run: dotnet publish .\src\FolderGate.RecoveryTool\FolderGate.RecoveryTool.csproj -c Release -r win-x64 --self-contained false -p:AppLanguage=en -o .\artifacts\publish-en
+      - name: Publish recovery tool
+        run: dotnet publish .\src\FolderGate.RecoveryTool\FolderGate.RecoveryTool.csproj -c Release -r win-x64 --self-contained false -o .\artifacts\publish
 
       - name: Create English executable aliases
         shell: pwsh
         run: |
-          Copy-Item .\artifacts\publish-en\FolderGate.App.exe .\artifacts\publish-en\eslee-folder-locker.exe -Force
-          Copy-Item .\artifacts\publish-en\FolderGate.ElevatedHelper.exe .\artifacts\publish-en\eslee-folder-locker-helper.exe -Force
-          Copy-Item .\artifacts\publish-en\FolderGate.RecoveryTool.exe .\artifacts\publish-en\eslee-folder-locker-recovery.exe -Force
+          Copy-Item .\artifacts\publish\FolderGate.App.exe .\artifacts\publish\eslee-folder-locker.exe -Force
+          Copy-Item .\artifacts\publish\FolderGate.ElevatedHelper.exe .\artifacts\publish\eslee-folder-locker-helper.exe -Force
+          Copy-Item .\artifacts\publish\FolderGate.RecoveryTool.exe .\artifacts\publish\eslee-folder-locker-recovery.exe -Force
 
       - name: Verify release privacy
         shell: pwsh
-        run: .\tools\Verify-ReleasePrivacy.ps1 -PublishRoot .\artifacts\publish-ko,.\artifacts\publish-en
+        run: .\tools\Verify-ReleasePrivacy.ps1 -PublishRoot .\artifacts\publish
 
-      - name: Build installers
+      - name: Build installer
         shell: pwsh
         run: |
           $version = "$env:GITHUB_REF_NAME".TrimStart("v")
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          foreach ($lang in "ko", "en") {
-            & $iscc `
-              "/DAppLanguage=$lang" `
-              "/DAppVersion=$version" `
-              "/DSourceDir=$env:GITHUB_WORKSPACE\artifacts\publish-$lang" `
-              "/DOutputDir=$env:GITHUB_WORKSPACE\artifacts\installer" `
-              .\installer\eslee-folder-locker.iss
-            if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $lang" }
-          }
+          & $iscc `
+            "/DAppVersion=$version" `
+            "/DSourceDir=$env:GITHUB_WORKSPACE\artifacts\publish" `
+            "/DOutputDir=$env:GITHUB_WORKSPACE\artifacts\installer" `
+            .\installer\eslee-folder-locker.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
 
       - name: Package release zip
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path .\artifacts\release -Force | Out-Null
-          Compress-Archive -Path .\artifacts\publish-ko\* -DestinationPath ".\artifacts\release\eslee-folder-locker-$env:GITHUB_REF_NAME-ko-win-x64.zip" -Force
-          Compress-Archive -Path .\artifacts\publish-en\* -DestinationPath ".\artifacts\release\eslee-folder-locker-$env:GITHUB_REF_NAME-en-win-x64.zip" -Force
+          Compress-Archive -Path .\artifacts\publish\* -DestinationPath ".\artifacts\release\eslee-folder-locker-$env:GITHUB_REF_NAME-win-x64.zip" -Force
 
       - name: Record release provenance
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version-ko.exe", "artifacts/installer/eslee-folder-locker-setup-v$version-en.exe", "artifacts/release/eslee-folder-locker-v$version-ko-win-x64.zip", "artifacts/release/eslee-folder-locker-v$version-en-win-x64.zip")
-          ./scripts/Write-ReleaseManifest.ps1 -Version $version -AssetPaths $assets -VerifiedChecks @('Korean Core/App safe tests', 'English Core/App safe tests', 'Release privacy check', 'Korean/English publish and Inno installers')
+          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version.exe", "artifacts/release/eslee-folder-locker-v$version-win-x64.zip")
+          ./scripts/Write-ReleaseManifest.ps1 -Version $version -AssetPaths $assets -VerifiedChecks @('Core/App safe tests with runtime language switching', 'Release privacy check', 'Single publish and multilingual Inno installer')
 
       - uses: actions/upload-artifact@v4
         with:
@@ -142,6 +112,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version-ko.exe", "artifacts/installer/eslee-folder-locker-setup-v$version-en.exe", "artifacts/release/eslee-folder-locker-v$version-ko-win-x64.zip", "artifacts/release/eslee-folder-locker-v$version-en-win-x64.zip", "artifacts/release-manifest-v$version.json", "artifacts/SHA256SUMS-v$version.txt")
+          $assets = @("artifacts/installer/eslee-folder-locker-setup-v$version.exe", "artifacts/release/eslee-folder-locker-v$version-win-x64.zip", "artifacts/release-manifest-v$version.json", "artifacts/SHA256SUMS-v$version.txt")
           gh release create "v$version" --verify-tag --title "eslee Folder Locker v$version" --notes-file ".github/release-notes/v$version.md" @assets
           if ($LASTEXITCODE -ne 0) { throw 'Release creation failed; existing releases are never overwritten.' }

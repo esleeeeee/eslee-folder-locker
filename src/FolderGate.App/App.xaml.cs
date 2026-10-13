@@ -51,6 +51,15 @@ public partial class App : System.Windows.Application
         }
 
         AppPaths paths = AppPaths.Resolve(arguments.RootPath, arguments.DataRootPath);
+        try
+        {
+            AppText.SetLanguage(new ConfigStore(paths).Load().Language);
+        }
+        catch
+        {
+            // Language is best effort; normal startup handles config failures.
+        }
+
         ApplySavedTheme(paths);
         TryMigrateExplorerContextMenu(paths);
         TryMigrateLegacyRunEntries(paths);
@@ -230,6 +239,40 @@ public partial class App : System.Windows.Application
         {
             _mainWindowInstance.ViewModel.OpenRecoveryToolCommand.Execute(null);
         }
+    }
+
+    /// <summary>
+    /// Starts a new instance and exits this one (used after a language change,
+    /// which needs every window and the tray menu to be built again). The
+    /// single-instance mutex is released first so the new instance becomes the
+    /// main one instead of just activating this window.
+    /// </summary>
+    public void RestartApplication()
+    {
+        string? executable = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(executable))
+        {
+            return;
+        }
+
+        _activationWait?.Unregister(null);
+        _activationWait = null;
+        _activationEvent?.Dispose();
+        _activationEvent = null;
+        if (_singleInstanceMutex is not null)
+        {
+            if (_ownsSingleInstanceMutex)
+            {
+                _singleInstanceMutex.ReleaseMutex();
+                _ownsSingleInstanceMutex = false;
+            }
+
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+        }
+
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable) { UseShellExecute = false });
+        ExitFromTray();
     }
 
     private void ExitFromTray()

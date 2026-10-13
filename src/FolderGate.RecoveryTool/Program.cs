@@ -8,7 +8,6 @@ using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.Title = AppText.RecoveryToolName;
 
 try
 {
@@ -26,6 +25,15 @@ try
     }
 
     AppPaths paths = AppPaths.Resolve(GetArgumentValue(args, "--root"), GetArgumentValue(args, "--data-root"));
+    try
+    {
+        AppText.SetLanguage(new ConfigStore(paths).Load().Language);
+    }
+    catch
+    {
+        // Keep existing validation and authentication behavior on config failures.
+    }
+    Console.Title = AppText.RecoveryToolName;
 
     // Self-contained authentication gate. This runs inside the recovery tool
     // process itself, so launching the executable directly (without the main

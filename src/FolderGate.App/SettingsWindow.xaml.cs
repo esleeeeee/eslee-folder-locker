@@ -39,6 +39,12 @@ public partial class SettingsWindow : ThemedWindow
             _ => 0
         };
         CloseBehaviorChoice.SelectedIndex = config.CloseToTray ? 0 : 1;
+        LanguageChoice.SelectedIndex = config.Language switch
+        {
+            AppLanguagePreference.Korean => 1,
+            AppLanguagePreference.English => 2,
+            _ => 0
+        };
         AutoStartOption.IsChecked = _autoStartService.IsEnabled();
         RelockOnSessionLockOption.IsChecked = config.RelockOnSessionLock;
         DefaultUnlockChoice.ItemsSource = UnlockDurationOption.Defaults;
@@ -84,6 +90,30 @@ public partial class SettingsWindow : ThemedWindow
 
         ThemeService.Apply(preference);
         SaveConfig(config => config.Theme = preference);
+    }
+
+    private void LanguageChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        AppLanguagePreference preference = LanguageChoice.SelectedIndex switch
+        {
+            1 => AppLanguagePreference.Korean,
+            2 => AppLanguagePreference.English,
+            _ => AppLanguagePreference.System
+        };
+        SaveConfig(config => config.Language = preference);
+
+        // Every window and the tray menu are built with the language at startup.
+        if (System.Windows.Application.Current is App app &&
+            AppDialog.Confirm(this, AppText.SettingsLanguageTitle, AppText.LanguageRestartPrompt))
+        {
+            Close();
+            app.RestartApplication();
+        }
     }
 
     private void CloseBehaviorChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

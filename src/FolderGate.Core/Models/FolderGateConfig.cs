@@ -4,6 +4,8 @@ public sealed class FolderGateConfig
 {
     public int Version { get; set; } = 1;
 
+    public AppLanguagePreference Language { get; set; } = AppLanguagePreference.System;
+
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 
     public PasswordRecord? Password { get; set; }

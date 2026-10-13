@@ -46,6 +46,7 @@
                 <!-- ===== Appearance ===== -->
                 <TextBlock Text="{x:Static text:AppText.SettingsAppearanceHeader}" Style="{DynamicResource SectionHeaderText}" />
                 <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                    <StackPanel>
                     <Grid Style="{StaticResource RowGrid}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -68,6 +69,30 @@
                             <ComboBoxItem Content="{x:Static text:AppText.ThemeDark}" />
                         </ComboBox>
                     </Grid>
+                    <Separator Margin="0" />
+                    <Grid Style="{StaticResource RowGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource RowIcon}" Text="&#xE775;" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static text:AppText.SettingsLanguageTitle}" />
+                            <TextBlock Text="{x:Static text:AppText.SettingsLanguageDescription}" Style="{DynamicResource CaptionText}" />
+                        </StackPanel>
+                        <ComboBox x:Name="LanguageChoice"
+                                  Grid.Column="2"
+                                  MinWidth="200"
+                                  Margin="16,0,0,0"
+                                  VerticalAlignment="Center"
+                                  SelectionChanged="LanguageChoice_SelectionChanged">
+                            <ComboBoxItem Content="{x:Static text:AppText.LanguageSystem}" />
+                            <ComboBoxItem Content="{x:Static text:AppText.LanguageKorean}" />
+                            <ComboBoxItem Content="{x:Static text:AppText.LanguageEnglish}" />
+                        </ComboBox>
+                    </Grid>
+                    </StackPanel>
                 </Border>
 
                 <!-- ===== Behavior ===== -->

@@ -23,12 +23,7 @@ Windows 폴더에 접근 제한을 적용하고, 비밀번호로 잠금과 해�
 
 ## 다운로드
 
-[최신 버전 페이지](https://github.com/esleeeeee/eslee-folder-locker/releases/latest)에서 사용하는 언어에 맞는 **설치 파일**을 내려받으세요.
-
-| 사용하는 언어 | 내려받을 파일 |
-| --- | --- |
-| 한국어 | `eslee-folder-locker-setup-v버전-ko.exe` |
-| English | `eslee-folder-locker-setup-v버전-en.exe` |
+[최신 버전 페이지](https://github.com/esleeeeee/eslee-folder-locker/releases/latest)에서 **설치 파일** `eslee-folder-locker-setup-v버전.exe`를 내려받으세요. 한국어와 영어를 모두 지원하는 설치 파일 하나입니다.
 
 - 파일 이름에 `setup`이 들어간 EXE가 설치 파일입니다. 일반 사용자는 이 파일을 받으면 됩니다.
 - `Source code (zip)`과 `Source code (tar.gz)`는 GitHub가 자동으로 첨부하는 소스 코드 묶음입니다. **설치 파일이 아니므로** 내려받지 않아도 됩니다.
@@ -45,7 +40,7 @@ Windows 폴더에 접근 제한을 적용하고, 비밀번호로 잠금과 해�
 Windows 11 기준입니다. NTFS 드라이브와 x64 Windows가 필요하며, .NET 8 Desktop Runtime이 없는 PC에서는 실행 시 설치 안내가 표시될 수 있습니다.
 
 1. [최신 버전 페이지](https://github.com/esleeeeee/eslee-folder-locker/releases/latest)를 엽니다.
-2. 한국어 설치 파일(`...-setup-...-ko.exe`)을 내려받아 실행합니다.
+2. 설치 파일(`eslee-folder-locker-setup-v버전.exe`)을 내려받아 실행합니다. 설치 언어는 Windows UI 언어로 기본 선택되며 언어 선택 창에서 바꿀 수 있습니다.
 3. SmartScreen 경고가 뜨면 **추가 정보** → **실행**을 누릅니다.
 4. 설치 마법사에서 설치 위치를 확인하고 진행합니다. 기본 위치는 `C:\Program Files\eslee Folder Locker`입니다.
 5. 필요하면 선택 항목을 켭니다. 둘 다 선택 사항이며 나중에 바꿀 수 있습니다.
@@ -204,7 +199,7 @@ Windows 11 기준입니다. NTFS 드라이브와 x64 Windows가 필요하며, .N
 - 마스터 복구 비밀번호는 분실 시 복구할 수 없습니다.
 - 권한 백업 파일은 암호화되지 않은 상태로 사용자 데이터 폴더에 저장됩니다.
 - 드라이브 전체(`C:\` 등), Windows 시스템 폴더, Program Files, 사용자 프로필 전체, OneDrive 최상위 폴더 같은 위험한 경로는 잠글 수 없게 막혀 있습니다.
-- 한국어와 영어를 지원하며, 언어는 설치 파일 선택으로 결정됩니다.
+- 한국어와 영어를 한 설치 파일에서 지원합니다. 앱 언어는 기본적으로 Windows UI 언어를 따르며, 설정에서 시스템 기본 / 한국어 / 영어를 선택할 수 있습니다.
 
 ## 개인정보와 로컬 데이터
 
@@ -297,11 +292,11 @@ flowchart TD
 ```powershell
 git clone https://github.com/esleeeeee/eslee-folder-locker.git
 Set-Location eslee-folder-locker
-dotnet build .\FolderGate.sln -p:AppLanguage=ko
+dotnet build .\FolderGate.sln -c Release
 dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 ```
 
-영어 UI는 `-p:AppLanguage=en`으로 빌드합니다. 설치 파일은 `installer\Build-Installers.ps1`로 생성합니다(Inno Setup 6 필요).
+한국어/영어 UI는 같은 빌드에서 `AppText.SetLanguage`로 선택합니다. 설치 파일 하나는 `installer\Build-Installers.ps1 -Version 1.3.0`으로 생성합니다(Inno Setup 6 필요).
 
 - [아키텍처](docs/architecture.md) — 프로젝트 구조, 데이터 경로, 마스터 비밀번호 설계
 - [ACL 설계](docs/acl-design.md) — 권한 변경 방식

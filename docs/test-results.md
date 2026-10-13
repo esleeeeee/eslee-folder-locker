@@ -16,7 +16,7 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 
 The `RequiresElevation` tests are excluded from the standard command because they require an elevated Windows terminal.
 
-As of v1.2.0 the standard suite contains 104 tests (Core 61, App 36, Integration 7), all passing on both `AppLanguage=ko` and `AppLanguage=en` builds.
+As of v1.2.0 the standard suite contains 104 tests (Core 61, App 36, Integration 7), all passing on the separate Korean and English builds used at that time. Current builds select the language at runtime.
 
 ## Elevated Validation
 

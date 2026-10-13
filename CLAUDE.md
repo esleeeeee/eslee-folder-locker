@@ -10,21 +10,22 @@ NTFS ACL 메타데이터를 변경해 파일 탐색기에서의 일반적인 접
 **이 프로그램은 암호화 제품이 아닙니다.** 파일 내용을 읽거나, 암호화하거나, 이동하거나, 압축하지 않습니다.
 관리자 권한이나 ACL 지식이 있는 사용자는 우회할 수 있습니다. 문서와 커밋 메시지에서 이 경계를 과장하지 마세요.
 
-내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee Folder Locker`이며, v1.3.0부터(2026-10-13 소유자 결정) 한국어/영어 빌드 모두 같은 영어 이름을 쓰고 실행 파일명도 두 빌드 모두 영어(`eslee-folder-locker.exe` 등)입니다.
+내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee Folder Locker`이며, v1.3.0부터(2026-10-13 소유자 결정) 한국어/영어 UI 모두 같은 영어 이름을 쓰고 단일 빌드의 실행 파일명도 영어(`eslee-folder-locker.exe` 등)입니다.
 이름을 통일한다는 이유로 네임스페이스나 어셈블리명을 바꾸지 마세요.
 
 ## 빌드와 테스트
 
 ```bash
-dotnet build .\FolderGate.sln -p:AppLanguage=ko
+dotnet build .\FolderGate.sln -c Release
 ```
 
 ```bash
-dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
+dotnet test .\FolderGate.sln -c Release --no-build --filter "TestCategory!=RequiresElevation"
 ```
 
 - 타깃 프레임워크는 `net8.0-windows`입니다. 상위 SDK로 빌드해도 타깃은 유지하세요.
-- `AppLanguage`는 `ko`(기본) 또는 `en`입니다. `Directory.Build.props`에서 `APP_LANGUAGE_KO` / `APP_LANGUAGE_EN` 상수로 분기합니다.
+- 언어는 단일 빌드에서 런타임에 선택합니다. `FolderGateConfig.Language`는 `System`(기본), `Korean`, `English`이며, 각 프로세스가 시작 시 `AppText.SetLanguage(config.Language)`를 호출합니다.
+  `System`은 `CultureInfo.CurrentUICulture`가 한국어이면 `ko`, 그 외에는 `en`입니다. 새 표시 문자열은 항상 `LanguageCode == "en" ? "English" : "한국어"` 형태로 두 언어를 함께 제공하세요.
   표시 문자열은 전부 `FolderGate.Core/Localization/AppText.cs`(UI 문자열은 `AppText.Ui.cs`)에 있습니다. UI 문자열을 코드에 직접 쓰지 마세요.
 - `TestCategory=RequiresElevation` 테스트는 관리자 권한과 실제 ACL 변경이 필요합니다.
   **요청 없이 실행하지 마세요.** 실행이 필요하면 먼저 동작, 시스템 변경 범위, 복구 방법을 분석해 보고하세요.
@@ -95,12 +96,13 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 ## 설치 파일 빌드
 
 ```bash
-powershell -File .\installer\Build-Installers.ps1 -Version 1.2.0 -Language both
+powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers.ps1 -Version 1.3.0
 ```
 
 - Inno Setup 6 필요 (사용자 범위 설치 가능, `%LOCALAPPDATA%\Programs\Inno Setup 6`).
-- 산출물: `artifacts\installer\eslee-folder-locker-setup-v<버전>-{ko,en}.exe` (SHA-256 출력).
-- ko/en 설치 파일은 동일 AppId를 공유해 서로 업그레이드로 인식됩니다.
+- 산출물: `artifacts\installer\eslee-folder-locker-setup-v<버전>.exe` (SHA-256 출력).
+- 설치 프로그램 하나가 한국어/영어를 지원하며 Windows UI 언어로 기본 선택합니다. 기존 AppId를 유지해 이전 설치본을 업그레이드합니다.
+- 설치 파일 빌드 스크립트 `Build-Installers.ps1`은 Windows PowerShell 5.1 호환을 위해 ASCII만 사용하세요.
 - 제거 프로그램은 잠긴 폴더 감지 시 기본 차단(이중 확인 후 강행 가능)하며 사용자 데이터를 삭제하지 않습니다.
 - `.ps1`에 한글이 들어가면 **UTF-8 BOM**으로 저장해야 합니다 (Windows PowerShell 5.1 인코딩 문제).
 
@@ -155,7 +157,7 @@ powershell -File .\installer\Build-Installers.ps1 -Version 1.2.0 -Language both
 
 ## 배포
 
-태그를 push하면 GitHub Actions가 한국어·영어 설치 파일과 릴리스 ZIP을 생성합니다
+태그를 push하면 GitHub Actions가 다국어 설치 파일 하나와 릴리스 ZIP 하나를 생성합니다
 (GitHub Windows 러너에는 Inno Setup 6이 사전 설치되어 있습니다).
 릴리스 노트는 `.github/release-notes/vX.Y.Z.md`에 둡니다.
 릴리스, 태그 생성, push는 사용자가 명시적으로 요청할 때만 수행합니다.

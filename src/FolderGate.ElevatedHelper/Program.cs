@@ -9,7 +9,6 @@ using FolderGate.Core.Storage;
 using FolderGate.Core.Validation;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.Title = AppText.ElevatedHelperName;
 
 try
 {
@@ -28,13 +27,22 @@ try
 
     AppPaths paths = AppPaths.Resolve(commandLine.GetValue("root"), commandLine.GetValue("data-root"));
     HelperContext context = new(paths, new ConfigStore(paths), new AclService(paths), new OperationProgressStore(paths));
+    try
+    {
+        AppText.SetLanguage(context.ConfigStore.Load().Language);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+    {
+        // Language is best effort; each operation reports configuration errors itself.
+    }
+
+    Console.Title = AppText.ElevatedHelperName;
     string command = commandLine.Command.ToLowerInvariant();
 
     if (command == "lock-many")
     {
         return RunLockMany(context, commandLine);
     }
-
     string targetId = commandLine.GetRequiredValue("target-id");
     string operationId = commandLine.GetValue("operation-id") ?? Guid.NewGuid().ToString("N");
     AclOperationResult result = RunTargetOperation(command, context, targetId, operationId, commandLine);

@@ -1,19 +1,17 @@
 <#
 .SYNOPSIS
-Builds the Korean and English eslee Folder Locker installers.
+Builds the multilingual eslee Folder Locker installer.
 
 .DESCRIPTION
-Publishes the three executables per language, copies the display-named aliases,
-runs the release privacy check, then compiles the Inno Setup installer for each
-language. Outputs land in artifacts\installer\ with SHA-256 hashes printed.
+Publishes the three executables once, copies the English executable aliases,
+runs the release privacy check, then compiles one multilingual Inno Setup
+installer. Outputs land in artifacts\installer\ with SHA-256 hashes printed.
 
 Requires: .NET SDK, Inno Setup 6 (ISCC.exe on PATH or in a standard location).
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.3.0",
-    [ValidateSet("ko", "en", "both")]
-    [string]$Language = "both"
+    [string]$Version = "1.3.0"
 )
 
 Set-StrictMode -Version Latest
@@ -37,8 +35,8 @@ function Find-Iscc {
     return $candidates | Select-Object -First 1
 }
 
-function Publish-Language([string]$lang) {
-    $publishDir = Join-Path $artifacts "publish-$lang"
+function Publish-App {
+    $publishDir = Join-Path $artifacts "publish"
     if (Test-Path $publishDir) {
         Remove-Item $publishDir -Recurse -Force
     }
@@ -60,13 +58,13 @@ function Publish-Language([string]$lang) {
         # return value (PowerShell functions return all pipeline output).
         dotnet publish (Join-Path $repoRoot "src\$project\$project.csproj") `
             -c Release -r win-x64 --self-contained false `
-            -p:AppLanguage=$lang -o $publishDir --nologo | Out-Host
+            -o $publishDir --nologo | Out-Host
         if ($LASTEXITCODE -ne 0) {
-            throw "dotnet publish failed for $project ($lang)."
+            throw "dotnet publish failed for $project."
         }
     }
 
-    # Both languages share the English executable names since v1.3.0.
+    # All installs share the English executable names since v1.3.0.
     Copy-Item (Join-Path $publishDir "FolderGate.App.exe") (Join-Path $publishDir "eslee-folder-locker.exe") -Force
     Copy-Item (Join-Path $publishDir "FolderGate.ElevatedHelper.exe") (Join-Path $publishDir "eslee-folder-locker-helper.exe") -Force
     Copy-Item (Join-Path $publishDir "FolderGate.RecoveryTool.exe") (Join-Path $publishDir "eslee-folder-locker-recovery.exe") -Force
@@ -75,28 +73,24 @@ function Publish-Language([string]$lang) {
     return $publishDir
 }
 
-function Build-Installer([string]$lang, [string]$publishDir, [string]$iscc) {
+function Build-Installer([string]$publishDir, [string]$iscc) {
     & $iscc `
-        "/DAppLanguage=$lang" `
         "/DAppVersion=$Version" `
         "/DSourceDir=$publishDir" `
         "/DOutputDir=$(Join-Path $artifacts 'installer')" `
         (Join-Path $PSScriptRoot "eslee-folder-locker.iss")
     if ($LASTEXITCODE -ne 0) {
-        throw "ISCC failed for language '$lang'."
+        throw "ISCC failed."
     }
 }
 
 $iscc = Find-Iscc
 Write-Host "Using ISCC: $iscc"
 
-$languages = if ($Language -eq "both") { @("ko", "en") } else { @($Language) }
-foreach ($lang in $languages) {
-    Write-Host "=== Publishing ($lang) ===" -ForegroundColor Cyan
-    $publishDir = Publish-Language $lang
-    Write-Host "=== Building installer ($lang) ===" -ForegroundColor Cyan
-    Build-Installer $lang $publishDir $iscc
-}
+Write-Host "=== Publishing ===" -ForegroundColor Cyan
+$publishDir = Publish-App
+Write-Host "=== Building installer ===" -ForegroundColor Cyan
+Build-Installer $publishDir $iscc
 
 Write-Host "=== Installer SHA-256 ===" -ForegroundColor Cyan
 Get-ChildItem (Join-Path $artifacts "installer") -Filter "*.exe" | ForEach-Object {
