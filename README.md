@@ -291,4 +291,4 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 
 ## 라이선스
 
-현재 별도의 라이선스 파일이 제공되지 않습니다.
+[MIT 라이선스](LICENSE)로 배포합니다. 누구나 자유롭게 사용·수정·배포할 수 있으며, 배포할 때는 저작권 표시와 라이선스 문구를 함께 포함해야 합니다. 프로그램은 어떠한 보증도 없이 있는 그대로 제공됩니다.

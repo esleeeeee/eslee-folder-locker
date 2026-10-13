@@ -326,4 +326,4 @@ The internal project name and namespaces remain `FolderGate` for compatibility. 
 
 ## License
 
-No separate license file is currently provided.
+Released under the [MIT License](LICENSE). You may use, modify, and distribute it freely as long as the copyright notice and license text are included. The software is provided "as is", without warranty of any kind.
