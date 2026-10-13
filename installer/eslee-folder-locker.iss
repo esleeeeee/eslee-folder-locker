@@ -44,6 +44,10 @@ WizardStyle=modern
 PrivilegesRequired=admin
 CloseApplications=yes
 RestartApplications=no
+; The executables keep their names across upgrades, so Explorer would keep showing
+; the previous icon from its cache (taskbar, Start menu). This makes Setup tell
+; Explorer to refresh icons at the end of the installation.
+ChangesAssociations=yes
 SetupIconFile=..\assets\icons\eslee-folder-locker.ico
 Compression=lzma2
 SolidCompression=yes
