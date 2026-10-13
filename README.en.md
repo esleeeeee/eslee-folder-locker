@@ -17,6 +17,7 @@ It is a good fit for keeping specific folders off-limits when you share one PC a
 - Lock specific folders so that others using your account cannot open them
 - Unlock with a password — permanently, or temporarily for 1 minute to 1 day with automatic re-locking
 - Unlock a locked folder straight from the File Explorer right-click menu
+- Use a light or dark theme (follows Windows or set manually)
 - Close the window and keep the app in the system tray (the icon area at the right of the taskbar) for quick access
 - Try to restore folder permissions with a separate recovery tool if the main app cannot run
 
@@ -54,6 +55,16 @@ Instructions are for Windows 11. You need an NTFS drive and x64 Windows; if the 
 
 Installing also registers the File Explorer right-click entry (`Unlock with eslee Folder Locker`).
 
+## Screen layout
+
+The main window is split into a list on the left and details on the right.
+
+- **Left (list)**: the app title, a Settings (gear) button, the **Add folder** button, a search box (search by name or path, `Ctrl+F`), filter chips (**All / Locked / Unlocked / Needs attention**), the list of registered folders, and the folder count and version at the bottom. **Needs attention** appears only while a folder is being processed or needs recovery. A thin progress bar shows on the folder being processed.
+- **Right (details)**: for the selected folder, a status card with the main button (**Lock** / **Unlock**), progress of a running operation with **Cancel**, the lock mode cards (shown only while the folder is unlocked), and **Details** (state, mode, path, last operation, last result). The **...** (More) menu next to the folder name offers **Open in File Explorer** and **Remove folder**.
+- **Drag and drop**: drag folders from File Explorer onto the main window; an overlay saying the folders will be registered on drop appears, and dropping registers them. Files are skipped, and the same checks as the folder picker apply.
+- **Settings**: open it with the gear button or **Settings** in the tray menu. Password changes, the master recovery password, the recovery tool, the Explorer menu, the operation log, and the theme are all here. Changes apply immediately; there is no Save button.
+- **Dark mode**: choose **Use Windows setting / Light / Dark** under **Settings > Appearance > Theme**. The default follows Windows, including live changes to the Windows app mode.
+
 ## First-time setup
 
 ### 1. Set the master recovery password
@@ -68,9 +79,9 @@ On first launch the app shows the **Set master recovery password** screen. This 
 
 ### 2. Register a folder and lock it
 
-1. Click **Add folder** in the main window and pick the folder to lock.
+1. Click **Add folder** in the main window and pick the folder to lock. You can also drag folders from File Explorer onto the main window.
 2. The first time, set the **folder password** used for unlocking. It must be at least 4 characters and is shared by all registered folders.
-3. Choose the lock mode on the right (**Quick mode** or **Hardened mode**).
+3. Choose the lock mode on the right (**Quick mode** or **Hardened mode**). The choice is shown only while the folder is unlocked and applies the next time you lock it.
 4. Click **Lock** and review the confirmation dialog.
 5. Approve the Windows administrator prompt (UAC) — changing permissions requires admin approval.
 6. When the lock finishes, the folder's state in the list changes to `Locked`. Opening it in File Explorer is now denied.
@@ -112,7 +123,7 @@ When you unlock with a time limit, the app re-locks the folder when the time exp
 
 Timed unlock schedules an automatic re-lock, so it is available only after the master recovery password has been set. Permanent unlock is always available.
 
-The login resume runner isolates failures per folder. A failed folder gets up to two more attempts after 30 and 60 seconds while other folders continue. Failures preserve access and recovery information and appear in the main window’s last operation time and result. If retries are exhausted, review that result and re-lock manually. Corrupt security credentials prevent new lock attempts.
+The login resume runner isolates failures per folder. A failed folder gets up to two more attempts after 30 and 60 seconds while other folders continue. Failures preserve access and recovery information and appear in the last operation and last result under **Details** of the folder. If retries are exhausted, review that result and re-lock manually. Corrupt security credentials prevent new lock attempts.
 
 ## Using the system tray
 
@@ -127,7 +138,7 @@ While the app runs, an icon sits in the system tray.
   - **Settings**
   - **Exit**: quit the app completely
 - To quit completely, use **Exit** in the tray menu.
-- If you prefer the X button to really exit, change **When the main window is closed** to **Exit the app completely** in **Settings**.
+- If you prefer the X button to really exit, change **When the main window is closed** to **Exit the app completely** in **Settings > Behavior**.
 - Only one instance runs at a time. Launching the app again brings the existing window to the front instead of opening a new one.
 
 ## Folder password vs. master recovery password
@@ -142,7 +153,8 @@ The app uses two different passwords.
 - They are not interchangeable. The master recovery password cannot unlock folders normally, and the folder password cannot open the recovery tool.
 - The master recovery password only needs to be non-empty. There are no length or character rules and no limit on failed attempts. A password made only of spaces is technically allowed but easy to get wrong later, so it is not recommended.
 - The hint is optional. It is stored unencrypted and anyone at the recovery tool screen can view it — never write the password itself into the hint.
-- Both passwords can be changed from the main window: **Change password** (folder), **Change master password**, and **Change recovery hint**. Changing always requires the current password.
+- Both passwords can be changed under **Settings > Security**: **Change password** under **Unlock password** (folder), and **Change master password** and **Change recovery hint** under **Master recovery password**. Changing always requires the current password.
+- The eye icon at the right of a password field shows or hides what you typed. Input errors appear right below the field.
 
 > **Once more:** a forgotten master recovery password cannot be recovered, and the recovery tool becomes unusable.
 
@@ -155,7 +167,7 @@ The recovery tool is a separate program for these situations:
 
 How it works:
 
-- Start it with the **Open recovery tool** button in the main window or the Start menu shortcut.
+- Start it with the **Open recovery tool** button under **Settings > Security**, **Open recovery tool** in the tray menu, or the Start menu shortcut. When a folder needs recovery, the main button in that folder’s details also becomes **Open recovery tool**.
 - After approving the administrator prompt (UAC), you must enter the **master recovery password**. Until the password is correct, no folder or backup information is shown at all.
 - After authenticating, choose the folder and backup, then type `RESTORE` when prompted to run the restore.
 - The tool depends on saved backups. If backup files were deleted or damaged, recovery may not be possible.
@@ -168,7 +180,7 @@ See the [recovery guide](docs/recovery-guide.md) for details.
 Auto-start is optional.
 
 - You can enable it during installation with **Start automatically at Windows login (in the tray)**.
-- After installation, toggle it any time in the app's **Settings**.
+- After installation, toggle **Start at Windows login** under **Settings > Behavior** at any time.
 - When auto-started, the app begins quietly in the tray without opening the main window.
 - During a quiet tray start, first-run setup and data migration prompts are skipped; they appear the next time you open the app normally.
 
@@ -229,17 +241,17 @@ When attaching logs to a GitHub issue, remove or mask personal folder names and 
 
 - **Symptom**: the window closed but the app seems to still be doing things.
 - **Explanation**: it did not exit — it moved to the system tray, silently by design.
-- **Fix**: double-click the tray icon, or right-click it and choose **Open eslee Folder Locker**. Use **Exit** in the tray menu to quit completely. You can make X really exit under **Settings**.
+- **Fix**: double-click the tray icon, or right-click it and choose **Open eslee Folder Locker**. Use **Exit** in the tray menu to quit completely. You can make X really exit under **Settings > Behavior** (**When the main window is closed**).
 
 ### The Explorer right-click entry is missing
 
 - **Check first**: on Windows 11 it may be under **Show more options**, or use `Shift + right-click`.
-- **Fix**: if it is still missing, click **Register Explorer menu** in the app's main window.
+- **Fix**: if it is still missing, click **Register Explorer menu** under **Settings > File Explorer** in the app (use **Remove Explorer menu** to turn it off).
 
 ### A temporary unlock didn't re-lock
 
 - **Check first**: automatic re-locking works while you are logged in. If the PC was off, it re-locks after your next login.
-- **Fix**: to re-lock immediately, select the folder in the app and click **Lock**. If it keeps happening, check **View logs** for errors.
+- **Fix**: to re-lock immediately, select the folder in the app and click **Lock**. If it keeps happening, check **View logs** (**Settings > File Explorer > Operation log**) for errors.
 
 ### I forgot the master recovery password
 
@@ -250,7 +262,7 @@ When attaching logs to a GitHub issue, remove or mask personal folder names and 
 ### The recovery tool won't run
 
 - **Check first**: make sure you did not cancel the administrator prompt, and that a master recovery password has been set — the tool is unavailable before that.
-- **Fix**: reinstall the latest version. If it still fails, open a [GitHub issue](https://github.com/esleeeeee/eslee-folder-locker/issues) with the contents of **View logs** (personal paths removed).
+- **Fix**: reinstall the latest version. If it still fails, open a [GitHub issue](https://github.com/esleeeeee/eslee-folder-locker/issues) with the contents of **View logs** under **Settings > File Explorer** (personal paths removed).
 
 ### The uninstaller warns about locked folders
 

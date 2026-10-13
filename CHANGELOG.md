@@ -7,14 +7,26 @@
 - The Korean build now uses the English product name `eslee Folder Locker` everywhere it shows the product name (window title, taskbar, Task Manager, tray, Explorer menu such as `eslee Folder Locker로 잠금 해제`, installer), matching the English build.
 - Both language builds now ship the same executable names: `eslee-folder-locker.exe`, `eslee-folder-locker-helper.exe`, and `eslee-folder-locker-recovery.exe`. The Start menu recovery shortcut is `eslee Folder Locker 복구 도구` (Korean) or `eslee Folder Locker Recovery Tool` (English).
 - Upgrading from v1.2.x keeps working: the installer removes the old Korean executables and recovery shortcut and repoints the auto-start and temporary re-lock Run entries to the new executable, keeping their arguments. The app repeats this for the current user at startup, but only for entries that name the old Korean executable in the app's own folder after that file is gone, so development builds never take over an installed registration. The Explorer right-click entry is refreshed by the existing startup migration. The data folder `%LOCALAPPDATA%\eslee-folder-locker`, settings, ACL backups, and the master recovery password are unchanged.
-- Fixed windows appearing as blank white rectangles on some GPU driver / Direct3D 9 combinations (main window and password/unlock dialogs were unusable). The app now uses software rendering.
+- Fixed windows appearing as blank white rectangles on some graphics setups, for example when the PC is used over remote desktop with the monitor turned off (main window and password/unlock dialogs were unusable). The app now uses software rendering.
+- Redesigned UI: the main window is now a folder list on the left and details for the selected folder on the right. The list has search (Ctrl+F) and filters (All / Locked / Unlocked / Needs attention), shows each folder's state, and shows a progress bar on the folder being processed. The right side shows the main action for the folder's state (Unlock, Lock, or Open recovery tool), the lock mode cards while the folder is unlocked, progress with Cancel, and a Details card.
+- Drag folders from File Explorer onto the main window to register them. Files are skipped, and the same validation as the folder picker applies.
+- Added dark mode. Under Settings > Appearance > Theme, choose Use Windows setting (default, follows the Windows app mode live), Light, or Dark. The theme is stored as an optional config value that older versions ignore.
+- Windows 11 style Settings window with sections that apply immediately (no Save button). Change password, master password and hint, Open recovery tool, Explorer menu register/remove, and the operation log moved from the main window into Settings; the actions themselves behave as before.
+- All windows and dialogs now share one style. Windows message boxes are replaced by themed dialogs, password dialogs show input errors inline, and password fields use an eye icon to show or hide the text.
+- No change to locking, recovery, master password rules, data location, tray behavior, or network access.
 
 ### Korean
 
 - 한국어 빌드도 UI 전반(탐색기 우클릭 메뉴, 트레이 메뉴, 설치 프로그램 등)에서 영어 제품명 `eslee Folder Locker`를 사용합니다. 영어 빌드와 동일합니다.
 - 두 언어 빌드 모두 같은 실행 파일 이름을 사용합니다: `eslee-folder-locker.exe`, `eslee-folder-locker-helper.exe`, `eslee-folder-locker-recovery.exe`. 시작 메뉴 복구 도구 바로가기는 한국어 `eslee Folder Locker 복구 도구`, 영어 `eslee Folder Locker Recovery Tool`입니다.
 - v1.2.x에서의 업그레이드가 그대로 동작합니다. 설치 프로그램이 이전 한국어 실행 파일과 복구 도구 바로가기를 지우고, 로그인 자동 실행과 임시 재잠금 Run 항목을 인자는 그대로 둔 채 새 실행 파일로 다시 씁니다. 앱도 시작할 때 현재 사용자에 대해 같은 작업을 반복하며, 이전 한국어 실행 파일을 가리키고 그 파일이 사라졌으며 앱 자신의 폴더에 있던 항목에만 적용되어 개발 빌드가 설치본 등록을 가로채지 않습니다. 탐색기 우클릭 메뉴는 기존 시작 시 마이그레이션이 갱신합니다. 데이터 폴더 `%LOCALAPPDATA%\eslee-folder-locker`, 설정, ACL 백업, 마스터 복구 비밀번호는 변경되지 않습니다.
-- 일부 GPU 드라이버/Direct3D 9 조합에서 창이 빈 흰 사각형으로 표시되어(메인 창과 비밀번호·잠금 해제 창을 쓸 수 없던) 문제를 고쳤습니다. 앱이 소프트웨어 렌더링을 사용합니다.
+- 모니터를 끈 채 원격 데스크톱으로 접속할 때처럼 일부 그래픽 환경에서 창이 빈 흰 사각형으로 표시되어(메인 창과 비밀번호·잠금 해제 창을 쓸 수 없던) 문제를 고쳤습니다. 앱이 소프트웨어 렌더링을 사용합니다.
+- UI를 새로 디자인했습니다. 메인 창이 왼쪽 폴더 목록과 오른쪽 선택 폴더 상세 화면으로 바뀌었습니다. 목록에는 검색(Ctrl+F)과 필터(전체 / 잠김 / 해제됨 / 확인 필요)가 있고 폴더별 상태가 보이며, 처리 중인 폴더에는 진행 막대가 표시됩니다. 오른쪽에는 폴더 상태에 맞는 주요 버튼(잠금 해제, 잠금, 복구 도구 열기), 해제된 폴더에서만 보이는 잠금 모드 카드, 취소가 포함된 진행 상황, 세부 정보 카드가 표시됩니다.
+- 파일 탐색기에서 폴더를 메인 창으로 끌어다 놓아 등록할 수 있습니다. 파일은 건너뛰며 폴더 선택 창과 같은 검사를 거칩니다.
+- 다크 모드를 추가했습니다. 설정 > 화면 > 테마에서 Windows 설정 따르기(기본, Windows 앱 모드를 바로 따라감), 라이트, 다크를 고릅니다. 테마는 이전 버전이 무시하는 선택적 설정 값으로 저장됩니다.
+- 설정 창이 Windows 11 스타일로 바뀌었고, 항목이 저장 버튼 없이 바로 적용됩니다. 비밀번호 변경, 마스터 비밀번호·힌트 변경, 복구 도구 열기, 탐색기 메뉴 등록·제거, 작업 로그가 메인 창에서 설정으로 옮겨졌으며 기능은 그대로입니다.
+- 모든 창과 대화상자가 같은 스타일을 사용합니다. Windows 메시지 상자를 테마가 적용된 대화상자로 바꿨고, 비밀번호 창은 입력 오류를 입력란 아래에 바로 보여 주며, 비밀번호 입력란은 "표시" 체크박스 대신 눈 모양 아이콘으로 내용을 보이거나 숨깁니다.
+- 잠금, 복구, 마스터 비밀번호 규칙, 데이터 위치, 트레이 동작, 네트워크 접근은 바뀌지 않았습니다.
 
 ## v1.2.2
 

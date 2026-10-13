@@ -25,9 +25,10 @@ public partial class App : System.Windows.Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        // Draw every window with WPF's software renderer. Some GPU driver and
-        // Direct3D 9 combinations present hardware-rendered WPF windows as blank
-        // white rectangles while the app keeps running, which would leave the
+        // Draw every window with WPF's software renderer. On some graphics setups
+        // (seen with remote desktop access while the monitor is off, when the
+        // desktop moves to a monitor-less GPU output) hardware-rendered WPF windows
+        // stay blank white rectangles while the app keeps running, which would leave the
         // password and unlock dialogs unusable. These simple forms do not need
         // GPU acceleration. Must be set before the first window is created.
         RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;

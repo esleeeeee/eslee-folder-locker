@@ -25,7 +25,7 @@ dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 
 - 타깃 프레임워크는 `net8.0-windows`입니다. 상위 SDK로 빌드해도 타깃은 유지하세요.
 - `AppLanguage`는 `ko`(기본) 또는 `en`입니다. `Directory.Build.props`에서 `APP_LANGUAGE_KO` / `APP_LANGUAGE_EN` 상수로 분기합니다.
-  표시 문자열은 전부 `FolderGate.Core/Localization/AppText.cs`에 있습니다. UI 문자열을 코드에 직접 쓰지 마세요.
+  표시 문자열은 전부 `FolderGate.Core/Localization/AppText.cs`(UI 문자열은 `AppText.Ui.cs`)에 있습니다. UI 문자열을 코드에 직접 쓰지 마세요.
 - `TestCategory=RequiresElevation` 테스트는 관리자 권한과 실제 ACL 변경이 필요합니다.
   **요청 없이 실행하지 마세요.** 실행이 필요하면 먼저 동작, 시스템 변경 범위, 복구 방법을 분석해 보고하세요.
 - Release 빌드는 PDB를 생략하고 `PathMap`으로 소스 경로를 `/_/`로 치환합니다.
@@ -120,7 +120,18 @@ powershell -File .\installer\Build-Installers.ps1 -Version 1.2.0 -Language both
 ### 레거시 이름과 렌더링 규칙
 
 - 이전 한국어 exe 이름(`eslee폴더잠금기*.exe`)은 마이그레이션 용도로만 남아 있습니다(`ToolLocator.LegacyKoreanAppExecutableName`, 설치 프로그램 `[InstallDelete]` + `MigrateLegacyRunValue`, `LegacyExecutableMigrationService`). v1.2.x 이하에서의 업그레이드를 지원하는 동안 제거하지 마세요.
-- 앱은 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 WPF 소프트웨어 렌더링을 강제합니다. 일부 GPU/Direct3D 9 환경에서 창이 빈 흰 사각형으로 표시되는 문제 때문이므로 제거하지 마세요.
+- 앱은 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 WPF 소프트웨어 렌더링을 강제합니다. 모니터를 끈 채 원격 접속할 때(바탕화면이 모니터 없는 내장 그래픽 출력으로 옮겨짐) 하드웨어 렌더링 창이 빈 흰 사각형으로 표시되는 문제 때문이므로 제거하지 마세요.
+
+## UI 규칙
+
+- 모든 창은 `Controls/ThemedWindow`를 상속합니다. 라이트/다크 팔레트(`Themes/Light.xaml`, `Themes/Dark.xaml`)와 제목 표시줄 동기화가 여기서 적용됩니다.
+- 색은 팔레트 키를 `DynamicResource`로만 참조합니다. 창 XAML이나 코드에 색상 값을 직접 쓰지 마세요.
+- `System.Windows.MessageBox` 대신 `AppDialog`(`MessageDialog`)를 사용합니다.
+- XAML은 App.xaml의 `StaticResource` 키 대신 `x:Static`(`ThemeFonts`, `Glyphs`, `Converters`)이나 창 로컬 리소스를 사용합니다. 그래야 App 리소스가 없는 테스트에서도 창이 로드됩니다.
+- 소프트웨어 렌더링을 유지하고 블러·아크릴·큰 `DropShadowEffect`·긴 애니메이션은 쓰지 마세요.
+- 아이콘은 Segoe Fluent Icons 글리프를 씁니다.
+- 모든 표시 문자열은 `AppText`에 둡니다. 새 UI 문자열은 `AppText.Ui.cs`에 추가합니다.
+- 메인 창은 목록-상세 구조입니다. 비밀번호 변경, 마스터 비밀번호·힌트 변경, 복구 도구 열기(복구 필요 폴더의 주요 버튼 제외), 탐색기 메뉴 등록·제거, 로그 보기는 설정 창(`SettingsWindow`)에 있으며 `MainViewModel` 명령을 그대로 실행합니다.
 
 ## ACL 작업 안전 규칙
 
