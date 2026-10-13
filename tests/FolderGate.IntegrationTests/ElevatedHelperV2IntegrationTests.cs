@@ -113,13 +113,14 @@ public sealed class ElevatedHelperV2IntegrationTests
         ConfigStore store = new(paths);
         RegisteredFolder folder = AclTestSupport.CreateFolder(tree.Target);
         store.Save(new FolderGateConfig { Folders = [folder] });
+        Process? waiting = null;
 
         try
         {
             (int lockCode, string lockOutput) = await RunHelperAsync(paths, "lock", "--target-id", folder.Id, "--operation-id", Guid.NewGuid().ToString("N"));
             Assert.AreEqual(0, lockCode, lockOutput);
 
-            using Process waiting = StartHelper(paths, "temporary-unlock", "--target-id", folder.Id, "--operation-id", "temp-op", "--duration-seconds", "600");
+            waiting = StartWaitingHelper(paths, "temporary-unlock", "--target-id", folder.Id, "--operation-id", "temp-op", "--duration-seconds", "600");
             await WaitForStateAsync(store, folder.Id, FolderLockState.TemporarilyUnlocked);
             AclTestSupport.AssertCommonOperationsAllowed(tree);
 
@@ -137,6 +138,7 @@ public sealed class ElevatedHelperV2IntegrationTests
         }
         finally
         {
+            StopHelper(waiting);
             await RestoreAllAsync(paths, store);
             AclTestSupport.DeleteDirectory(root);
         }
@@ -155,13 +157,14 @@ public sealed class ElevatedHelperV2IntegrationTests
         RegisteredFolder folder = AclTestSupport.CreateFolder(tree.Target);
         string decoyOriginal = AclTestSupport.CaptureSddl(decoy.Target, isDirectory: true);
         store.Save(new FolderGateConfig { Folders = [folder] });
+        Process? waiting = null;
 
         try
         {
             (int lockCode, string lockOutput) = await RunHelperAsync(paths, "lock", "--target-id", folder.Id, "--operation-id", Guid.NewGuid().ToString("N"));
             Assert.AreEqual(0, lockCode, lockOutput);
 
-            using Process waiting = StartHelper(paths, "temporary-unlock", "--target-id", folder.Id, "--operation-id", "temp-op", "--duration-seconds", "600");
+            waiting = StartWaitingHelper(paths, "temporary-unlock", "--target-id", folder.Id, "--operation-id", "temp-op", "--duration-seconds", "600");
             await WaitForStateAsync(store, folder.Id, FolderLockState.TemporarilyUnlocked);
 
             // Point the saved entry at another folder and ask for an immediate re-lock.
@@ -179,6 +182,7 @@ public sealed class ElevatedHelperV2IntegrationTests
         }
         finally
         {
+            StopHelper(waiting);
             store.Update(config =>
             {
                 config.Folders.Single().Path = tree.Target;
@@ -224,6 +228,43 @@ public sealed class ElevatedHelperV2IntegrationTests
                 await AclTestSupport.TryRestoreAsync(service, folder, folder.LatestBackupPath);
             }
         }
+    }
+
+    /// <summary>
+    /// Starts a helper that keeps running while the test continues. Its output is
+    /// drained in the background: a full, unread output pipe would block the
+    /// helper on its next progress line.
+    /// </summary>
+    private static Process StartWaitingHelper(AppPaths paths, params string[] arguments)
+    {
+        Process process = StartHelper(paths, arguments);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        return process;
+    }
+
+    /// <summary>Ends a helper that is still waiting, so it cannot touch the test folders during cleanup.</summary>
+    private static void StopHelper(Process? process)
+    {
+        if (process is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+                process.WaitForExit(10_000);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // It ended on its own in the meantime.
+        }
+
+        process.Dispose();
     }
 
     private static Process StartHelper(AppPaths paths, params string[] arguments)
