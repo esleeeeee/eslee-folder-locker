@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Win32;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Storage;
@@ -45,12 +46,26 @@ public sealed class ExplorerContextMenuService
         RemoveKeys(LegacyMenuKeyPaths);
     }
 
+    /// <summary>
+    /// Replaces legacy menu keys, and rewrites the current entry only when it no
+    /// longer works (its program or data folder is gone, for example after the
+    /// project folder moved). A working entry, even one that belongs to another
+    /// install or data folder, is kept: otherwise every development or test
+    /// instance would take the user's menu over just by starting.
+    /// </summary>
     public void MigrateLegacyInstallIfPresent()
     {
-        if (LegacyMenuKeyPaths.Concat(MenuKeyPaths).Any(KeyExists))
+        if (LegacyMenuKeyPaths.Any(KeyExists) ||
+            MenuKeyPaths.Any(path => KeyExists(path) && RegisteredCommand.IsStale(ReadCommand(path), File.Exists, Directory.Exists)))
         {
             Install();
         }
+    }
+
+    private static string? ReadCommand(string menuKeyPath)
+    {
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(menuKeyPath + @"\command");
+        return key?.GetValue(null) as string;
     }
 
     public void Uninstall()

@@ -1,5 +1,7 @@
 using Microsoft.Win32;
+using System.IO;
 using FolderGate.Core.Localization;
+using FolderGate.Core.Models;
 using FolderGate.Core.Storage;
 
 namespace FolderGate.App.Services;
@@ -24,6 +26,25 @@ public sealed class StartupRelockService
             ?? throw new InvalidOperationException(AppText.StartupRegistryKeyCreateFailed);
         runKey.SetValue(WellKnownRegistryPaths.RunValueName, BuildCommandForPaths(appPath, _paths));
         runKey.DeleteValue(LegacyRunValueName, throwOnMissingValue: false);
+    }
+
+    /// <summary>
+    /// Registers the login re-lock again when this data folder has temporary
+    /// unlocks but the entry is missing or no longer works (another instance's
+    /// data folder that was deleted, a moved app).
+    /// </summary>
+    public void RepairIfNeeded(FolderGateConfig config)
+    {
+        if (!config.Folders.Any(folder => folder.State == FolderLockState.TemporarilyUnlocked))
+        {
+            return;
+        }
+
+        using RegistryKey? runKey = Registry.CurrentUser.OpenSubKey(WellKnownRegistryPaths.RunKey);
+        if (RegisteredCommand.IsStale(runKey?.GetValue(WellKnownRegistryPaths.RunValueName) as string, File.Exists, Directory.Exists))
+        {
+            Install();
+        }
     }
 
     public void Uninstall()

@@ -111,9 +111,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers
 다음 항목들은 절대경로를 저장하므로 프로젝트 폴더를 옮기거나 이름을 바꾸면 깨집니다.
 
 1. `HKCU\Software\Classes\{Directory,Folder}\shell\eslee-folder-locker-unlock` — Explorer 우클릭 메뉴.
-   앱을 한 번 실행하면 `App.OnStartup` → `MigrateLegacyInstallIfPresent()`가 실행 중인 exe 경로로 자동 갱신합니다.
+   앱이 시작할 때 `App.OnStartup` → `MigrateLegacyInstallIfPresent()`가 레거시 키이거나 등록된 exe·데이터 폴더가 없어진 경우에만 실행 중인 exe로 다시 씁니다.
+   (예전에는 시작할 때마다 덮어써서, 개발·테스트 인스턴스가 실제 사용자 메뉴를 가로챘습니다. 정상 동작하는 다른 등록은 건드리지 마세요.)
 2. `HKCU\...\CurrentVersion\Run` → `eslee-folder-locker-temporary-relock` — 임시 해제 재잠금 등록.
-   `StartupRelockService.Install()`은 임시 해제 시에만 호출됩니다. v2.0.0부터는 같은 설치 폴더의 삭제된 이전 한국어 exe를 가리키는 항목만 새 exe로 다시 씁니다(설치 프로그램 + 앱 시작 시). 그 밖의 경로 변경은 여전히 자동 갱신되지 않습니다.
+   `StartupRelockService.Install()`은 임시 해제 시에 호출되고, 앱 시작 시 `RepairIfNeeded`가 임시 해제 중인데 등록이 없거나 깨진 경우(exe·데이터 폴더 없음)에만 다시 등록합니다. v2.0.0부터는 같은 설치 폴더의 삭제된 이전 한국어 exe를 가리키는 항목만 새 exe로 다시 씁니다(설치 프로그램 + 앱 시작 시). 그 밖의 경로 변경은 여전히 자동 갱신되지 않습니다.
 3. `config`의 `LatestBackupPath` — 백업 파일 절대경로. 잠금 해제 시 그대로 사용됩니다.
    파일이 없으면 예외 대신 빈 엔트리로 폴백해 Deny ACE만 제거합니다. 폴더는 열리지만 **원본 ACL은 복원되지 않습니다.**
 

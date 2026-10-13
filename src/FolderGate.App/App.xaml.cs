@@ -452,6 +452,7 @@ public partial class App : System.Windows.Application
         try
         {
             new LegacyExecutableMigrationService(new ToolLocator(paths)).MigrateRunEntries();
+            new StartupRelockService(paths, new ToolLocator(paths)).RepairIfNeeded(new ConfigStore(paths).Load());
         }
         catch
         {
