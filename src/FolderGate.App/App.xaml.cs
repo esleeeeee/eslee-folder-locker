@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 using FolderGate.App.Services;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
@@ -23,6 +25,13 @@ public partial class App : System.Windows.Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Draw every window with WPF's software renderer. Some GPU driver and
+        // Direct3D 9 combinations present hardware-rendered WPF windows as blank
+        // white rectangles while the app keeps running, which would leave the
+        // password and unlock dialogs unusable. These simple forms do not need
+        // GPU acceleration. Must be set before the first window is created.
+        RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+
         base.OnStartup(e);
 
         AppStartupArguments arguments;
