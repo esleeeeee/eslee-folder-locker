@@ -49,6 +49,14 @@ public partial class App : System.Windows.Application
         }
 
         AppPaths paths = AppPaths.Resolve(arguments.RootPath, arguments.DataRootPath);
+        try
+        {
+            AppText.SetLanguage(new ConfigStore(paths).Load().Language);
+        }
+        catch
+        {
+            // Language is best effort; normal startup handles config failures.
+        }
         ApplySavedTheme(paths);
         TryMigrateExplorerContextMenu(paths);
         TryMigrateLegacyRunEntries(paths);

@@ -23,12 +23,7 @@ It is a good fit for keeping specific folders off-limits when you share one PC a
 
 ## Download
 
-Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest) and download the **installer** for your language.
-
-| Your language | File to download |
-| --- | --- |
-| English | `eslee-folder-locker-setup-vVERSION-en.exe` |
-| 한국어 | `eslee-folder-locker-setup-vVERSION-ko.exe` |
+Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest) and download the **installer** `eslee-folder-locker-setup-vVERSION.exe`. One installer supports both English and Korean.
 
 - The EXE with `setup` in its name is the installer. That is the file most users need.
 - `Source code (zip)` and `Source code (tar.gz)` are source archives that GitHub attaches automatically. **They are not installers** — you can ignore them.
@@ -45,7 +40,7 @@ An unsigned file is not automatically unsafe, and a signed one is not automatica
 Instructions are for Windows 11. You need an NTFS drive and x64 Windows; if the .NET 8 Desktop Runtime is missing, Windows will offer to install it on first run.
 
 1. Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest).
-2. Download and run the English installer (`...-setup-...-en.exe`).
+2. Download and run the installer (`eslee-folder-locker-setup-vVERSION.exe`). Setup defaults to your Windows UI language; you can change it in the language selection dialog.
 3. If SmartScreen appears, click **More info** → **Run anyway**.
 4. Follow the wizard. The default location is `C:\Program Files\eslee Folder Locker`.
 5. Enable the optional tasks if you want them — both are optional and can be changed later.
@@ -204,7 +199,7 @@ Auto-start is optional.
 - A forgotten master recovery password cannot be recovered.
 - Permission backup files are stored unencrypted in the user data folder.
 - Dangerous paths cannot be locked: entire drives (`C:\` etc.), Windows system folders, Program Files, the whole user profile, and the OneDrive root.
-- Korean and English are supported; the language is chosen by which installer you download.
+- One installer supports Korean and English. The app defaults to your Windows UI language; choose System / Korean / English in Settings to change it.
 
 ## Privacy and local data
 
@@ -297,11 +292,11 @@ Building requires the .NET 8 SDK.
 ```powershell
 git clone https://github.com/esleeeeee/eslee-folder-locker.git
 Set-Location eslee-folder-locker
-dotnet build .\FolderGate.sln -p:AppLanguage=en
+dotnet build .\FolderGate.sln -c Release
 dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 ```
 
-Build the Korean UI with `-p:AppLanguage=ko`. Installers are built with `installer\Build-Installers.ps1` (requires Inno Setup 6).
+The same build supports Korean and English via `AppText.SetLanguage`. Build one installer with `installer\Build-Installers.ps1 -Version 1.3.0` (requires Inno Setup 6).
 
 - [Architecture](docs/architecture.md) — project layout, data paths, master password design
 - [ACL design](docs/acl-design.md) — how permissions are changed

@@ -181,9 +181,11 @@ public sealed class RecoveryToolAuthIntegrationTests
     private static string FindRecoveryToolExecutable()
     {
         string repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
         string[] candidates =
         [
             Path.Combine(AppContext.BaseDirectory, "FolderGate.RecoveryTool.exe"),
+            Path.Combine(repoRoot, "src", "FolderGate.RecoveryTool", "bin", configuration, "net8.0-windows", "FolderGate.RecoveryTool.exe"),
             Path.Combine(repoRoot, "src", "FolderGate.RecoveryTool", "bin", "Debug", "net8.0-windows", "FolderGate.RecoveryTool.exe"),
             Path.Combine(repoRoot, "release", "FolderGate.RecoveryTool.exe")
         ];

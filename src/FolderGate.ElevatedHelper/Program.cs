@@ -6,7 +6,6 @@ using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.Title = AppText.ElevatedHelperName;
 
 try
 {
@@ -26,6 +25,8 @@ try
     AppPaths paths = AppPaths.Resolve(commandLine.GetValue("root"), commandLine.GetValue("data-root"));
     ConfigStore configStore = new(paths);
     FolderGateConfig config = configStore.Load();
+    AppText.SetLanguage(config.Language);
+    Console.Title = AppText.ElevatedHelperName;
 
     string targetId = commandLine.GetRequiredValue("target-id");
     RegisteredFolder folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, targetId, StringComparison.OrdinalIgnoreCase))

@@ -1,39 +1,29 @@
 ; eslee Folder Locker installer script (Inno Setup 6).
-; Build per language:
-;   ISCC /DAppLanguage=ko /DAppVersion=1.3.0 /DSourceDir=..\artifacts\publish-ko installer\eslee-folder-locker.iss
-;   ISCC /DAppLanguage=en /DAppVersion=1.3.0 /DSourceDir=..\artifacts\publish-en installer\eslee-folder-locker.iss
+; Build once for both languages:
+;   ISCC /DAppVersion=1.3.0 /DSourceDir=..\artifacts\publish installer\eslee-folder-locker.iss
 ;
-; Both language installers share one AppId, so installing either upgrades the
-; existing installation in place (switching binary language is supported).
+; The multilingual installer preserves the AppId and upgrades in place.
 ; User data (config, ACL backups, master credential, logs) lives under
 ; %LOCALAPPDATA%\eslee-folder-locker and is intentionally NEVER touched by the
 ; uninstaller: ACL backups and the master credential must survive reinstalls.
 
-#ifndef AppLanguage
-  #define AppLanguage "ko"
-#endif
 #ifndef AppVersion
   #define AppVersion "1.3.0"
 #endif
 #ifndef SourceDir
-  #define SourceDir "..\artifacts\publish-" + AppLanguage
+  #define SourceDir "..\artifacts\publish"
 #endif
 #ifndef OutputDir
   #define OutputDir "..\artifacts\installer"
 #endif
 
 #define AppDisplayName "eslee Folder Locker"
-; Since v1.3.0 both language builds ship the same English executable names.
+; Since v1.3.0 all installs ship the same English executable names.
 #define MainExeName "eslee-folder-locker.exe"
 #define RecoveryExeName "eslee-folder-locker-recovery.exe"
 ; Korean installs before v1.3.0 used these names; upgrades remove them and
 ; repoint per-user Run entries at MainExeName (see CurStepChanged).
 #define LegacyKoreanMainExeName "eslee폴더잠금기.exe"
-#if AppLanguage == "ko"
-  #define RecoveryShortcutName "eslee Folder Locker 복구 도구"
-#else
-  #define RecoveryShortcutName "eslee Folder Locker Recovery Tool"
-#endif
 
 [Setup]
 AppId={{7C2C5E7A-3F41-4B7A-9A0D-6E19E5F2B8C4}
@@ -47,7 +37,7 @@ DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#MainExeName}
 UninstallDisplayName={#AppDisplayName}
 OutputDir={#OutputDir}
-OutputBaseFilename=eslee-folder-locker-setup-v{#AppVersion}-{#AppLanguage}
+OutputBaseFilename=eslee-folder-locker-setup-v{#AppVersion}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
@@ -57,36 +47,34 @@ RestartApplications=no
 SetupIconFile=..\assets\icons\eslee-folder-locker.ico
 Compression=lzma2
 SolidCompression=yes
+ShowLanguageDialog=auto
+LanguageDetectionMethod=uilanguage
 
 [Languages]
-#if AppLanguage == "ko"
-  #if FileExists(CompilerPath + "\Languages\Korean.isl")
+Name: "english"; MessagesFile: "compiler:Default.isl"
+#if FileExists(CompilerPath + "\Languages\Korean.isl")
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
-  #elif FileExists(CompilerPath + "\Languages\Unofficial\Korean.isl")
+#elif FileExists(CompilerPath + "\Languages\Unofficial\Korean.isl")
 Name: "korean"; MessagesFile: "compiler:Languages\Unofficial\Korean.isl"
-  #else
-Name: "english"; MessagesFile: "compiler:Default.isl"
-  #endif
 #else
-Name: "english"; MessagesFile: "compiler:Default.isl"
+  #error Korean.isl was not found in Languages or Languages\Unofficial.
 #endif
 
 [CustomMessages]
-#if AppLanguage == "ko"
-LaunchApp=eslee Folder Locker 실행
-DesktopIconTask=바탕화면 바로가기 만들기
-AutoStartTask=Windows 로그인 시 자동 실행 (트레이로 시작)
-LockedFoldersWarning=경고: 아직 잠긴 폴더가 있습니다.%n%n프로그램을 제거하기 전에 eslee Folder Locker에서 모든 폴더의 잠금을 정상적으로 해제하세요. 잠긴 상태로 제거하면 잠긴 폴더를 해제하기 어려워질 수 있습니다.%n%n지금 제거를 취소하고 먼저 잠금을 해제하시겠습니까?%n%n[예] = 제거 취소 (권장)%n[아니요] = 위험을 감수하고 계속
-LockedFoldersSecondConfirm=정말 계속하시겠습니까?%n%n잠긴 폴더와 복구 데이터는 삭제되지 않지만, 프로그램이 제거되면 잠금 해제를 위해 프로그램을 다시 설치해야 할 수 있습니다.%n%n[예] = 제거 계속%n[아니요] = 제거 취소
-DataPreservedNote=사용자 데이터(설정, ACL 백업, 마스터 복구 비밀번호)는 삭제되지 않았습니다. 다시 설치하면 기존 데이터를 그대로 사용할 수 있습니다.
-#else
-LaunchApp=Launch eslee Folder Locker
-DesktopIconTask=Create a desktop shortcut
-AutoStartTask=Start automatically at Windows login (in the tray)
-LockedFoldersWarning=Warning: locked folders still exist.%n%nUnlock all folders in eslee Folder Locker before uninstalling. Uninstalling while folders are locked can make them harder to unlock.%n%nCancel the uninstall and unlock first?%n%n[Yes] = cancel uninstall (recommended)%n[No] = continue at my own risk
-LockedFoldersSecondConfirm=Are you sure you want to continue?%n%nLocked folders and recovery data are not deleted, but you may need to reinstall the app to unlock them later.%n%n[Yes] = continue uninstall%n[No] = cancel uninstall
-DataPreservedNote=User data (settings, ACL backups, master recovery password) was not deleted. Reinstalling will pick it up again.
-#endif
+korean.LaunchApp=eslee Folder Locker 실행
+korean.DesktopIconTask=바탕화면 바로가기 만들기
+korean.AutoStartTask=Windows 로그인 시 자동 실행 (트레이로 시작)
+korean.LockedFoldersWarning=경고: 아직 잠긴 폴더가 있습니다.%n%n프로그램을 제거하기 전에 eslee Folder Locker에서 모든 폴더의 잠금을 정상적으로 해제하세요. 잠긴 상태로 제거하면 잠긴 폴더를 해제하기 어려워질 수 있습니다.%n%n지금 제거를 취소하고 먼저 잠금을 해제하시겠습니까?%n%n[예] = 제거 취소 (권장)%n[아니요] = 위험을 감수하고 계속
+korean.LockedFoldersSecondConfirm=정말 계속하시겠습니까?%n%n잠긴 폴더와 복구 데이터는 삭제되지 않지만, 프로그램이 제거되면 잠금 해제를 위해 프로그램을 다시 설치해야 할 수 있습니다.%n%n[예] = 제거 계속%n[아니요] = 제거 취소
+korean.DataPreservedNote=사용자 데이터(설정, ACL 백업, 마스터 복구 비밀번호)는 삭제되지 않았습니다. 다시 설치하면 기존 데이터를 그대로 사용할 수 있습니다.
+english.LaunchApp=Launch eslee Folder Locker
+english.DesktopIconTask=Create a desktop shortcut
+english.AutoStartTask=Start automatically at Windows login (in the tray)
+english.LockedFoldersWarning=Warning: locked folders still exist.%n%nUnlock all folders in eslee Folder Locker before uninstalling. Uninstalling while folders are locked can make them harder to unlock.%n%nCancel the uninstall and unlock first?%n%n[Yes] = cancel uninstall (recommended)%n[No] = continue at my own risk
+english.LockedFoldersSecondConfirm=Are you sure you want to continue?%n%nLocked folders and recovery data are not deleted, but you may need to reinstall the app to unlock them later.%n%n[Yes] = continue uninstall%n[No] = cancel uninstall
+english.DataPreservedNote=User data (settings, ACL backups, master recovery password) was not deleted. Reinstalling will pick it up again.
+korean.RecoveryShortcutName=eslee Folder Locker 복구 도구
+english.RecoveryShortcutName=eslee Folder Locker Recovery Tool
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopIconTask}"; Flags: unchecked
@@ -104,7 +92,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 
 [Icons]
 Name: "{autoprograms}\eslee Folder Locker"; Filename: "{app}\{#MainExeName}"
-Name: "{autoprograms}\{#RecoveryShortcutName}"; Filename: "{app}\{#RecoveryExeName}"
+Name: "{autoprograms}\{cm:RecoveryShortcutName}"; Filename: "{app}\{#RecoveryExeName}"
 Name: "{autodesktop}\eslee Folder Locker"; Filename: "{app}\{#MainExeName}"; Tasks: desktopicon
 
 [Registry]
@@ -130,11 +118,10 @@ Filename: "{app}\{#MainExeName}"; Description: "{cm:LaunchApp}"; Flags: nowait p
 [Code]
 function GetMenuText(Param: string): string;
 begin
-#if AppLanguage == "ko"
-  Result := 'eslee Folder Locker로 잠금 해제';
-#else
-  Result := 'Unlock with eslee Folder Locker';
-#endif
+  if ActiveLanguage() = 'korean' then
+    Result := 'eslee Folder Locker로 잠금 해제'
+  else
+    Result := 'Unlock with eslee Folder Locker';
 end;
 
 function ConfigHasActiveLocks(): Boolean;
