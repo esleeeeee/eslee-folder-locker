@@ -139,9 +139,11 @@ public partial class SettingsWindow : ThemedWindow
     {
         try
         {
-            FolderGateConfig config = _configStore.Load();
-            change(config);
-            _configStore.Save(config);
+            _configStore.Update(config =>
+            {
+                change(config);
+                return true;
+            });
         }
         catch (Exception ex)
         {

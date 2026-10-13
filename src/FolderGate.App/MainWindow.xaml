@@ -480,10 +480,6 @@
                                         Content="{x:Static text:AppText.Unlock}"
                                         Command="{Binding UnlockCommand}"
                                         Visibility="{Binding ShowUnlockSecondary, Converter={x:Static controls:Converters.BoolToVisibility}}" />
-                                <Button Margin="0,0,8,0"
-                                        Content="{x:Static text:AppText.Lock}"
-                                        Command="{Binding LockCommand}"
-                                        Visibility="{Binding ShowLockSecondary, Converter={x:Static controls:Converters.BoolToVisibility}}" />
                                 <Button Style="{DynamicResource SubtleButton}"
                                         Command="{Binding OpenInExplorerCommand}"
                                         Visibility="{Binding CanOpenInExplorer, Converter={x:Static controls:Converters.BoolToVisibility}}">

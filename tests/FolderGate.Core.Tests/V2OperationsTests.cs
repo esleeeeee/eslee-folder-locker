@@ -10,16 +10,22 @@ public sealed class TemporaryUnlockScheduleTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 13, 12, 0, 0, TimeSpan.Zero);
 
+    private static readonly TemporaryUnlockOwner Owner = new("op-1", @"C:\Example\Folder", "S-1-5-21-1-2-3-1001", LockMode.Quick);
+
     private static RegisteredFolder Temp(DateTimeOffset? until) => new()
     {
         State = FolderLockState.TemporarilyUnlocked,
-        TemporaryUnlockUntilUtc = until
+        TemporaryUnlockUntilUtc = until,
+        LastOperationId = Owner.OperationId,
+        Path = Owner.Path,
+        OwnerSid = Owner.OwnerSid,
+        Mode = Owner.Mode
     };
 
     [TestMethod]
     public void Evaluate_WaitsAtMostOneSecondBeforeCheckingAgain()
     {
-        TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMinutes(30)), Now);
+        TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMinutes(30)), Now, Owner);
 
         Assert.AreEqual(TemporaryUnlockStep.Wait, decision.Step);
         Assert.AreEqual(TemporaryUnlockSchedule.PollInterval, decision.Wait);
@@ -28,7 +34,7 @@ public sealed class TemporaryUnlockScheduleTests
     [TestMethod]
     public void Evaluate_WaitsOnlyTheRemainingTimeWhenItIsShort()
     {
-        TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMilliseconds(300)), Now);
+        TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMilliseconds(300)), Now, Owner);
 
         Assert.AreEqual(TemporaryUnlockStep.Wait, decision.Step);
         Assert.AreEqual(TimeSpan.FromMilliseconds(300), decision.Wait);
@@ -37,19 +43,40 @@ public sealed class TemporaryUnlockScheduleTests
     [TestMethod]
     public void Evaluate_RelocksWhenTheDeadlineWasMovedToNowOrEarlier()
     {
-        Assert.AreEqual(TemporaryUnlockStep.Relock, TemporaryUnlockSchedule.Evaluate(Temp(Now), Now).Step);
-        Assert.AreEqual(TemporaryUnlockStep.Relock, TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMinutes(-1)), Now).Step);
+        Assert.AreEqual(TemporaryUnlockStep.Relock, TemporaryUnlockSchedule.Evaluate(Temp(Now), Now, Owner).Step);
+        Assert.AreEqual(TemporaryUnlockStep.Relock, TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMinutes(-1)), Now, Owner).Step);
+    }
+
+    [TestMethod]
+    public void Evaluate_AbandonsWhenANewerUnlockOwnsTheFolderOrItsTargetChanged()
+    {
+        RegisteredFolder replaced = Temp(Now.AddMinutes(5));
+        replaced.LastOperationId = "op-2";
+        RegisteredFolder moved = Temp(Now.AddMinutes(5));
+        moved.Path = @"C:\Windows";
+        RegisteredFolder otherOwner = Temp(Now.AddMinutes(5));
+        otherOwner.OwnerSid = "S-1-5-18";
+        RegisteredFolder otherMode = Temp(Now.AddMinutes(5));
+        otherMode.Mode = LockMode.Hardened;
+
+        foreach (RegisteredFolder folder in new[] { replaced, moved, otherOwner, otherMode })
+        {
+            Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(folder, Now, Owner).Step);
+        }
+
+        Assert.AreEqual(TemporaryUnlockStep.Wait, TemporaryUnlockSchedule.Evaluate(Temp(Now.AddMinutes(5)), Now, Owner).Step);
     }
 
     [TestMethod]
     public void Evaluate_AbandonsWhenAnotherOperationTookOverTheFolder()
     {
-        Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(null, Now).Step);
-        Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(Temp(null), Now).Step);
+        Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(null, Now, Owner).Step);
+        Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(Temp(null), Now, Owner).Step);
         foreach (FolderLockState state in new[] { FolderLockState.Locked, FolderLockState.Unlocked, FolderLockState.Working, FolderLockState.RecoveryRequired })
         {
-            RegisteredFolder folder = new() { State = state, TemporaryUnlockUntilUtc = Now.AddMinutes(5) };
-            Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(folder, Now).Step, state.ToString());
+            RegisteredFolder folder = Temp(Now.AddMinutes(5));
+            folder.State = state;
+            Assert.AreEqual(TemporaryUnlockStep.Abandon, TemporaryUnlockSchedule.Evaluate(folder, Now, Owner).Step, state.ToString());
         }
     }
 }
@@ -188,6 +215,86 @@ public sealed class FolderPasswordTests
             {
                 Directory.Delete(root, recursive: true);
             }
+        }
+    }
+}
+
+[TestClass]
+public sealed class ConfigStoreConcurrencyTests
+{
+    [TestMethod]
+    public void Update_FromParallelWritersLosesNoChange()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "foldergate-update-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(null, root);
+            new ConfigStore(paths).Save(new FolderGateConfig());
+
+            // Separate ConfigStore instances behave like separate processes.
+            Parallel.For(0, 40, index =>
+            {
+                new ConfigStore(paths).Update(config =>
+                {
+                    config.Folders.Add(new RegisteredFolder { Id = index.ToString(), Path = $@"C:\Example\{index}" });
+                    return true;
+                });
+            });
+
+            Assert.AreEqual(40, new ConfigStore(paths).Load().Folders.Select(folder => folder.Id).Distinct().Count());
+            Assert.AreEqual(0, Directory.GetFiles(paths.ConfigDirectory, "*.tmp").Length, "temporary files must be cleaned up");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Save_SucceedsWhileAnotherReaderHasTheFileOpen()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "foldergate-reader-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(null, root);
+            ConfigStore store = new(paths);
+            store.Save(new FolderGateConfig());
+
+            using (new FileStream(paths.ConfigFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                store.Save(new FolderGateConfig { CloseToTray = false });
+            }
+
+            Assert.IsFalse(store.Load().CloseToTray);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Update_ReturningFalseLeavesTheFileUntouched()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "foldergate-noop-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AppPaths paths = AppPaths.Resolve(null, root);
+            ConfigStore store = new(paths);
+            store.Save(new FolderGateConfig());
+            DateTimeOffset before = store.Load().UpdatedUtc;
+
+            Assert.IsFalse(store.Update(config =>
+            {
+                config.CloseToTray = false;
+                return false;
+            }));
+            Assert.AreEqual(before, store.Load().UpdatedUtc);
+            Assert.IsTrue(store.Load().CloseToTray);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
         }
     }
 }

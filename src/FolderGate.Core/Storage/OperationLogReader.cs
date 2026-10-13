@@ -7,6 +7,9 @@ public static class OperationLogReader
 {
     private static readonly JsonSerializerOptions JsonOptions = JsonOptionsFactory.Create(indented: false);
 
+    /// <summary>Only the end of the log is read; it holds far more than the entries shown.</summary>
+    private const int TailBytes = 512 * 1024;
+
     /// <summary>
     /// Returns up to <paramref name="maxCount"/> entries of one folder, newest first.
     /// Unreadable lines are skipped; a missing or locked log file gives an empty list.
@@ -23,8 +26,20 @@ public static class OperationLogReader
         {
             // The logger appends from other processes; share the file while reading.
             using FileStream stream = new(logFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            bool truncated = stream.Length > TailBytes;
+            if (truncated)
+            {
+                stream.Seek(-TailBytes, SeekOrigin.End);
+            }
+
             using StreamReader reader = new(stream);
             text = reader.ReadToEnd();
+            if (truncated)
+            {
+                // Drop the partial first line cut by the seek.
+                int firstBreak = text.IndexOf('\n');
+                text = firstBreak < 0 ? string.Empty : text[(firstBreak + 1)..];
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

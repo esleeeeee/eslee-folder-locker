@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using FolderGate.Core.Acl;
 using FolderGate.Core.Localization;
@@ -5,6 +6,7 @@ using FolderGate.Core.Models;
 using FolderGate.Core.Operations;
 using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
+using FolderGate.Core.Validation;
 
 Console.OutputEncoding = Encoding.UTF8;
 Console.Title = AppText.ElevatedHelperName;
@@ -25,19 +27,17 @@ try
     }
 
     AppPaths paths = AppPaths.Resolve(commandLine.GetValue("root"), commandLine.GetValue("data-root"));
-    ConfigStore configStore = new(paths);
-    AclService aclService = new(paths);
-    OperationProgressStore progressStore = new(paths);
+    HelperContext context = new(paths, new ConfigStore(paths), new AclService(paths), new OperationProgressStore(paths));
     string command = commandLine.Command.ToLowerInvariant();
 
     if (command == "lock-many")
     {
-        return RunLockMany(configStore, aclService, progressStore, commandLine);
+        return RunLockMany(context, commandLine);
     }
 
     string targetId = commandLine.GetRequiredValue("target-id");
     string operationId = commandLine.GetValue("operation-id") ?? Guid.NewGuid().ToString("N");
-    AclOperationResult result = RunTargetOperation(command, configStore, aclService, progressStore, targetId, operationId, commandLine);
+    AclOperationResult result = RunTargetOperation(command, context, targetId, operationId, commandLine);
     Console.WriteLine(result.Message);
     return result.Success ? 0 : 2;
 }
@@ -49,16 +49,15 @@ catch (Exception ex)
 
 static AclOperationResult RunTargetOperation(
     string command,
-    ConfigStore configStore,
-    AclService aclService,
-    OperationProgressStore progressStore,
+    HelperContext context,
     string targetId,
     string operationId,
     CommandLine commandLine)
 {
-    RegisteredFolder folder = configStore.FindFolder(targetId)
+    RegisteredFolder folder = context.ConfigStore.FindFolder(targetId)
         ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
 
+    OperationProgressStore progressStore = context.ProgressStore;
     progressStore.ClearCancel(operationId);
     using CancellationTokenSource cancellationTokenSource = new();
     using OperationProgressReporter progressReporter = new(progressStore, operationId, folder.Id, command);
@@ -68,10 +67,10 @@ static AclOperationResult RunTargetOperation(
 
     AclOperationResult result = command switch
     {
-        "lock" => RunLock(configStore, folder.Id, aclService, commandLine.GetValue("mode"), progress, cancellationToken, operationId),
-        "unlock" => RunUnlock(configStore, folder.Id, aclService, progress, cancellationToken, operationId),
-        "temporary-unlock" => RunTemporaryUnlock(configStore, folder.Id, aclService, commandLine, progress, cancellationToken, operationId),
-        "restore" => RunRestore(configStore, folder.Id, aclService, commandLine, progress, cancellationToken, operationId),
+        "lock" => RunLock(context, folder.Id, commandLine.GetValue("mode"), progress, cancellationToken, operationId),
+        "unlock" => RunUnlock(context, folder.Id, progress, cancellationToken, operationId),
+        "temporary-unlock" => RunTemporaryUnlock(context, folder.Id, commandLine, progress, cancellationToken, operationId),
+        "restore" => RunRestore(context, folder.Id, commandLine, progress, cancellationToken, operationId),
         _ => throw new InvalidOperationException(AppText.UnknownCommand)
     };
 
@@ -84,21 +83,21 @@ static AclOperationResult RunTargetOperation(
 // in order, each with its own operation id. Folders that are no longer unlocked
 // are skipped; a failure or cancellation of one folder does not stop the others,
 // except that a cancellation request for a later folder skips that folder.
-static int RunLockMany(ConfigStore configStore, AclService aclService, OperationProgressStore progressStore, CommandLine commandLine)
+static int RunLockMany(HelperContext context, CommandLine commandLine)
 {
     IReadOnlyList<BatchLockItem> items = BatchLockRequest.Parse(commandLine.GetValue("target-ids"), commandLine.GetValue("operation-ids"));
     bool allSucceeded = true;
     foreach (BatchLockItem item in items)
     {
-        RegisteredFolder? folder = configStore.FindFolder(item.TargetId);
-        if (folder is null || !BatchLockRequest.IsLockable(folder.State) || progressStore.IsCancellationRequested(item.OperationId))
+        RegisteredFolder? folder = context.ConfigStore.FindFolder(item.TargetId);
+        if (folder is null || !BatchLockRequest.IsLockable(folder.State) || context.ProgressStore.IsCancellationRequested(item.OperationId))
         {
             continue;
         }
 
         try
         {
-            AclOperationResult result = RunTargetOperation("lock", configStore, aclService, progressStore, item.TargetId, item.OperationId, commandLine);
+            AclOperationResult result = RunTargetOperation("lock", context, item.TargetId, item.OperationId, commandLine);
             Console.WriteLine($"{folder.Path}: {result.Message}");
             allSucceeded &= result.Success;
         }
@@ -113,28 +112,89 @@ static int RunLockMany(ConfigStore configStore, AclService aclService, Operation
 }
 
 // Every state change re-reads the saved configuration and changes only this
-// folder, so edits the app made while an operation (or a temporary unlock wait)
-// was running are never overwritten with an old copy.
+// folder, under the configuration lock file, so edits the app made while an
+// operation (or a temporary unlock wait) was running are never overwritten.
 static RegisteredFolder UpdateFolder(ConfigStore configStore, string folderId, Action<RegisteredFolder> change)
 {
-    FolderGateConfig config = configStore.Load();
-    RegisteredFolder folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase))
-        ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
-    change(folder);
-    configStore.Save(config);
-    return folder;
+    RegisteredFolder? updated = null;
+    configStore.Update(config =>
+    {
+        RegisteredFolder folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
+        change(folder);
+        updated = folder;
+        return true;
+    });
+    return updated!;
+}
+
+// One ACL operation per folder at a time across all helper processes. The state
+// check and the ACL change happen while holding this, so two helpers can never
+// both decide to lock (or re-lock) the same folder.
+static FolderOperationLock AcquireFolderLock(AppPaths paths, string folderId)
+{
+    byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{paths.DataRoot}|{folderId}".ToUpperInvariant()));
+    Mutex mutex = new(initiallyOwned: false, $@"Local\eslee-folder-locker-folder-{Convert.ToHexString(hash)[..16]}");
+    try
+    {
+        if (!mutex.WaitOne(TimeSpan.FromMinutes(30)))
+        {
+            mutex.Dispose();
+            throw new InvalidOperationException(AppText.FolderBusyRefused);
+        }
+    }
+    catch (AbandonedMutexException)
+    {
+        // The previous holder ended without releasing it; this process owns it now.
+    }
+
+    return new FolderOperationLock(mutex);
 }
 
 static AclOperationResult RunLock(
-    ConfigStore configStore,
+    HelperContext context,
     string folderId,
-    AclService aclService,
     string? modeText,
     IProgress<AclOperationProgress> progress,
     CancellationToken cancellationToken,
     string operationId)
 {
-    RegisteredFolder folder = UpdateFolder(configStore, folderId, item =>
+    using FolderOperationLock folderLock = AcquireFolderLock(context.Paths, folderId);
+    RegisteredFolder current = context.ConfigStore.FindFolder(folderId)
+        ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
+
+    // Only an unlocked (or temporarily unlocked) folder may be locked: locking it
+    // twice would back up an ACL that already holds our rule, and unlock would
+    // then keep the folder denied.
+    switch (current.State)
+    {
+        case FolderLockState.Locked:
+            return AclOperationResult.Ok(operationId, current.LatestBackupPath, 0, AppText.AlreadyLockedNoChange);
+        case FolderLockState.Working:
+            return AclOperationResult.Failed(operationId, null, 0, AppText.FolderBusyRefused, recoveryRequired: false);
+        case FolderLockState.RecoveryRequired:
+            return AclOperationResult.Failed(operationId, null, 0, AppText.LockRefusedRecoveryRequired, recoveryRequired: false);
+    }
+
+    PathValidationResult validation = new TargetPathValidator(context.Paths).ValidateDirectory(current.Path);
+    if (!validation.IsValid)
+    {
+        return AclOperationResult.Failed(operationId, null, 0, validation.ErrorMessage ?? AppText.InvalidFolderGeneric, recoveryRequired: false);
+    }
+
+    if (AclService.HasFolderGateDenyRule(current))
+    {
+        UpdateFolder(context.ConfigStore, folderId, item =>
+        {
+            item.State = FolderLockState.Locked;
+            item.LastOperationUtc = DateTimeOffset.UtcNow;
+            item.TemporaryUnlockUntilUtc = null;
+            item.LastResult = AppText.AlreadyLockedKeptBackup;
+        });
+        return AclOperationResult.Ok(operationId, current.LatestBackupPath, 0, AppText.AlreadyLockedKeptBackup);
+    }
+
+    RegisteredFolder folder = UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.Mode = Enum.TryParse(modeText, ignoreCase: true, out LockMode parsed) ? parsed : item.Mode;
         item.State = FolderLockState.Working;
@@ -143,9 +203,9 @@ static AclOperationResult RunLock(
         item.LastResult = AppText.LockWorking;
     });
 
-    AclOperationResult result = aclService.LockAsync(folder, folder.Mode, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+    AclOperationResult result = context.AclService.LockAsync(folder, folder.Mode, cancellationToken, progress, operationId).GetAwaiter().GetResult();
 
-    UpdateFolder(configStore, folderId, item =>
+    UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.State = result.Success ? FolderLockState.Locked : FolderLockState.RecoveryRequired;
         item.LatestBackupPath = result.BackupPath ?? item.LatestBackupPath;
@@ -158,14 +218,24 @@ static AclOperationResult RunLock(
 }
 
 static AclOperationResult RunUnlock(
-    ConfigStore configStore,
+    HelperContext context,
     string folderId,
-    AclService aclService,
     IProgress<AclOperationProgress> progress,
     CancellationToken cancellationToken,
     string operationId)
 {
-    RegisteredFolder folder = UpdateFolder(configStore, folderId, item =>
+    using FolderOperationLock folderLock = AcquireFolderLock(context.Paths, folderId);
+    RegisteredFolder current = context.ConfigStore.FindFolder(folderId)
+        ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
+    switch (current.State)
+    {
+        case FolderLockState.Unlocked:
+            return AclOperationResult.Ok(operationId, current.LatestBackupPath, 0, AppText.AlreadyUnlockedNoChange);
+        case FolderLockState.Working:
+            return AclOperationResult.Failed(operationId, null, 0, AppText.FolderBusyRefused, recoveryRequired: false);
+    }
+
+    RegisteredFolder folder = UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.State = FolderLockState.Working;
         item.LastOperationUtc = DateTimeOffset.UtcNow;
@@ -173,9 +243,9 @@ static AclOperationResult RunUnlock(
         item.LastResult = AppText.UnlockWorking;
     });
 
-    AclOperationResult result = aclService.UnlockAsync(folder, folder.LatestBackupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+    AclOperationResult result = context.AclService.UnlockAsync(folder, folder.LatestBackupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
 
-    UpdateFolder(configStore, folderId, item =>
+    UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.State = result.Success ? FolderLockState.Unlocked : FolderLockState.RecoveryRequired;
         item.LastOperationId = result.OperationId;
@@ -187,45 +257,60 @@ static AclOperationResult RunUnlock(
 }
 
 static AclOperationResult RunTemporaryUnlock(
-    ConfigStore configStore,
+    HelperContext context,
     string folderId,
-    AclService aclService,
     CommandLine commandLine,
     IProgress<AclOperationProgress> progress,
     CancellationToken cancellationToken,
     string operationId)
 {
     TimeSpan duration = ParseDuration(commandLine.GetRequiredValue("duration-seconds"));
+    ConfigStore configStore = context.ConfigStore;
+    TemporaryUnlockOwner owner;
+    AclOperationResult unlockResult;
 
-    RegisteredFolder folder = UpdateFolder(configStore, folderId, item =>
+    using (AcquireFolderLock(context.Paths, folderId))
     {
-        item.State = FolderLockState.Working;
-        item.LastOperationUtc = DateTimeOffset.UtcNow;
-        item.TemporaryUnlockUntilUtc = null;
-        item.LastResult = AppText.TemporaryUnlockWorking;
-    });
-
-    AclOperationResult unlockResult = aclService.UnlockAsync(folder, folder.LatestBackupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
-    if (!unlockResult.Success)
-    {
-        UpdateFolder(configStore, folderId, item =>
+        RegisteredFolder current = configStore.FindFolder(folderId)
+            ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
+        if (current.State == FolderLockState.Working)
         {
-            item.State = FolderLockState.RecoveryRequired;
-            item.LastOperationId = unlockResult.OperationId;
-            item.LastOperationUtc = DateTimeOffset.UtcNow;
-            item.LastResult = unlockResult.Message;
-        });
-        return unlockResult;
-    }
+            return AclOperationResult.Failed(operationId, null, 0, AppText.FolderBusyRefused, recoveryRequired: false);
+        }
 
-    folder = UpdateFolder(configStore, folderId, item =>
-    {
-        item.State = FolderLockState.TemporarilyUnlocked;
-        item.LastOperationId = unlockResult.OperationId;
-        item.LastOperationUtc = DateTimeOffset.UtcNow;
-        item.TemporaryUnlockUntilUtc = DateTimeOffset.UtcNow.Add(duration);
-        item.LastResult = AppText.FormatTemporaryUnlockResult(duration);
-    });
+        RegisteredFolder folder = UpdateFolder(configStore, folderId, item =>
+        {
+            item.State = FolderLockState.Working;
+            item.LastOperationUtc = DateTimeOffset.UtcNow;
+            item.TemporaryUnlockUntilUtc = null;
+            item.LastResult = AppText.TemporaryUnlockWorking;
+        });
+
+        unlockResult = context.AclService.UnlockAsync(folder, folder.LatestBackupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+        if (!unlockResult.Success)
+        {
+            UpdateFolder(configStore, folderId, item =>
+            {
+                item.State = FolderLockState.RecoveryRequired;
+                item.LastOperationId = unlockResult.OperationId;
+                item.LastOperationUtc = DateTimeOffset.UtcNow;
+                item.LastResult = unlockResult.Message;
+            });
+            return unlockResult;
+        }
+
+        // LastOperationId marks this process as the owner of the temporary unlock;
+        // a newer temporary unlock of the same folder replaces it.
+        folder = UpdateFolder(configStore, folderId, item =>
+        {
+            item.State = FolderLockState.TemporarilyUnlocked;
+            item.LastOperationId = operationId;
+            item.LastOperationUtc = DateTimeOffset.UtcNow;
+            item.TemporaryUnlockUntilUtc = DateTimeOffset.UtcNow.Add(duration);
+            item.LastResult = AppText.FormatTemporaryUnlockResult(duration);
+        });
+        owner = TemporaryUnlockOwner.Capture(folder, operationId);
+    }
 
     progress.Report(new AclOperationProgress
     {
@@ -233,40 +318,26 @@ static AclOperationResult RunTemporaryUnlock(
         Processed = 0,
         Total = 1,
         Failed = 0,
-        CurrentPath = folder.Path
+        CurrentPath = owner.Path
     });
 
     // Follow the re-lock time saved in the configuration: the app may extend the
-    // unlock or ask for an immediate re-lock, and a folder that was locked or
-    // unlocked by another operation in the meantime is left alone.
+    // unlock or ask for an immediate re-lock. Another operation taking over the
+    // folder, or a changed path/owner/mode, ends the wait without re-locking.
     try
     {
         while (true)
         {
-            RegisteredFolder? current;
-            try
-            {
-                current = configStore.FindFolder(folderId);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-            {
-                // The app may be replacing the file right now; check again shortly.
-                Task.Delay(TemporaryUnlockSchedule.PollInterval, cancellationToken).GetAwaiter().GetResult();
-                continue;
-            }
-
-            TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(current, DateTimeOffset.UtcNow);
-            if (decision.Step == TemporaryUnlockStep.Abandon)
+            TemporaryUnlockStep step = WaitForTemporaryUnlockStep(configStore, folderId, owner, cancellationToken);
+            if (step == TemporaryUnlockStep.Abandon)
             {
                 return AclOperationResult.Ok(operationId, unlockResult.BackupPath, unlockResult.ProcessedCount, AppText.TemporaryUnlockSuperseded);
             }
 
-            if (decision.Step == TemporaryUnlockStep.Relock)
+            if (step == TemporaryUnlockStep.Relock)
             {
                 break;
             }
-
-            Task.Delay(decision.Wait, cancellationToken).GetAwaiter().GetResult();
         }
     }
     catch (OperationCanceledException)
@@ -280,14 +351,47 @@ static AclOperationResult RunTemporaryUnlock(
         return AclOperationResult.Failed(operationId, unlockResult.BackupPath, unlockResult.ProcessedCount, AppText.TemporaryUnlockWaitCanceled, recoveryRequired: false);
     }
 
-    folder = UpdateFolder(configStore, folderId, item =>
+    using FolderOperationLock relockLock = AcquireFolderLock(context.Paths, folderId);
+
+    // Decide again while holding the folder lock: "lock all" or a manual lock may
+    // have taken the folder over a moment ago.
+    RegisteredFolder? latest = configStore.FindFolder(folderId);
+    if (TemporaryUnlockSchedule.Evaluate(latest, DateTimeOffset.UtcNow, owner).Step != TemporaryUnlockStep.Relock || latest is null)
+    {
+        return AclOperationResult.Ok(operationId, unlockResult.BackupPath, unlockResult.ProcessedCount, AppText.TemporaryUnlockSuperseded);
+    }
+
+    // Re-lock with the values captured when the user approved the unlock.
+    RegisteredFolder target = new()
+    {
+        Id = latest.Id,
+        DisplayName = latest.DisplayName,
+        Path = owner.Path,
+        OwnerSid = owner.OwnerSid,
+        Mode = owner.Mode,
+        LatestBackupPath = latest.LatestBackupPath
+    };
+
+    if (AclService.HasFolderGateDenyRule(target))
+    {
+        UpdateFolder(configStore, folderId, item =>
+        {
+            item.State = FolderLockState.Locked;
+            item.LastOperationUtc = DateTimeOffset.UtcNow;
+            item.TemporaryUnlockUntilUtc = null;
+            item.LastResult = AppText.AlreadyLockedKeptBackup;
+        });
+        return AclOperationResult.Ok(operationId, latest.LatestBackupPath, 0, AppText.AlreadyLockedKeptBackup);
+    }
+
+    UpdateFolder(configStore, folderId, item =>
     {
         item.State = FolderLockState.Working;
         item.LastOperationUtc = DateTimeOffset.UtcNow;
         item.LastResult = AppText.TemporaryUnlockRelocking;
     });
 
-    AclOperationResult lockResult = aclService.LockAsync(folder, folder.Mode, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+    AclOperationResult lockResult = context.AclService.LockAsync(target, owner.Mode, cancellationToken, progress, operationId).GetAwaiter().GetResult();
 
     UpdateFolder(configStore, folderId, item =>
     {
@@ -306,30 +410,55 @@ static AclOperationResult RunTemporaryUnlock(
         : lockResult;
 }
 
+// One check of a temporary unlock; waits up to a second when it is not due.
+// A configuration that cannot be read right now (another process is replacing
+// it) is checked again a moment later instead of ending the wait.
+static TemporaryUnlockStep WaitForTemporaryUnlockStep(ConfigStore configStore, string folderId, TemporaryUnlockOwner owner, CancellationToken cancellationToken)
+{
+    RegisteredFolder? current;
+    try
+    {
+        current = configStore.FindFolder(folderId);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+    {
+        Task.Delay(TemporaryUnlockSchedule.PollInterval, cancellationToken).GetAwaiter().GetResult();
+        return TemporaryUnlockStep.Wait;
+    }
+
+    TemporaryUnlockDecision decision = TemporaryUnlockSchedule.Evaluate(current, DateTimeOffset.UtcNow, owner);
+    if (decision.Step == TemporaryUnlockStep.Wait)
+    {
+        Task.Delay(decision.Wait, cancellationToken).GetAwaiter().GetResult();
+    }
+
+    return decision.Step;
+}
+
 static AclOperationResult RunRestore(
-    ConfigStore configStore,
+    HelperContext context,
     string folderId,
-    AclService aclService,
     CommandLine commandLine,
     IProgress<AclOperationProgress> progress,
     CancellationToken cancellationToken,
     string operationId)
 {
-    RegisteredFolder current = configStore.FindFolder(folderId)
+    using FolderOperationLock folderLock = AcquireFolderLock(context.Paths, folderId);
+    RegisteredFolder current = context.ConfigStore.FindFolder(folderId)
         ?? throw new InvalidOperationException(AppText.RegisteredTargetNotFound);
     string backupPath = commandLine.GetValue("backup") ?? current.LatestBackupPath
         ?? throw new InvalidOperationException(AppText.MissingAclBackup);
 
-    RegisteredFolder folder = UpdateFolder(configStore, folderId, item =>
+    RegisteredFolder folder = UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.State = FolderLockState.Working;
         item.LastOperationUtc = DateTimeOffset.UtcNow;
         item.LastResult = AppText.RestoreWorking;
     });
 
-    AclOperationResult result = aclService.RestoreBackupAsync(folder.Id, backupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
+    AclOperationResult result = context.AclService.RestoreBackupAsync(folder.Id, backupPath, cancellationToken, progress, operationId).GetAwaiter().GetResult();
 
-    UpdateFolder(configStore, folderId, item =>
+    UpdateFolder(context.ConfigStore, folderId, item =>
     {
         item.State = result.Success ? FolderLockState.Unlocked : FolderLockState.RecoveryRequired;
         item.LastOperationId = result.OperationId;
@@ -448,5 +577,17 @@ internal sealed class CommandLine
         }
 
         return result;
+    }
+}
+
+internal sealed record HelperContext(AppPaths Paths, ConfigStore ConfigStore, AclService AclService, OperationProgressStore ProgressStore);
+
+/// <summary>Releases the per-folder operation mutex.</summary>
+internal sealed class FolderOperationLock(Mutex mutex) : IDisposable
+{
+    public void Dispose()
+    {
+        mutex.ReleaseMutex();
+        mutex.Dispose();
     }
 }

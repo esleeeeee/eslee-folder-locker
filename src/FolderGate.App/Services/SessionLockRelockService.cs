@@ -8,12 +8,13 @@ namespace FolderGate.App.Services;
 
 /// <summary>
 /// Optional automatic locking (settings: "re-lock when Windows locks"). When
-/// Windows is locked, the user signs out, or the PC goes to sleep, every
-/// temporary unlock gets its re-lock time moved to now. The elevated process
-/// that holds each temporary unlock re-locks within about a second, and after a
-/// sign-out the login re-lock runner does it at the next sign-in, so no UAC
-/// prompt is needed. Folders unlocked permanently are not touched: locking them
-/// needs an administrator confirmation, which cannot be shown on a locked screen.
+/// Windows is locked (Win+L) or the PC goes to sleep, every temporary unlock
+/// gets its re-lock time moved to now and the elevated process that holds it
+/// re-locks within about a second, so no UAC prompt is needed. Sign-out and
+/// shutdown are left to the login re-lock runner as before: Windows may end the
+/// helper in the middle of a re-lock there. Folders unlocked permanently are not
+/// touched: locking them needs an administrator confirmation, which cannot be
+/// shown on a locked screen.
 /// </summary>
 public sealed class SessionLockRelockService : IDisposable
 {
@@ -27,7 +28,6 @@ public sealed class SessionLockRelockService : IDisposable
         _logger = new JsonOperationLogger(paths);
         SystemEvents.SessionSwitch += OnSessionSwitch;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
-        SystemEvents.SessionEnding += OnSessionEnding;
     }
 
     /// <summary>
@@ -36,33 +36,30 @@ public sealed class SessionLockRelockService : IDisposable
     /// </summary>
     public static IReadOnlyList<RegisteredFolder> EndTemporaryUnlocks(ConfigStore configStore, DateTimeOffset utcNow)
     {
-        FolderGateConfig config = configStore.Load();
-        if (!config.RelockOnSessionLock)
+        List<RegisteredFolder> changed = [];
+        configStore.Update(config =>
         {
-            return [];
-        }
+            if (!config.RelockOnSessionLock)
+            {
+                return false;
+            }
 
-        List<RegisteredFolder> changed = config.Folders
-            .Where(folder => folder.State == FolderLockState.TemporarilyUnlocked &&
-                             folder.TemporaryUnlockUntilUtc is { } until && until > utcNow)
-            .ToList();
-        if (changed.Count == 0)
-        {
-            return [];
-        }
+            changed.AddRange(config.Folders.Where(folder =>
+                folder.State == FolderLockState.TemporarilyUnlocked &&
+                folder.TemporaryUnlockUntilUtc is { } until && until > utcNow));
+            foreach (RegisteredFolder folder in changed)
+            {
+                folder.TemporaryUnlockUntilUtc = utcNow;
+            }
 
-        foreach (RegisteredFolder folder in changed)
-        {
-            folder.TemporaryUnlockUntilUtc = utcNow;
-        }
-
-        configStore.Save(config);
+            return changed.Count > 0;
+        });
         return changed;
     }
 
     private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
     {
-        if (e.Reason is SessionSwitchReason.SessionLock or SessionSwitchReason.SessionLogoff)
+        if (e.Reason == SessionSwitchReason.SessionLock)
         {
             Run();
         }
@@ -74,11 +71,6 @@ public sealed class SessionLockRelockService : IDisposable
         {
             Run();
         }
-    }
-
-    private void OnSessionEnding(object sender, SessionEndingEventArgs e)
-    {
-        Run();
     }
 
     private void Run()
@@ -95,8 +87,9 @@ public sealed class SessionLockRelockService : IDisposable
                 _logger.Info(Guid.NewGuid().ToString("N"), folder.Id, "SessionLockRelock", folder.Path, AppText.SessionLockRelockLog);
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        catch (Exception ex)
         {
+            // A failure here must never take the app down from a system event thread.
             try
             {
                 _logger.Failure(Guid.NewGuid().ToString("N"), "auto-lock", "SessionLockRelock", null, ex);
@@ -118,6 +111,5 @@ public sealed class SessionLockRelockService : IDisposable
         _disposed = true;
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
-        SystemEvents.SessionEnding -= OnSessionEnding;
     }
 }

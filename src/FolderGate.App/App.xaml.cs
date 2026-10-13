@@ -36,6 +36,7 @@ public partial class App : System.Windows.Application
 
         base.OnStartup(e);
         ThemeService.Install(this, AppThemePreference.System);
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         AppStartupArguments arguments;
         try
@@ -310,6 +311,24 @@ public partial class App : System.Windows.Application
         catch
         {
             // Best-effort migration only. Normal app startup and unlock flow should continue.
+        }
+    }
+
+    /// <summary>
+    /// Last line of defence for UI-thread exceptions (for example a configuration
+    /// file that another process holds for a moment): show the error and keep the
+    /// app running instead of closing it. The lock state itself is never changed here.
+    /// </summary>
+    private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            AppDialog.Error(null, e.Exception.Message);
+        }
+        catch (Exception)
+        {
+            // Showing the error must not throw again.
         }
     }
 

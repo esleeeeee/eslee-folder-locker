@@ -98,6 +98,23 @@ public sealed class AclService
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// True when the folder itself already carries the Deny rule this app adds when
+    /// locking. Locking such a folder again would back up an ACL that already
+    /// contains our rule, and every later unlock would then keep it, so callers
+    /// must not lock it again.
+    /// </summary>
+    public static bool HasFolderGateDenyRule(RegisteredFolder folder)
+    {
+        if (!Directory.Exists(folder.Path))
+        {
+            return false;
+        }
+
+        DirectorySecurity security = new DirectoryInfo(folder.Path).GetAccessControl(AccessControlSections.Access);
+        return CountMatchingRules(security, ResolveOwnerSid(folder)) > 0;
+    }
+
     public async Task<AclOperationResult> LockAsync(RegisteredFolder folder, LockMode mode, CancellationToken cancellationToken, IProgress<AclOperationProgress>? progress = null, string? operationId = null)
     {
         operationId ??= Guid.NewGuid().ToString("N");

@@ -161,6 +161,30 @@ public static partial class AppText
         ? "Another operation locked or unlocked this folder during the temporary unlock, so the automatic re-lock was skipped."
         : "임시 해제 중에 다른 작업이 이 폴더를 잠그거나 해제해서 자동 재잠금을 건너뛰었습니다.";
 
+    public static string AlreadyLockedNoChange => LanguageCode == "en"
+        ? "The folder is already locked; nothing was changed."
+        : "이미 잠겨 있어서 아무것도 바꾸지 않았습니다.";
+
+    public static string AlreadyLockedKeptBackup => LanguageCode == "en"
+        ? "The folder already had this app's lock rule, so it was not locked again and its earlier backup was kept."
+        : "폴더에 이미 이 앱의 잠금 규칙이 있어서 다시 잠그지 않고 이전 백업을 그대로 유지했습니다.";
+
+    public static string AlreadyUnlockedNoChange => LanguageCode == "en"
+        ? "The folder is already unlocked; nothing was changed."
+        : "이미 잠금이 해제되어 있어서 아무것도 바꾸지 않았습니다.";
+
+    public static string FolderBusyRefused => LanguageCode == "en"
+        ? "Another operation is working on this folder. Try again when it has finished."
+        : "다른 작업이 이 폴더를 처리하고 있습니다. 끝난 뒤 다시 시도하세요.";
+
+    public static string LockRefusedRecoveryRequired => LanguageCode == "en"
+        ? "This folder needs recovery. Restore its original permissions with the recovery tool before locking it again."
+        : "복구가 필요한 폴더입니다. 다시 잠그기 전에 복구 도구로 원래 권한을 먼저 되돌리세요.";
+
+    public static string TemporaryUnlockTargetChanged => LanguageCode == "en"
+        ? "The folder's saved path, owner or lock mode changed during the temporary unlock, so it was not re-locked automatically."
+        : "임시 해제 중에 저장된 폴더 경로·소유자·잠금 모드가 바뀌어 자동으로 다시 잠그지 않았습니다.";
+
     public static string LockAll => LanguageCode == "en" ? "Lock all" : "모두 잠그기";
 
     public static string LockAllConfirmMessage(int count) => LanguageCode == "en"
@@ -296,8 +320,8 @@ public static partial class AppText
         : "PC를 잠그면 임시 해제한 폴더를 바로 다시 잠그기";
 
     public static string SettingsRelockOnSessionLockDescription => LanguageCode == "en"
-        ? "Applies to Win+L, signing out and sleep. Folders unlocked permanently need an administrator confirmation to lock, so they are not locked automatically."
-        : "Win+L 잠금, 로그아웃, 절전에 적용됩니다. 완전히 해제한 폴더는 잠글 때 관리자 확인이 필요해서 자동으로 잠기지 않습니다.";
+        ? "Applies when you lock Windows (Win+L) or the PC goes to sleep, while the app is running. Folders unlocked permanently need an administrator confirmation to lock, so they are not locked automatically."
+        : "앱이 실행 중일 때 Win+L로 PC를 잠그거나 절전에 들어가면 적용됩니다. 완전히 해제한 폴더는 잠글 때 관리자 확인이 필요해서 자동으로 잠기지 않습니다.";
 
     public static string SettingsDefaultUnlockTitle => LanguageCode == "en" ? "Default unlock duration" : "잠금 해제 기본 시간";
 
