@@ -14,6 +14,7 @@ public static class TrayHostedMenu
     public const string OpenRecoveryActionId = "open-recovery";
     public const string OpenSettingsActionId = "open-settings";
     public const string ExitActionId = "exit-app";
+    public const string LockAllActionId = "lock-all";
 
     /// <summary>잠금 해제 항목 id 접두사. 뒤에 대상 폴더 경로가 그대로 붙습니다.</summary>
     public const string UnlockActionPrefix = "unlock:";
@@ -56,6 +57,7 @@ public static class TrayHostedMenu
         }
 
         items.Add(TrayHostMenuItem.Separator);
+        items.Add(TrayHostMenuItem.Action(LockAllActionId, AppText.LockAll));
         items.Add(TrayHostMenuItem.Action(OpenRecoveryActionId, AppText.OpenRecoveryTool));
         items.Add(TrayHostMenuItem.Action(OpenSettingsActionId, AppText.SettingsTitle));
         items.Add(TrayHostMenuItem.Separator);

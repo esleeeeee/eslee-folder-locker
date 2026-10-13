@@ -35,9 +35,12 @@ public partial class PasswordDialog : ThemedWindow
         return new PasswordDialog(title, message, requiresConfirmation: false, includesUnlockDuration: false);
     }
 
-    public static PasswordDialog CreateUnlockPasswordPrompt(string title, string message)
+    /// <param name="defaultMinutes">Preselected duration in minutes, 0 for permanent, null (or an unknown value) for the first option.</param>
+    public static PasswordDialog CreateUnlockPasswordPrompt(string title, string message, int? defaultMinutes = null)
     {
-        return new PasswordDialog(title, message, requiresConfirmation: false, includesUnlockDuration: true);
+        PasswordDialog dialog = new(title, message, requiresConfirmation: false, includesUnlockDuration: true);
+        dialog.UnlockDurationInput.SelectedIndex = UnlockDurationOption.IndexOf(defaultMinutes);
+        return dialog;
     }
 
     public static PasswordDialog CreateNewPasswordPrompt(string title, string message)
@@ -121,6 +124,26 @@ public sealed class UnlockDurationOption
     public string Label { get; }
 
     public TimeSpan? Duration { get; }
+
+    /// <summary>Index of the option for <paramref name="minutes"/> (0 = permanent); 0 when it is null or unknown.</summary>
+    public static int IndexOf(int? minutes)
+    {
+        if (minutes is null)
+        {
+            return 0;
+        }
+
+        for (int index = 0; index < Defaults.Count; index++)
+        {
+            TimeSpan? duration = Defaults[index].Duration;
+            if ((minutes == 0 && duration is null) || (duration is { } value && (int)value.TotalMinutes == minutes))
+            {
+                return index;
+            }
+        }
+
+        return 0;
+    }
 
     public static IReadOnlyList<UnlockDurationOption> Defaults { get; } =
     [

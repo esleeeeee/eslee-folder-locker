@@ -42,6 +42,10 @@
                     <Setter Property="Background" Value="{DynamicResource CriticalBackgroundBrush}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource CriticalForegroundBrush}" />
                 </DataTrigger>
+                <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource CriticalBackgroundBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource CriticalForegroundBrush}" />
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -61,6 +65,10 @@
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding SelectedStateValue}" Value="{x:Static models:FolderLockState.RecoveryRequired}">
+                    <Setter Property="Background" Value="{DynamicResource CriticalBackgroundBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource CriticalForegroundBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding SelectedIsMissing}" Value="True">
                     <Setter Property="Background" Value="{DynamicResource CriticalBackgroundBrush}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource CriticalForegroundBrush}" />
                 </DataTrigger>
@@ -100,7 +108,7 @@
                                    FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1"
-                                   Text="{Binding StateText}"
+                                   Text="{Binding ListStateText}"
                                    Margin="8,0,0,0"
                                    FontSize="12"
                                    VerticalAlignment="Center"
@@ -164,11 +172,14 @@
                             Click="OpenSettings_Click" />
                 </Grid>
 
-                <Button Grid.Row="1"
-                        Style="{DynamicResource AccentButton}"
+                <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                <Button Style="{DynamicResource AccentButton}"
                         HorizontalAlignment="Stretch"
                         MinHeight="36"
-                        Margin="0,0,0,12"
                         Command="{Binding AddFolderCommand}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE710;"
@@ -179,6 +190,21 @@
                         <TextBlock Text="{x:Static text:AppText.AddFolder}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
+                <Button Grid.Column="1"
+                        MinHeight="36"
+                        Margin="8,0,0,0"
+                        ToolTip="{x:Static text:AppText.LockAll}"
+                        Command="{Binding LockAllCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;"
+                                   FontFamily="{x:Static controls:ThemeFonts.Icons}"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <TextBlock Text="{x:Static text:AppText.LockAll}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                </Grid>
 
                 <TextBox x:Name="SearchBox"
                          Grid.Row="2"
@@ -337,6 +363,20 @@
                                             <TextBlock Text="&#xE838;" />
                                         </MenuItem.Icon>
                                     </MenuItem>
+                                    <MenuItem Header="{Binding SelectedFolderPasswordMenuText}"
+                                              Command="{Binding SetFolderPasswordCommand}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xE8D7;" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="{x:Static text:AppText.FolderPasswordClearMenu}"
+                                              Command="{Binding ClearFolderPasswordCommand}"
+                                              Visibility="{Binding SelectedHasOwnPassword, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xE72C;" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator Margin="4" />
                                     <MenuItem Header="{x:Static text:AppText.RemoveFolder}"
                                               Command="{Binding RemoveFolderCommand}">
                                         <MenuItem.Icon>
@@ -347,6 +387,27 @@
                             </Button.ContextMenu>
                         </Button>
                     </Grid>
+
+                    <!-- Missing folder or offline drive -->
+                    <Border Style="{DynamicResource InfoBarCritical}"
+                            Margin="0,0,0,12"
+                            Visibility="{Binding SelectedIsMissing, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE7BA;"
+                                       FontFamily="{x:Static controls:ThemeFonts.Icons}"
+                                       Foreground="{DynamicResource CriticalForegroundBrush}"
+                                       VerticalAlignment="Top"
+                                       Margin="0,2,10,0" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding SelectedPresenceTitle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedPresenceBody}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
                     <!-- Status and main actions -->
                     <Border Style="{DynamicResource Card}" Padding="20,18" Margin="0,0,0,12">
@@ -377,6 +438,33 @@
                                         <TextBlock Text="&#xE72E;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                         <TextBlock Text="{x:Static text:AppText.Lock}" />
                                     </StackPanel>
+                                </Button>
+                                <Button Style="{DynamicResource AccentButton}"
+                                        MinWidth="120"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding RelockNowCommand}"
+                                        Visibility="{Binding IsRelockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE72E;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBlock Text="{x:Static text:AppText.RelockNow}" />
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="ExtendButton"
+                                        Margin="0,0,8,0"
+                                        Click="ExtendButton_Click"
+                                        Visibility="{Binding IsRelockPrimary, Converter={x:Static controls:Converters.BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE823;" FontFamily="{x:Static controls:ThemeFonts.Icons}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBlock Text="{x:Static text:AppText.ExtendUnlock}" />
+                                        <TextBlock Text="&#xE70D;" FontFamily="{x:Static controls:ThemeFonts.Icons}" FontSize="10" VerticalAlignment="Center" Margin="8,1,0,0" />
+                                    </StackPanel>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="+10" Command="{Binding ExtendUnlockCommand}" CommandParameter="10" />
+                                            <MenuItem Header="+30" Command="{Binding ExtendUnlockCommand}" CommandParameter="30" />
+                                            <MenuItem Header="+60" Command="{Binding ExtendUnlockCommand}" CommandParameter="60" />
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
                                 </Button>
                                 <Button Style="{DynamicResource AccentButton}"
                                         MinWidth="120"
@@ -518,6 +606,15 @@
                                     <ColumnDefinition Width="140" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Static text:AppText.FieldPassword}" Style="{DynamicResource SecondaryText}" />
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedPasswordKind}" />
+                            </Grid>
+                            <Separator Margin="0" />
+                            <Grid Margin="16,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="{x:Static text:AppText.FieldPath}" Style="{DynamicResource SecondaryText}" />
                                 <TextBlock Grid.Column="1" Text="{Binding SelectedPath}" TextWrapping="Wrap" />
                             </Grid>
@@ -553,6 +650,41 @@
                                        Margin="0,2,10,0" />
                             <TextBlock Text="{Binding SelectedWarningText}" TextWrapping="Wrap" />
                         </StackPanel>
+                    </Border>
+
+                    <!-- Recent activity of this folder -->
+                    <TextBlock Text="{x:Static text:AppText.HistoryHeader}" Style="{DynamicResource SectionHeaderText}" Margin="2,8,0,8" />
+                    <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,12">
+                        <Grid>
+                            <TextBlock Text="{x:Static text:AppText.HistoryEmpty}"
+                                       Style="{DynamicResource SecondaryText}"
+                                       Margin="16,12"
+                                       Visibility="{Binding HasSelectedHistory, Converter={x:Static controls:Converters.InverseBoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding SelectedHistory}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{DynamicResource DividerStrokeBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Time}" Style="{DynamicResource SecondaryText}" />
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock x:Name="OperationText" Text="{Binding Operation}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Message}" Style="{DynamicResource CaptionText}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsFailure}" Value="True">
+                                                <Setter TargetName="OperationText" Property="Foreground" Value="{DynamicResource CriticalForegroundBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
                     </Border>
 
                     <TextBlock Text="{x:Static text:AppText.NotEncryptionNote}"

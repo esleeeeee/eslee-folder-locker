@@ -6,7 +6,8 @@ public interface IUserInteractionService
 
     string? AskPassword(string title, string message);
 
-    UnlockPasswordRequest? AskUnlockPassword(string title, string message);
+    /// <param name="defaultMinutes">Duration preselected in the dialog: minutes, 0 for permanent, null for the first option.</param>
+    UnlockPasswordRequest? AskUnlockPassword(string title, string message, int? defaultMinutes = null);
 
     string? AskNewPassword(string title, string message);
 

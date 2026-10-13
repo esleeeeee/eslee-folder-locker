@@ -124,11 +124,11 @@ public static partial class AppText
 
     public static string SettingsSecurityHeader => LanguageCode == "en" ? "Security" : "보안";
 
-    public static string SettingsUnlockPasswordTitle => LanguageCode == "en" ? "Unlock password" : "잠금 해제 비밀번호";
+    public static string SettingsUnlockPasswordTitle => LanguageCode == "en" ? "Shared unlock password" : "공통 잠금 해제 비밀번호";
 
     public static string SettingsUnlockPasswordDescription => LanguageCode == "en"
-        ? "One password unlocks every registered folder."
-        : "등록한 모든 폴더의 잠금을 해제할 때 쓰는 비밀번호입니다.";
+        ? "Unlocks every folder that has no password of its own."
+        : "전용 비밀번호를 정하지 않은 폴더를 해제할 때 쓰는 비밀번호입니다.";
 
     public static string SettingsMasterTitle => LanguageCode == "en" ? "Master recovery password" : "마스터 복구 비밀번호";
 
@@ -155,6 +155,171 @@ public static partial class AppText
         : "잠금·해제·복구 기록입니다. 비밀번호는 기록하지 않습니다.";
 
     public static string SettingsAboutHeader => LanguageCode == "en" ? "About" : "정보";
+
+    // ===== Temporary unlock, lock all, auto lock =====
+    public static string TemporaryUnlockSuperseded => LanguageCode == "en"
+        ? "Another operation locked or unlocked this folder during the temporary unlock, so the automatic re-lock was skipped."
+        : "임시 해제 중에 다른 작업이 이 폴더를 잠그거나 해제해서 자동 재잠금을 건너뛰었습니다.";
+
+    public static string LockAll => LanguageCode == "en" ? "Lock all" : "모두 잠그기";
+
+    public static string LockAllConfirmMessage(int count) => LanguageCode == "en"
+        ? $"Lock {count} unlocked folder(s), each with its own lock mode? The administrator confirmation (UAC) appears only once."
+        : $"잠겨 있지 않은 폴더 {count}개를 각 폴더의 잠금 모드로 잠급니다. 관리자 권한 확인(UAC)은 한 번만 표시됩니다. 계속할까요?";
+
+    public static string LockAllNothingToLock => LanguageCode == "en"
+        ? "Every registered folder is already locked."
+        : "등록한 폴더가 모두 이미 잠겨 있습니다.";
+
+    public static string LockAllCompleted => LanguageCode == "en" ? "All folders are locked." : "모든 폴더를 잠갔습니다.";
+
+    public static string LockAllPartlyFailed => LanguageCode == "en"
+        ? "Some folders could not be locked. Check the last result of each folder."
+        : "일부 폴더를 잠그지 못했습니다. 각 폴더의 마지막 결과를 확인하세요.";
+
+    public static string RemainingTime(TimeSpan remaining)
+    {
+        if (remaining < TimeSpan.FromMinutes(1))
+        {
+            return LanguageCode == "en" ? "locks in under a minute" : "곧 다시 잠김";
+        }
+
+        int hours = (int)remaining.TotalHours;
+        int minutes = (int)Math.Ceiling(remaining.TotalMinutes) - hours * 60;
+        if (minutes == 60)
+        {
+            hours++;
+            minutes = 0;
+        }
+
+        return LanguageCode == "en"
+            ? hours > 0 ? $"{hours} h {minutes} min left" : $"{minutes} min left"
+            : hours > 0 ? $"{hours}시간 {minutes}분 남음" : $"{minutes}분 남음";
+    }
+
+    public static string RelockNow => LanguageCode == "en" ? "Lock now" : "지금 다시 잠그기";
+
+    public static string ExtendUnlock => LanguageCode == "en" ? "Extend" : "시간 연장";
+
+    public static string ExtendBy(int minutes) => LanguageCode == "en"
+        ? minutes >= 60 ? $"+{minutes / 60} hour(s)" : $"+{minutes} minutes"
+        : minutes >= 60 ? $"+{minutes / 60}시간" : $"+{minutes}분";
+
+    public static string ExtendedUntil(string time) => LanguageCode == "en"
+        ? $"The temporary unlock now lasts until {time}."
+        : $"임시 해제를 {time}까지 연장했습니다.";
+
+    public static string RelockRequested => LanguageCode == "en" ? "Locking the folder again." : "폴더를 다시 잠그는 중입니다.";
+
+    public static string SessionLockRelockLog => LanguageCode == "en"
+        ? "Windows was locked; the temporary unlock ends now."
+        : "Windows가 잠겨서 임시 해제를 바로 끝냈습니다.";
+
+    // ===== Per-folder password =====
+    public static string FolderPasswordSetMenu => LanguageCode == "en" ? "Set a password for this folder" : "이 폴더 전용 비밀번호 설정";
+
+    public static string FolderPasswordChangeMenu => LanguageCode == "en" ? "Change this folder's password" : "이 폴더 전용 비밀번호 변경";
+
+    public static string FolderPasswordClearMenu => LanguageCode == "en" ? "Use the shared password again" : "공통 비밀번호로 되돌리기";
+
+    public static string FolderPasswordTitle => LanguageCode == "en" ? "Folder password" : "폴더 전용 비밀번호";
+
+    public static string FolderPasswordCurrentMessage(string name) => LanguageCode == "en"
+        ? $"Enter the password that unlocks \"{name}\" now."
+        : $"지금 '{name}' 폴더를 해제할 때 쓰는 비밀번호를 입력하세요.";
+
+    public static string FolderPasswordNewMessage(string name) => LanguageCode == "en"
+        ? $"Choose a password only for \"{name}\". Other folders keep using the shared password."
+        : $"'{name}' 폴더에만 쓸 비밀번호를 정하세요. 다른 폴더는 계속 공통 비밀번호로 해제합니다.";
+
+    public static string FolderPasswordSetDone => LanguageCode == "en"
+        ? "This folder now has its own password."
+        : "이 폴더 전용 비밀번호를 설정했습니다.";
+
+    public static string FolderPasswordClearedDone => LanguageCode == "en"
+        ? "This folder is unlocked with the shared password again."
+        : "이제 이 폴더도 공통 비밀번호로 해제합니다.";
+
+    public static string FolderPasswordLog => LanguageCode == "en" ? "The folder password was changed." : "폴더 비밀번호 설정을 바꿨습니다.";
+
+    public static string FieldPassword => LanguageCode == "en" ? "Password" : "비밀번호";
+
+    public static string PasswordKindFolder => LanguageCode == "en" ? "Folder password" : "이 폴더 전용";
+
+    public static string PasswordKindShared => LanguageCode == "en" ? "Shared password" : "공통 비밀번호";
+
+    // ===== Missing folders =====
+    public static string StateMissing => LanguageCode == "en" ? "Not found" : "찾을 수 없음";
+
+    public static string StateDriveOffline => LanguageCode == "en" ? "Drive offline" : "드라이브 없음";
+
+    public static string PresenceMissingTitle => LanguageCode == "en" ? "Folder not found" : "폴더를 찾을 수 없습니다";
+
+    public static string PresenceMissingBody => LanguageCode == "en"
+        ? "There is no folder at the registered path. It may have been moved, renamed or deleted."
+        : "등록한 위치에 폴더가 없습니다. 옮겼거나 이름을 바꿨거나 삭제했을 수 있습니다.";
+
+    public static string PresenceDriveTitle => LanguageCode == "en" ? "Drive not connected" : "드라이브가 연결되어 있지 않습니다";
+
+    public static string PresenceDriveBody => LanguageCode == "en"
+        ? "Connect the drive that holds this folder to lock or unlock it."
+        : "이 폴더가 있는 드라이브를 연결하면 다시 잠그거나 해제할 수 있습니다.";
+
+    // ===== Per-folder history =====
+    public static string HistoryHeader => LanguageCode == "en" ? "Recent activity" : "최근 기록";
+
+    public static string HistoryEmpty => LanguageCode == "en" ? "No activity yet." : "아직 기록이 없습니다.";
+
+    public static string HistoryOperationName(string operation) => operation switch
+    {
+        "Lock" => LanguageCode == "en" ? "Lock" : "잠금",
+        "Unlock" => LanguageCode == "en" ? "Unlock" : "잠금 해제",
+        "Restore" => LanguageCode == "en" ? "Restore" : "복구",
+        "Rollback" => LanguageCode == "en" ? "Rollback" : "원복",
+        "LockCanceled" => LanguageCode == "en" ? "Lock canceled" : "잠금 취소",
+        "UnlockCanceled" => LanguageCode == "en" ? "Unlock canceled" : "해제 취소",
+        "RestoreCanceled" => LanguageCode == "en" ? "Restore canceled" : "복구 취소",
+        "TemporaryUnlockExtended" => LanguageCode == "en" ? "Unlock extended" : "임시 해제 연장",
+        "RelockRequested" => LanguageCode == "en" ? "Lock now" : "다시 잠금 요청",
+        "SessionLockRelock" => LanguageCode == "en" ? "PC locked" : "PC 잠금",
+        "FolderPassword" => LanguageCode == "en" ? "Folder password" : "폴더 비밀번호",
+        _ => operation
+    };
+
+    public static string HistoryFailed => LanguageCode == "en" ? "Failed" : "실패";
+
+    // ===== Settings: automatic locking and language =====
+    public static string SettingsAutoLockHeader => LanguageCode == "en" ? "Automatic locking" : "자동 잠금";
+
+    public static string SettingsRelockOnSessionLockTitle => LanguageCode == "en"
+        ? "Re-lock temporarily unlocked folders when Windows locks"
+        : "PC를 잠그면 임시 해제한 폴더를 바로 다시 잠그기";
+
+    public static string SettingsRelockOnSessionLockDescription => LanguageCode == "en"
+        ? "Applies to Win+L, signing out and sleep. Folders unlocked permanently need an administrator confirmation to lock, so they are not locked automatically."
+        : "Win+L 잠금, 로그아웃, 절전에 적용됩니다. 완전히 해제한 폴더는 잠글 때 관리자 확인이 필요해서 자동으로 잠기지 않습니다.";
+
+    public static string SettingsDefaultUnlockTitle => LanguageCode == "en" ? "Default unlock duration" : "잠금 해제 기본 시간";
+
+    public static string SettingsDefaultUnlockDescription => LanguageCode == "en"
+        ? "Preselected in the unlock dialog. Temporary unlocks lock again automatically when the time is up."
+        : "잠금 해제 창에서 처음 선택된 시간입니다. 임시 해제는 시간이 지나면 자동으로 다시 잠깁니다.";
+
+    public static string SettingsLanguageTitle => LanguageCode == "en" ? "Language" : "언어";
+
+    public static string SettingsLanguageDescription => LanguageCode == "en"
+        ? "Applies after the app restarts."
+        : "앱을 다시 시작하면 적용됩니다.";
+
+    public static string LanguageSystem => LanguageCode == "en" ? "Use Windows setting" : "Windows 설정 따르기";
+
+    public static string LanguageKorean => "한국어";
+
+    public static string LanguageEnglish => "English";
+
+    public static string LanguageRestartPrompt => LanguageCode == "en"
+        ? "Restart the app now to use the new language?"
+        : "새 언어를 적용하려면 앱을 다시 시작해야 합니다. 지금 다시 시작할까요?";
 
     // ===== Dialogs =====
     public static string Yes => LanguageCode == "en" ? "Yes" : "예";

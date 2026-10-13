@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
+using FolderGate.Core.Operations;
 using FolderGate.Core.Storage;
 
 namespace FolderGate.App.Services;
@@ -33,6 +34,41 @@ public sealed class ElevatedToolRunner
         {
             return Process.Start(startInfo)
                 ?? throw new InvalidOperationException(AppText.ProcessNotStarted);
+        }
+        catch (Win32Exception ex) when ((uint)ex.NativeErrorCode == 1223)
+        {
+            throw new InvalidOperationException(AppText.UacCanceled, ex);
+        }
+    }
+
+    /// <summary>
+    /// Locks several folders in one elevated helper process (one UAC prompt). Each
+    /// folder uses its stored lock mode and its own operation id for progress.
+    /// </summary>
+    public Task<int> RunLockManyAsync(IReadOnlyList<RegisteredFolder> folders, IReadOnlyList<string> operationIds)
+    {
+        string helperPath = _toolLocator.FindExecutable("FolderGate.ElevatedHelper");
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = helperPath,
+            WorkingDirectory = _paths.ProjectRoot,
+            UseShellExecute = true,
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+
+        startInfo.ArgumentList.Add("lock-many");
+        AddDataLocationArguments(startInfo);
+        startInfo.ArgumentList.Add("--target-ids");
+        startInfo.ArgumentList.Add(BatchLockRequest.Join(folders.Select(folder => folder.Id)));
+        startInfo.ArgumentList.Add("--operation-ids");
+        startInfo.ArgumentList.Add(BatchLockRequest.Join(operationIds));
+
+        try
+        {
+            Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException(AppText.ProcessNotStarted);
+            return WaitForExitAsync(process);
         }
         catch (Win32Exception ex) when ((uint)ex.NativeErrorCode == 1223)
         {

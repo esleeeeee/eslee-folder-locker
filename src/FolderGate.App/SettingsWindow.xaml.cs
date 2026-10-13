@@ -40,6 +40,9 @@ public partial class SettingsWindow : ThemedWindow
         };
         CloseBehaviorChoice.SelectedIndex = config.CloseToTray ? 0 : 1;
         AutoStartOption.IsChecked = _autoStartService.IsEnabled();
+        RelockOnSessionLockOption.IsChecked = config.RelockOnSessionLock;
+        DefaultUnlockChoice.ItemsSource = UnlockDurationOption.Defaults;
+        DefaultUnlockChoice.SelectedIndex = UnlockDurationOption.IndexOf(config.DefaultUnlockMinutes);
         _loading = false;
 
         DataContext = viewModel;
@@ -113,6 +116,23 @@ public partial class SettingsWindow : ThemedWindow
             AutoStartOption.IsChecked = _autoStartService.IsEnabled();
             AppDialog.Error(this, ex.Message, AppText.SettingsTitle);
         }
+    }
+
+    private void RelockOnSessionLockOption_Click(object sender, RoutedEventArgs e)
+    {
+        bool enabled = RelockOnSessionLockOption.IsChecked == true;
+        SaveConfig(config => config.RelockOnSessionLock = enabled);
+    }
+
+    private void DefaultUnlockChoice_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_loading || DefaultUnlockChoice.SelectedItem is not UnlockDurationOption option)
+        {
+            return;
+        }
+
+        int minutes = option.Duration is { } duration ? (int)duration.TotalMinutes : 0;
+        SaveConfig(config => config.DefaultUnlockMinutes = minutes);
     }
 
     private void SaveConfig(Action<FolderGateConfig> change)

@@ -35,7 +35,7 @@ public sealed class UnlockPromptRunner
             return 2;
         }
 
-        if (config.Password is null)
+        if (config.PasswordFor(folder) is null)
         {
             ShowError(AppText.NoPasswordConfigured);
             return 2;
@@ -57,14 +57,15 @@ public sealed class UnlockPromptRunner
             AppText.UnlockTitle,
             AppText.LanguageCode == "en"
                 ? $"Locked folder: {folder.Path}{Environment.NewLine}{Environment.NewLine}{AppText.UnlockPasswordMessage}"
-                : $"잠긴 폴더: {folder.Path}{Environment.NewLine}{Environment.NewLine}{AppText.UnlockPasswordMessage}");
+                : $"잠긴 폴더: {folder.Path}{Environment.NewLine}{Environment.NewLine}{AppText.UnlockPasswordMessage}",
+            config.DefaultUnlockMinutes);
 
         if (dialog.ShowDialog() != true)
         {
             return 1;
         }
 
-        if (!_passwordService.Verify(dialog.Password, config.Password))
+        if (!_passwordService.Verify(dialog.Password, config.PasswordFor(folder)))
         {
             ShowError(AppText.InvalidPasswordNoAcl);
             return 4;

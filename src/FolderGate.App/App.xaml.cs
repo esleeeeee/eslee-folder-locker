@@ -22,6 +22,7 @@ public partial class App : System.Windows.Application
     private TrayIconService? _trayIcon;
     private TrayHostLink? _trayHostLink;
     private MainWindow? _mainWindowInstance;
+    private SessionLockRelockService? _sessionLockRelock;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -89,7 +90,8 @@ public partial class App : System.Windows.Application
                 openRecoveryTool: OpenRecoveryToolFromTray,
                 openSettings: () => SettingsWindow.ShowFor(paths, _mainWindowInstance, _mainWindowInstance?.ViewModel),
                 exitApplication: ExitFromTray,
-                refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage());
+                refreshMainWindow: () => _mainWindowInstance?.ViewModel.RefreshFromStorage(),
+                lockAll: () => _mainWindowInstance?.ViewModel.LockAllCommand.Execute(null));
 
             // Tray Folder 연동: Hosted 모드에서는 아이콘만 숨기고 잠금 기능은 그대로
             // 유지됩니다. 연결이 끊어지면 링크가 아이콘을 자동 복구합니다.
@@ -108,6 +110,7 @@ public partial class App : System.Windows.Application
                 (eventName, exception) => trayHostLogger.Failure(
                     Guid.NewGuid().ToString("N"), "tray", eventName, null, exception));
             _trayHostLink.Start();
+            _sessionLockRelock = new SessionLockRelockService(paths);
 
             // --tray: quiet start for Windows login auto-start. Startup dialogs
             // (migration offer, first-run master setup) are skipped here; every
@@ -135,6 +138,7 @@ public partial class App : System.Windows.Application
     {
         _activationWait?.Unregister(null);
         _activationEvent?.Dispose();
+        _sessionLockRelock?.Dispose();
         _trayHostLink?.Dispose();
         _trayIcon?.Dispose();
         if (_singleInstanceMutex is not null)

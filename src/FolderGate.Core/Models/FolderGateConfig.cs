@@ -44,5 +44,21 @@ public sealed class FolderGateConfig
     /// </summary>
     public AppThemePreference Theme { get; set; } = AppThemePreference.System;
 
+    /// <summary>
+    /// When true, temporarily unlocked folders are re-locked as soon as Windows is
+    /// locked (Win+L), the user signs out, or the PC goes to sleep. Off by default.
+    /// </summary>
+    public bool RelockOnSessionLock { get; set; }
+
+    /// <summary>
+    /// Duration preselected in the unlock dialog, in minutes. 0 preselects
+    /// "unlock permanently"; null keeps the first option (1 minute), which is
+    /// what versions before 2.0.0 did.
+    /// </summary>
+    public int? DefaultUnlockMinutes { get; set; }
+
+    /// <summary>The password that unlocks <paramref name="folder"/>: its own, else the shared one.</summary>
+    public PasswordRecord? PasswordFor(RegisteredFolder folder) => folder.Password ?? Password;
+
     public List<RegisteredFolder> Folders { get; set; } = [];
 }

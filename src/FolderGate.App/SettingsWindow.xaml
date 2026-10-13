@@ -123,6 +123,52 @@
                     </StackPanel>
                 </Border>
 
+                <!-- ===== Automatic locking ===== -->
+                <TextBlock Text="{x:Static text:AppText.SettingsAutoLockHeader}" Style="{DynamicResource SectionHeaderText}" />
+                <Border Style="{DynamicResource Card}" Padding="0" Margin="0,0,0,20">
+                    <StackPanel>
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource RowIcon}" Text="&#xE72E;" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static text:AppText.SettingsRelockOnSessionLockTitle}" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Static text:AppText.SettingsRelockOnSessionLockDescription}" Style="{DynamicResource CaptionText}" />
+                            </StackPanel>
+                            <CheckBox x:Name="RelockOnSessionLockOption"
+                                      Grid.Column="2"
+                                      Style="{DynamicResource ToggleSwitch}"
+                                      Margin="16,0,0,0"
+                                      VerticalAlignment="Center"
+                                      AutomationProperties.Name="{x:Static text:AppText.SettingsRelockOnSessionLockTitle}"
+                                      Click="RelockOnSessionLockOption_Click" />
+                        </Grid>
+                        <Separator Margin="0" />
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource RowIcon}" Text="&#xE823;" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static text:AppText.SettingsDefaultUnlockTitle}" />
+                                <TextBlock Text="{x:Static text:AppText.SettingsDefaultUnlockDescription}" Style="{DynamicResource CaptionText}" />
+                            </StackPanel>
+                            <ComboBox x:Name="DefaultUnlockChoice"
+                                      Grid.Column="2"
+                                      MinWidth="160"
+                                      Margin="16,0,0,0"
+                                      VerticalAlignment="Center"
+                                      DisplayMemberPath="Label"
+                                      SelectionChanged="DefaultUnlockChoice_SelectionChanged" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <!-- ===== Security ===== -->
                 <StackPanel x:Name="SecuritySection">
                     <TextBlock Text="{x:Static text:AppText.SettingsSecurityHeader}" Style="{DynamicResource SectionHeaderText}" />

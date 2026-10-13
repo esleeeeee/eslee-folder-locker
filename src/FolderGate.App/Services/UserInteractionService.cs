@@ -51,9 +51,9 @@ public sealed class UserInteractionService : IUserInteractionService
         return dialog.ShowDialog() == true ? dialog.Password : null;
     }
 
-    public UnlockPasswordRequest? AskUnlockPassword(string title, string message)
+    public UnlockPasswordRequest? AskUnlockPassword(string title, string message, int? defaultMinutes = null)
     {
-        PasswordDialog dialog = PasswordDialog.CreateUnlockPasswordPrompt(title, message);
+        PasswordDialog dialog = PasswordDialog.CreateUnlockPasswordPrompt(title, message, defaultMinutes);
         dialog.Owner = Owner;
         return dialog.ShowDialog() == true
             ? new UnlockPasswordRequest(dialog.Password, dialog.SelectedUnlockDuration)

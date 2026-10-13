@@ -25,4 +25,11 @@ public sealed class RegisteredFolder
     public string? LastResult { get; set; }
 
     public bool HasReparsePointWarning { get; set; }
+
+    /// <summary>
+    /// Password of this folder only. Null (the default, and every folder registered
+    /// before v2.0.0) means the shared unlock password in
+    /// <see cref="FolderGateConfig.Password"/> unlocks the folder.
+    /// </summary>
+    public PasswordRecord? Password { get; set; }
 }

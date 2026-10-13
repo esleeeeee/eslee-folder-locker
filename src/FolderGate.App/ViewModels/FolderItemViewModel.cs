@@ -3,6 +3,7 @@ using FolderGate.App.Controls;
 using FolderGate.Core.Formatting;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
+using FolderGate.Core.Validation;
 
 namespace FolderGate.App.ViewModels;
 
@@ -11,13 +12,14 @@ public sealed class FolderItemViewModel : ObservableObject
     private bool _isOperationRunning;
     private double _operationProgressPercent;
     private bool _isOperationIndeterminate;
+    private FolderPresence _presence = FolderPresence.Present;
 
     public FolderItemViewModel(RegisteredFolder model)
     {
         Model = model;
     }
 
-    public RegisteredFolder Model { get; }
+    public RegisteredFolder Model { get; private set; }
 
     public string Id => Model.Id;
 
@@ -31,14 +33,43 @@ public sealed class FolderItemViewModel : ObservableObject
 
     public string StateText => AppText.StateName(Model.State);
 
-    public string StateGlyph => Model.State switch
+    /// <summary>State shown in the list: missing folders and offline drives win over the lock state.</summary>
+    public string ListStateText => Presence switch
     {
-        FolderLockState.Locked => Glyphs.Lock,
-        FolderLockState.TemporarilyUnlocked => Glyphs.Clock,
-        FolderLockState.Working => Glyphs.Sync,
-        FolderLockState.RecoveryRequired => Glyphs.Warning,
-        _ => Glyphs.Unlock
+        FolderPresence.Missing => AppText.StateMissing,
+        FolderPresence.DriveUnavailable => AppText.StateDriveOffline,
+        _ when Model.State == FolderLockState.TemporarilyUnlocked && RemainingText is { } remaining => remaining,
+        _ => StateText
     };
+
+    public string StateGlyph => Presence != FolderPresence.Present
+        ? Glyphs.Warning
+        : Model.State switch
+        {
+            FolderLockState.Locked => Glyphs.Lock,
+            FolderLockState.TemporarilyUnlocked => Glyphs.Clock,
+            FolderLockState.Working => Glyphs.Sync,
+            FolderLockState.RecoveryRequired => Glyphs.Warning,
+            _ => Glyphs.Unlock
+        };
+
+    public FolderPresence Presence
+    {
+        get => _presence;
+        set
+        {
+            if (SetProperty(ref _presence, value))
+            {
+                OnPropertyChanged(nameof(IsMissing));
+                OnPropertyChanged(nameof(ListStateText));
+                OnPropertyChanged(nameof(StateGlyph));
+            }
+        }
+    }
+
+    public bool IsMissing => Presence != FolderPresence.Present;
+
+    public bool HasOwnPassword => Model.Password is not null;
 
     public string LastOperationText => Model.LastOperationUtc is null
         ? "-"
@@ -50,20 +81,12 @@ public sealed class FolderItemViewModel : ObservableObject
         : Model.LastOperationUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
 
     /// <summary>Local re-lock time of a temporary unlock, or null when unknown.</summary>
-    public string? RelockTimeText
-    {
-        get
-        {
-            if (Model.TemporaryUnlockUntilUtc is not { } until)
-            {
-                return null;
-            }
+    public string? RelockTimeText => Model.TemporaryUnlockUntilUtc is { } until ? FormatLocalTime(until) : null;
 
-            DateTimeOffset local = until.ToLocalTime();
-            string format = local.Date == DateTimeOffset.Now.Date ? "HH:mm" : "yyyy-MM-dd HH:mm";
-            return local.ToString(format, CultureInfo.InvariantCulture);
-        }
-    }
+    /// <summary>"38 min left" for a temporary unlock; null otherwise.</summary>
+    public string? RemainingText => Model.State == FolderLockState.TemporarilyUnlocked && Model.TemporaryUnlockUntilUtc is { } until
+        ? AppText.RemainingTime(until - DateTimeOffset.UtcNow)
+        : null;
 
     public string LastResult => string.IsNullOrWhiteSpace(Model.LastResult) ? "-" : Model.LastResult;
 
@@ -90,6 +113,20 @@ public sealed class FolderItemViewModel : ObservableObject
         set => SetProperty(ref _isOperationIndeterminate, value);
     }
 
+    /// <summary>Replaces the saved data (after a periodic reload) and refreshes every binding.</summary>
+    public void Update(RegisteredFolder model)
+    {
+        Model = model;
+        OnPropertyChanged(string.Empty);
+    }
+
+    /// <summary>Refreshes time-dependent text such as the remaining temporary unlock time.</summary>
+    public void RefreshClock()
+    {
+        OnPropertyChanged(nameof(RemainingText));
+        OnPropertyChanged(nameof(ListStateText));
+    }
+
     public bool MatchesSearch(string? searchText)
     {
         if (string.IsNullOrWhiteSpace(searchText))
@@ -106,9 +143,16 @@ public sealed class FolderItemViewModel : ObservableObject
     {
         FolderFilter.Locked => Model.State == FolderLockState.Locked,
         FolderFilter.Unlocked => Model.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked,
-        FolderFilter.Attention => Model.State is FolderLockState.Working or FolderLockState.RecoveryRequired,
+        FolderFilter.Attention => Model.State is FolderLockState.Working or FolderLockState.RecoveryRequired || IsMissing,
         _ => true
     };
+
+    public static string FormatLocalTime(DateTimeOffset utc)
+    {
+        DateTimeOffset local = utc.ToLocalTime();
+        string format = local.Date == DateTimeOffset.Now.Date ? "HH:mm" : "yyyy-MM-dd HH:mm";
+        return local.ToString(format, CultureInfo.InvariantCulture);
+    }
 }
 
 public enum FolderFilter
@@ -118,3 +162,6 @@ public enum FolderFilter
     Unlocked,
     Attention
 }
+
+/// <summary>One line of the per-folder history in the details pane.</summary>
+public sealed record FolderHistoryEntry(string Time, string Operation, string Message, bool IsFailure);

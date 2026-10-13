@@ -1,10 +1,13 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FolderGate.App.Controls;
 using FolderGate.App.Services;
 using FolderGate.App.ViewModels;
+using FolderGate.Core.Localization;
 using FolderGate.Core.Storage;
 
 namespace FolderGate.App;
@@ -13,6 +16,7 @@ public partial class MainWindow : ThemedWindow
 {
     private readonly AppPaths _paths;
     private readonly ConfigStore _configStore;
+    private readonly DispatcherTimer _syncTimer;
 
     public MainWindow()
         : this(AppPaths.Resolve())
@@ -38,6 +42,24 @@ public partial class MainWindow : ThemedWindow
             }),
             Key.F,
             ModifierKeys.Control));
+
+        // While the window is on screen, pick up changes other processes make (the
+        // elevated helper re-locking a temporary unlock, the Explorer unlock prompt)
+        // and keep the remaining unlock time current.
+        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _syncTimer.Tick += (_, _) => ViewModel.SyncFromStorage();
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible)
+            {
+                ViewModel.SyncFromStorage();
+                _syncTimer.Start();
+            }
+            else
+            {
+                _syncTimer.Stop();
+            }
+        };
     }
 
     public MainViewModel ViewModel { get; }
@@ -87,6 +109,26 @@ public partial class MainWindow : ThemedWindow
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             menu.IsOpen = true;
         }
+    }
+
+    private void ExtendButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExtendButton.ContextMenu is not { } menu)
+        {
+            return;
+        }
+
+        foreach (MenuItem item in menu.Items.OfType<MenuItem>())
+        {
+            if (int.TryParse(item.CommandParameter?.ToString(), out int minutes))
+            {
+                item.Header = AppText.ExtendBy(minutes);
+            }
+        }
+
+        menu.PlacementTarget = ExtendButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
     }
 
     // ===== Drag and drop: register folders dropped from File Explorer =====

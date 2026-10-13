@@ -38,6 +38,7 @@ public sealed class TrayIconService : IDisposable
     private readonly Action _openSettings;
     private readonly Action _exitApplication;
     private readonly Action _refreshMainWindow;
+    private readonly Action _lockAll;
     private bool _unlockInProgress;
     private bool _disposed;
 
@@ -47,7 +48,8 @@ public sealed class TrayIconService : IDisposable
         Action openRecoveryTool,
         Action openSettings,
         Action exitApplication,
-        Action refreshMainWindow)
+        Action refreshMainWindow,
+        Action lockAll)
     {
         _paths = paths;
         _configStore = new ConfigStore(paths);
@@ -57,6 +59,7 @@ public sealed class TrayIconService : IDisposable
         _openSettings = openSettings;
         _exitApplication = exitApplication;
         _refreshMainWindow = refreshMainWindow;
+        _lockAll = lockAll;
 
         _ownedIcon = LoadOwnedIcon();
         _menu = new System.Windows.Forms.ContextMenuStrip();
@@ -67,6 +70,9 @@ public sealed class TrayIconService : IDisposable
         openItem.Click += (_, _) => _showMainWindow();
 
         _lockedFoldersRoot = new System.Windows.Forms.ToolStripMenuItem(AppText.TrayLockedFolders);
+
+        System.Windows.Forms.ToolStripMenuItem lockAllItem = new(AppText.LockAll);
+        lockAllItem.Click += (_, _) => _lockAll();
 
         System.Windows.Forms.ToolStripMenuItem recoveryItem = new(AppText.OpenRecoveryTool);
         recoveryItem.Click += (_, _) => _openRecoveryTool();
@@ -80,6 +86,7 @@ public sealed class TrayIconService : IDisposable
         _menu.Items.Add(openItem);
         _menu.Items.Add(_lockedFoldersRoot);
         _menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+        _menu.Items.Add(lockAllItem);
         _menu.Items.Add(recoveryItem);
         _menu.Items.Add(settingsItem);
         _menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
@@ -144,6 +151,9 @@ public sealed class TrayIconService : IDisposable
         {
             case TrayHostedMenu.OpenAppActionId:
                 PostMenuAction(_showMainWindow);
+                return true;
+            case TrayHostedMenu.LockAllActionId:
+                PostMenuAction(_lockAll);
                 return true;
             case TrayHostedMenu.OpenRecoveryActionId:
                 PostMenuAction(_openRecoveryTool);

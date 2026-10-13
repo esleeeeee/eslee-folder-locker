@@ -8,6 +8,7 @@ using FolderGate.App.Controls;
 using FolderGate.App.Services;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
+using FolderGate.Core.Operations;
 using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 using FolderGate.Core.Validation;
@@ -43,7 +44,12 @@ public sealed class MainViewModel : ObservableObject
     private bool _isProgressIndeterminate;
     private string _searchText = string.Empty;
     private FolderFilter _filter = FolderFilter.All;
-    private string? _busyFolderId;
+
+    // Folder id -> operation id of every lock/unlock this window is running
+    // (one entry, or several for "lock all").
+    private readonly Dictionary<string, string> _runningOperations = new(StringComparer.OrdinalIgnoreCase);
+    private DateTimeOffset _lastSeenConfigUpdateUtc;
+    private int _syncTicks;
 
     public MainViewModel(AppPaths paths, IUserInteractionService interaction, ElevatedToolRunner toolRunner)
     {
@@ -65,14 +71,19 @@ public sealed class MainViewModel : ObservableObject
 
         AddFolderCommand = new AsyncRelayCommand(AddFolderAsync);
         RemoveFolderCommand = new RelayCommand(RemoveSelectedFolder, () => SelectedFolder is not null && !IsBusy);
-        LockCommand = new AsyncRelayCommand(LockSelectedFolderAsync, () => SelectedFolder is not null && !IsBusy);
-        UnlockCommand = new AsyncRelayCommand(UnlockSelectedFolderAsync, () => SelectedFolder is not null && !IsBusy);
+        LockCommand = new AsyncRelayCommand(LockSelectedFolderAsync, () => SelectedFolder is { IsMissing: false } && !IsBusy);
+        UnlockCommand = new AsyncRelayCommand(UnlockSelectedFolderAsync, () => SelectedFolder is { IsMissing: false } && !IsBusy);
+        LockAllCommand = new AsyncRelayCommand(LockAllAsync, () => !IsBusy && LockableFolders().Any());
+        RelockNowCommand = new AsyncRelayCommand(RelockSelectedNowAsync, () => !IsBusy && SelectedFolder?.State == FolderLockState.TemporarilyUnlocked);
+        ExtendUnlockCommand = new ParameterCommand(ExtendSelectedUnlock, _ => !IsBusy && SelectedFolder?.State == FolderLockState.TemporarilyUnlocked);
+        SetFolderPasswordCommand = new RelayCommand(SetSelectedFolderPassword, () => SelectedFolder is not null && !IsBusy);
+        ClearFolderPasswordCommand = new RelayCommand(ClearSelectedFolderPassword, () => SelectedFolder is { HasOwnPassword: true } && !IsBusy);
         ChangePasswordCommand = new RelayCommand(ChangePassword, () => !IsBusy);
         ShowLogsCommand = new RelayCommand(() => _interaction.ShowLogFile(_paths.LogFilePath));
         OpenRecoveryToolCommand = new AsyncRelayCommand(OpenRecoveryToolAsync, () => !IsBusy);
         RegisterExplorerMenuCommand = new RelayCommand(RegisterExplorerMenu, () => !IsBusy);
         UnregisterExplorerMenuCommand = new RelayCommand(UnregisterExplorerMenu, () => !IsBusy);
-        CancelOperationCommand = new RelayCommand(CancelCurrentOperation, () => IsBusy && _activeOperationId is not null);
+        CancelOperationCommand = new RelayCommand(CancelCurrentOperation, () => IsBusy && _runningOperations.Count > 0);
         ChangeMasterPasswordCommand = new RelayCommand(ChangeMasterPassword, () => !IsBusy);
         ChangeMasterHintCommand = new RelayCommand(ChangeMasterHint, () => !IsBusy);
         OpenInExplorerCommand = new RelayCommand(OpenSelectedInExplorer, () => CanOpenInExplorer);
@@ -223,8 +234,11 @@ public sealed class MainViewModel : ObservableObject
         _ => string.Empty
     };
 
-    /// <summary>Lock is the main action of an unlocked or temporarily unlocked folder.</summary>
-    public bool IsLockPrimary => SelectedFolder?.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked;
+    /// <summary>Lock is the main action of an unlocked folder.</summary>
+    public bool IsLockPrimary => SelectedFolder?.State is FolderLockState.Unlocked;
+
+    /// <summary>A temporary unlock ends with "lock now" (no UAC prompt) or can be extended.</summary>
+    public bool IsRelockPrimary => SelectedFolder?.State is FolderLockState.TemporarilyUnlocked;
 
     /// <summary>Unlock is the main action of a locked folder.</summary>
     public bool IsUnlockPrimary => SelectedFolder?.State is FolderLockState.Locked;
@@ -240,8 +254,32 @@ public sealed class MainViewModel : ObservableObject
 
     public bool CanOpenInExplorer => SelectedFolder?.State is FolderLockState.Unlocked or FolderLockState.TemporarilyUnlocked;
 
-    public bool IsSelectedBusy => IsBusy && SelectedFolder is not null &&
-                                  string.Equals(SelectedFolder.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase);
+    public bool IsSelectedBusy => IsBusy && SelectedFolder is not null && _runningOperations.ContainsKey(SelectedFolder.Id);
+
+    public bool IsSelectedTemporary => SelectedFolder?.State == FolderLockState.TemporarilyUnlocked;
+
+    public string SelectedRemainingText => SelectedFolder?.RemainingText ?? string.Empty;
+
+    public bool SelectedIsMissing => SelectedFolder?.IsMissing == true;
+
+    public string SelectedPresenceTitle => SelectedFolder?.Presence == FolderPresence.DriveUnavailable
+        ? AppText.PresenceDriveTitle
+        : AppText.PresenceMissingTitle;
+
+    public string SelectedPresenceBody => SelectedFolder?.Presence == FolderPresence.DriveUnavailable
+        ? AppText.PresenceDriveBody
+        : AppText.PresenceMissingBody;
+
+    public bool SelectedHasOwnPassword => SelectedFolder?.HasOwnPassword == true;
+
+    public string SelectedPasswordKind => SelectedHasOwnPassword ? AppText.PasswordKindFolder : AppText.PasswordKindShared;
+
+    public string SelectedFolderPasswordMenuText => SelectedHasOwnPassword ? AppText.FolderPasswordChangeMenu : AppText.FolderPasswordSetMenu;
+
+    /// <summary>Recent log entries of the selected folder, newest first.</summary>
+    public ObservableCollection<FolderHistoryEntry> SelectedHistory { get; } = [];
+
+    public bool HasSelectedHistory => SelectedHistory.Count > 0;
 
     public string SelectedModeText => SelectedFolder?.ModeText ?? "-";
 
@@ -395,6 +433,17 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand OpenInExplorerCommand { get; }
 
+    public AsyncRelayCommand LockAllCommand { get; }
+
+    public AsyncRelayCommand RelockNowCommand { get; }
+
+    /// <summary>Extends a temporary unlock; the command parameter is the number of minutes.</summary>
+    public ParameterCommand ExtendUnlockCommand { get; }
+
+    public RelayCommand SetFolderPasswordCommand { get; }
+
+    public RelayCommand ClearFolderPasswordCommand { get; }
+
     private async Task AddFolderAsync()
     {
         string? selectedPath = _interaction.SelectFolder();
@@ -533,6 +582,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        _config = _configStore.Load();
         if (SelectedFolder.Model.State is FolderLockState.Locked or FolderLockState.Working)
         {
             _interaction.ShowError(AppText.RemoveLockedFolderError);
@@ -592,19 +642,20 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        UnlockPasswordRequest? request = _interaction.AskUnlockPassword(AppText.UnlockTitle, AppText.UnlockPasswordMessage);
+        _config = _configStore.Load();
+        UnlockPasswordRequest? request = _interaction.AskUnlockPassword(AppText.UnlockTitle, AppText.UnlockPasswordMessage, _config.DefaultUnlockMinutes);
         if (request is null)
         {
             return;
         }
 
-        if (!_passwordService.Verify(request.Password, _config.Password))
+        RegisteredFolder folder = _config.Folders.FirstOrDefault(item => item.Id == SelectedFolder.Id) ?? SelectedFolder.Model;
+        if (!_passwordService.Verify(request.Password, _config.PasswordFor(folder)))
         {
             _interaction.ShowError(AppText.InvalidPasswordNoAcl);
             return;
         }
 
-        RegisteredFolder folder = SelectedFolder.Model;
         if (request.Duration is not null)
         {
             // Timed unlock registers the automatic re-lock startup entry, which is
@@ -635,7 +686,7 @@ public sealed class MainViewModel : ObservableObject
         Process? process = null;
         try
         {
-            BeginFolderOperation(folder.Id);
+            BeginFolderOperation(folder.Id, operationId);
             IsBusy = true;
             _activeOperationId = operationId;
             ResetOperationProgress();
@@ -646,7 +697,7 @@ public sealed class MainViewModel : ObservableObject
             DateTimeOffset deadline = DateTimeOffset.UtcNow.AddMinutes(10);
             while (DateTimeOffset.UtcNow < deadline)
             {
-                ApplyProgressSnapshot(operationId);
+                ApplyProgressSnapshots();
                 _config = _configStore.Load();
                 RegisteredFolder? refreshed = _config.Folders.FirstOrDefault(item => item.Id == folder.Id);
                 if (refreshed is { State: FolderLockState.TemporarilyUnlocked })
@@ -698,6 +749,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void ChangePassword()
     {
+        _config = _configStore.Load();
         if (_config.Password is not null)
         {
             string? oldPassword = _interaction.AskPassword(AppText.CurrentPasswordTitle, AppText.CurrentPasswordMessage);
@@ -907,7 +959,7 @@ public sealed class MainViewModel : ObservableObject
         string operationId = Guid.NewGuid().ToString("N");
         try
         {
-            BeginFolderOperation(folder.Id);
+            BeginFolderOperation(folder.Id, operationId);
             IsBusy = true;
             _activeOperationId = operationId;
             ResetOperationProgress();
@@ -915,12 +967,12 @@ public sealed class MainViewModel : ObservableObject
             Task<int> helperTask = _toolRunner.RunHelperAsync(command, folder, operationId, mode);
             while (!helperTask.IsCompleted)
             {
-                ApplyProgressSnapshot(operationId);
+                ApplyProgressSnapshots();
                 await Task.Delay(350).ConfigureAwait(true);
             }
 
             int exitCode = await helperTask.ConfigureAwait(true);
-            ApplyProgressSnapshot(operationId);
+            ApplyProgressSnapshots();
             _config = _configStore.Load();
             RefreshFolders(folder.Id);
 
@@ -954,12 +1006,17 @@ public sealed class MainViewModel : ObservableObject
 
     private void CancelCurrentOperation()
     {
-        if (_activeOperationId is null)
+        if (_runningOperations.Count == 0)
         {
             return;
         }
 
-        _progressStore.RequestCancel(_activeOperationId);
+        // "Lock all" runs several operations; cancel every one that has not finished.
+        foreach (string operationId in _runningOperations.Values)
+        {
+            _progressStore.RequestCancel(operationId);
+        }
+
         StatusMessage = AppText.CancelRequested;
         RaiseCommandStates();
     }
@@ -978,32 +1035,55 @@ public sealed class MainViewModel : ObservableObject
         RaiseCommandStates();
     }
 
-    private void ApplyProgressSnapshot(string operationId)
+    /// <summary>
+    /// Reads the progress files of every running operation: each list item shows
+    /// its own bar, and the details pane shows the selected folder's operation
+    /// (or the first unfinished one while "lock all" runs).
+    /// </summary>
+    private void ApplyProgressSnapshots()
     {
-        OperationProgressSnapshot? snapshot = _progressStore.TryLoadProgress(operationId);
-        if (snapshot is null)
+        OperationProgressSnapshot? focus = null;
+        foreach ((string folderId, string operationId) in _runningOperations)
+        {
+            OperationProgressSnapshot? snapshot = _progressStore.TryLoadProgress(operationId);
+            if (snapshot is null)
+            {
+                continue;
+            }
+
+            if (Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase)) is { } item)
+            {
+                item.IsOperationIndeterminate = snapshot.TotalCount <= 0 && !snapshot.IsCompleted;
+                item.OperationProgressPercent = snapshot.IsCompleted
+                    ? 100
+                    : snapshot.TotalCount <= 0 ? 0 : Math.Clamp(snapshot.CompletedCount * 100.0 / snapshot.TotalCount, 0, 100);
+            }
+
+            bool isSelected = string.Equals(folderId, SelectedFolder?.Id, StringComparison.OrdinalIgnoreCase);
+            if (isSelected || (focus is null && !snapshot.IsCompleted))
+            {
+                focus = snapshot;
+            }
+        }
+
+        if (focus is null)
         {
             UpdateElapsed(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 0, 0);
             return;
         }
 
-        OperationTotal = snapshot.TotalCount;
-        OperationCompleted = snapshot.CompletedCount;
-        OperationFailed = snapshot.FailedCount;
-        OperationCurrentPath = string.IsNullOrWhiteSpace(snapshot.CurrentPath) ? "-" : snapshot.CurrentPath;
-        OperationPhase = AppText.FormatPhase(snapshot.Phase);
-        IsProgressIndeterminate = snapshot.TotalCount <= 0;
-        OperationProgressPercent = snapshot.TotalCount <= 0
+        OperationTotal = focus.TotalCount;
+        OperationCompleted = focus.CompletedCount;
+        OperationFailed = focus.FailedCount;
+        OperationCurrentPath = string.IsNullOrWhiteSpace(focus.CurrentPath) ? "-" : focus.CurrentPath;
+        OperationPhase = AppText.FormatPhase(focus.Phase);
+        IsProgressIndeterminate = focus.TotalCount <= 0;
+        OperationProgressPercent = focus.TotalCount <= 0
             ? 0
-            : Math.Clamp(snapshot.CompletedCount * 100.0 / snapshot.TotalCount, 0, 100);
-        if (FindBusyItem() is { } busyItem)
-        {
-            busyItem.OperationProgressPercent = OperationProgressPercent;
-            busyItem.IsOperationIndeterminate = IsProgressIndeterminate;
-        }
+            : Math.Clamp(focus.CompletedCount * 100.0 / focus.TotalCount, 0, 100);
 
-        UpdateElapsed(snapshot.StartedUtc, DateTimeOffset.UtcNow, snapshot.CompletedCount, snapshot.TotalCount);
-        StatusMessage = snapshot.Message;
+        UpdateElapsed(focus.StartedUtc, DateTimeOffset.UtcNow, focus.CompletedCount, focus.TotalCount);
+        StatusMessage = focus.Message;
     }
 
     private void UpdateElapsed(DateTimeOffset startedUtc, DateTimeOffset nowUtc, int completed, int total)
@@ -1061,14 +1141,16 @@ public sealed class MainViewModel : ObservableObject
     private void RefreshFolders(string? selectedId = null)
     {
         _config = _configStore.Load();
+        _lastSeenConfigUpdateUtc = _config.UpdatedUtc;
         Folders.Clear();
         foreach (RegisteredFolder folder in _config.Folders.OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase))
         {
             Folders.Add(new FolderItemViewModel(folder)
             {
-                IsOperationRunning = IsBusy && string.Equals(folder.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase),
+                IsOperationRunning = IsBusy && _runningOperations.ContainsKey(folder.Id),
                 IsOperationIndeterminate = IsProgressIndeterminate,
-                OperationProgressPercent = OperationProgressPercent
+                OperationProgressPercent = OperationProgressPercent,
+                Presence = FolderPresenceProbe.Probe(folder.Path)
             });
         }
 
@@ -1120,6 +1202,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedHasWarning));
         OnPropertyChanged(nameof(SelectedWarningText));
         OnPropertyChanged(nameof(IsLockPrimary));
+        OnPropertyChanged(nameof(IsRelockPrimary));
         OnPropertyChanged(nameof(IsUnlockPrimary));
         OnPropertyChanged(nameof(IsRecoveryPrimary));
         OnPropertyChanged(nameof(ShowUnlockSecondary));
@@ -1127,34 +1210,372 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowModeChoice));
         OnPropertyChanged(nameof(CanOpenInExplorer));
         OnPropertyChanged(nameof(IsSelectedBusy));
+        OnPropertyChanged(nameof(IsSelectedTemporary));
+        OnPropertyChanged(nameof(SelectedRemainingText));
+        OnPropertyChanged(nameof(SelectedIsMissing));
+        OnPropertyChanged(nameof(SelectedPresenceTitle));
+        OnPropertyChanged(nameof(SelectedPresenceBody));
+        OnPropertyChanged(nameof(SelectedHasOwnPassword));
+        OnPropertyChanged(nameof(SelectedPasswordKind));
+        OnPropertyChanged(nameof(SelectedFolderPasswordMenuText));
         OpenInExplorerCommand.RaiseCanExecuteChanged();
+        RaiseCommandStates();
+        LoadSelectedHistory();
     }
 
-    private void BeginFolderOperation(string folderId)
+    private void LoadSelectedHistory()
     {
-        _busyFolderId = folderId;
-        if (FindBusyItem() is { } item)
+        SelectedHistory.Clear();
+        if (SelectedFolder is { } folder)
+        {
+            foreach (OperationLogRecord record in OperationLogReader.ReadForTarget(_paths.LogFilePath, folder.Id, 12))
+            {
+                SelectedHistory.Add(new FolderHistoryEntry(
+                    FolderItemViewModel.FormatLocalTime(record.TimestampUtc),
+                    AppText.HistoryOperationName(record.Operation),
+                    record.Message ?? string.Empty,
+                    string.Equals(record.Status, "Failed", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        OnPropertyChanged(nameof(HasSelectedHistory));
+    }
+
+    private void BeginFolderOperation(string folderId, string operationId)
+    {
+        _runningOperations[folderId] = operationId;
+        if (Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase)) is { } item)
         {
             item.IsOperationIndeterminate = true;
             item.OperationProgressPercent = 0;
             item.IsOperationRunning = true;
         }
+
+        OnPropertyChanged(nameof(IsSelectedBusy));
     }
 
     private void EndFolderOperation()
     {
-        if (FindBusyItem() is { } item)
+        foreach (FolderItemViewModel item in Folders.Where(item => _runningOperations.ContainsKey(item.Id)))
         {
             item.IsOperationRunning = false;
         }
 
-        _busyFolderId = null;
+        _runningOperations.Clear();
         OnPropertyChanged(nameof(IsSelectedBusy));
     }
 
-    private FolderItemViewModel? FindBusyItem() => _busyFolderId is null
-        ? null
-        : Folders.FirstOrDefault(item => string.Equals(item.Id, _busyFolderId, StringComparison.OrdinalIgnoreCase));
+    // ===== Periodic sync (called by the main window every two seconds) =====
+
+    /// <summary>
+    /// Picks up changes other processes saved (the elevated helper re-locking a
+    /// temporary unlock, the Explorer unlock prompt, the tray), refreshes the
+    /// remaining time of temporary unlocks and, every few calls, checks whether
+    /// registered folders still exist. Items are updated in place so selection and
+    /// scrolling stay put.
+    /// </summary>
+    public void SyncFromStorage()
+    {
+        _syncTicks++;
+        bool probePresence = _syncTicks % 5 == 0;
+        FolderGateConfig config;
+        try
+        {
+            config = _configStore.Load();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            return;
+        }
+
+        bool changed = config.UpdatedUtc != _lastSeenConfigUpdateUtc;
+        if (changed)
+        {
+            List<RegisteredFolder> saved = config.Folders.OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList();
+            bool sameFolders = saved.Count == Folders.Count &&
+                               saved.Select(item => item.Id).SequenceEqual(Folders.Select(item => item.Id), StringComparer.OrdinalIgnoreCase);
+            if (!sameFolders)
+            {
+                RefreshFolders(SelectedFolder?.Id);
+                return;
+            }
+
+            _config = config;
+            _lastSeenConfigUpdateUtc = config.UpdatedUtc;
+            for (int index = 0; index < saved.Count; index++)
+            {
+                Folders[index].Update(saved[index]);
+            }
+        }
+
+        foreach (FolderItemViewModel item in Folders)
+        {
+            item.RefreshClock();
+            if (probePresence)
+            {
+                item.Presence = FolderPresenceProbe.Probe(item.Path);
+            }
+        }
+
+        if (changed || probePresence)
+        {
+            NotifyListChanged();
+            NotifySelectionChanged();
+        }
+        else
+        {
+            OnPropertyChanged(nameof(SelectedRemainingText));
+            OnPropertyChanged(nameof(SelectedStatusBody));
+        }
+    }
+
+    // ===== Lock all =====
+
+    private IEnumerable<RegisteredFolder> LockableFolders() => Folders
+        .Where(item => !item.IsMissing && BatchLockRequest.IsLockable(item.State))
+        .Select(item => item.Model);
+
+    private async Task LockAllAsync()
+    {
+        _config = _configStore.Load();
+        List<RegisteredFolder> targets = _config.Folders
+            .Where(folder => BatchLockRequest.IsLockable(folder.State) &&
+                             FolderPresenceProbe.Probe(folder.Path) == FolderPresence.Present)
+            .OrderBy(folder => folder.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        if (targets.Count == 0)
+        {
+            _interaction.ShowInfo(AppText.LockAllNothingToLock);
+            return;
+        }
+
+        if (!EnsureMasterConfigured(AppText.MasterNotConfiguredExplanation, "lock-all") ||
+            !_interaction.Confirm(AppText.LockAll, AppText.LockAllConfirmMessage(targets.Count)))
+        {
+            return;
+        }
+
+        List<string> operationIds = targets.Select(_ => Guid.NewGuid().ToString("N")).ToList();
+        try
+        {
+            for (int index = 0; index < targets.Count; index++)
+            {
+                BeginFolderOperation(targets[index].Id, operationIds[index]);
+            }
+
+            IsBusy = true;
+            ResetOperationProgress();
+            StatusMessage = AppText.UacRunStatus;
+            Task<int> helperTask = _toolRunner.RunLockManyAsync(targets, operationIds);
+            while (!helperTask.IsCompleted)
+            {
+                ApplyProgressSnapshots();
+                await Task.Delay(350).ConfigureAwait(true);
+            }
+
+            int exitCode = await helperTask.ConfigureAwait(true);
+            ApplyProgressSnapshots();
+            RefreshFolders(SelectedFolder?.Id);
+            if (exitCode == 0)
+            {
+                StatusMessage = AppText.LockAllCompleted;
+            }
+            else
+            {
+                StatusMessage = AppText.LockAllPartlyFailed;
+                _interaction.ShowError(AppText.LockAllPartlyFailed);
+            }
+        }
+        catch (Exception ex)
+        {
+            RefreshFolders(SelectedFolder?.Id);
+            _interaction.ShowError(ex.Message);
+            StatusMessage = AppText.OperationFailed;
+        }
+        finally
+        {
+            IsProgressIndeterminate = false;
+            EndFolderOperation();
+            IsBusy = false;
+        }
+    }
+
+    // ===== Temporary unlock: lock now, extend =====
+
+    /// <summary>
+    /// Moves the re-lock time of the selected temporary unlock to now. The
+    /// elevated process that holds the temporary unlock (or the login re-lock
+    /// runner) re-locks within about a second without another UAC prompt. If
+    /// nothing picks it up (for example that process was ended), a normal lock
+    /// with a UAC prompt is started instead.
+    /// </summary>
+    private async Task RelockSelectedNowAsync()
+    {
+        if (SelectedFolder is not { } selected)
+        {
+            return;
+        }
+
+        string folderId = selected.Id;
+        if (!UpdateSavedFolder(folderId, folder =>
+            {
+                if (folder.State != FolderLockState.TemporarilyUnlocked)
+                {
+                    return false;
+                }
+
+                folder.TemporaryUnlockUntilUtc = DateTimeOffset.UtcNow;
+                return true;
+            }))
+        {
+            return;
+        }
+
+        new JsonOperationLogger(_paths).Info(Guid.NewGuid().ToString("N"), folderId, "RelockRequested", selected.Path, AppText.RelockRequested);
+        StatusMessage = AppText.RelockRequested;
+
+        DateTimeOffset giveUpAt = DateTimeOffset.UtcNow.AddSeconds(4);
+        while (DateTimeOffset.UtcNow < giveUpAt)
+        {
+            await Task.Delay(400).ConfigureAwait(true);
+            if (_configStore.FindFolder(folderId)?.State != FolderLockState.TemporarilyUnlocked)
+            {
+                SyncFromStorage();
+                return;
+            }
+        }
+
+        RegisteredFolder? stillOpen = _configStore.FindFolder(folderId);
+        if (stillOpen?.State == FolderLockState.TemporarilyUnlocked)
+        {
+            await RunHelperAndRefreshAsync("lock", stillOpen, stillOpen.Mode).ConfigureAwait(true);
+        }
+    }
+
+    private void ExtendSelectedUnlock(object? parameter)
+    {
+        if (SelectedFolder is not { } selected ||
+            !int.TryParse(parameter?.ToString(), out int minutes) || minutes <= 0)
+        {
+            return;
+        }
+
+        DateTimeOffset? newDeadline = null;
+        bool updated = UpdateSavedFolder(selected.Id, folder =>
+        {
+            if (folder.State != FolderLockState.TemporarilyUnlocked || folder.TemporaryUnlockUntilUtc is not { } until)
+            {
+                return false;
+            }
+
+            DateTimeOffset start = until > DateTimeOffset.UtcNow ? until : DateTimeOffset.UtcNow;
+            folder.TemporaryUnlockUntilUtc = start.AddMinutes(minutes);
+            newDeadline = folder.TemporaryUnlockUntilUtc;
+            return true;
+        });
+
+        if (updated && newDeadline is { } deadline)
+        {
+            string time = FolderItemViewModel.FormatLocalTime(deadline);
+            new JsonOperationLogger(_paths).Info(Guid.NewGuid().ToString("N"), selected.Id, "TemporaryUnlockExtended", selected.Path, AppText.ExtendedUntil(time));
+            StatusMessage = AppText.ExtendedUntil(time);
+            SyncFromStorage();
+        }
+    }
+
+    /// <summary>Reloads the config, changes one folder when <paramref name="change"/> returns true, and saves.</summary>
+    private bool UpdateSavedFolder(string folderId, Func<RegisteredFolder, bool> change)
+    {
+        FolderGateConfig config = _configStore.Load();
+        RegisteredFolder? folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase));
+        if (folder is null || !change(folder))
+        {
+            return false;
+        }
+
+        _configStore.Save(config);
+        _config = config;
+        return true;
+    }
+
+    // ===== Per-folder password =====
+
+    private void SetSelectedFolderPassword()
+    {
+        if (SelectedFolder is not { } selected || !VerifyCurrentFolderPassword(selected))
+        {
+            return;
+        }
+
+        string? newPassword = _interaction.AskNewPassword(AppText.FolderPasswordTitle, AppText.FolderPasswordNewMessage(selected.DisplayName));
+        if (newPassword is null)
+        {
+            return;
+        }
+
+        PasswordRecord record = _passwordService.CreatePasswordRecord(newPassword);
+        if (UpdateSavedFolder(selected.Id, folder =>
+            {
+                folder.Password = record;
+                return true;
+            }))
+        {
+            new JsonOperationLogger(_paths).Info(Guid.NewGuid().ToString("N"), selected.Id, "FolderPassword", selected.Path, AppText.FolderPasswordLog);
+            StatusMessage = AppText.FolderPasswordSetDone;
+            _interaction.ShowInfo(AppText.FolderPasswordSetDone);
+            RefreshFolders(selected.Id);
+        }
+    }
+
+    private void ClearSelectedFolderPassword()
+    {
+        if (SelectedFolder is not { HasOwnPassword: true } selected || !VerifyCurrentFolderPassword(selected))
+        {
+            return;
+        }
+
+        if (UpdateSavedFolder(selected.Id, folder =>
+            {
+                folder.Password = null;
+                return true;
+            }))
+        {
+            new JsonOperationLogger(_paths).Info(Guid.NewGuid().ToString("N"), selected.Id, "FolderPassword", selected.Path, AppText.FolderPasswordLog);
+            StatusMessage = AppText.FolderPasswordClearedDone;
+            _interaction.ShowInfo(AppText.FolderPasswordClearedDone);
+            RefreshFolders(selected.Id);
+        }
+    }
+
+    /// <summary>
+    /// Asks for the password that unlocks the folder today (its own, or the shared
+    /// one) before its password can be changed. True when it matched, or when no
+    /// password exists yet.
+    /// </summary>
+    private bool VerifyCurrentFolderPassword(FolderItemViewModel selected)
+    {
+        _config = _configStore.Load();
+        RegisteredFolder? folder = _config.Folders.FirstOrDefault(item => item.Id == selected.Id);
+        PasswordRecord? current = folder is null ? null : _config.PasswordFor(folder);
+        if (current is null)
+        {
+            return folder is not null;
+        }
+
+        string? entered = _interaction.AskPassword(AppText.FolderPasswordTitle, AppText.FolderPasswordCurrentMessage(selected.DisplayName));
+        if (entered is null)
+        {
+            return false;
+        }
+
+        if (!_passwordService.Verify(entered, current))
+        {
+            _interaction.ShowError(AppText.InvalidPasswordNoAcl);
+            return false;
+        }
+
+        return true;
+    }
 
     private string TryFindToolPath(string projectName)
     {
@@ -1180,5 +1601,10 @@ public sealed class MainViewModel : ObservableObject
         CancelOperationCommand.RaiseCanExecuteChanged();
         ChangeMasterPasswordCommand.RaiseCanExecuteChanged();
         ChangeMasterHintCommand.RaiseCanExecuteChanged();
+        LockAllCommand.RaiseCanExecuteChanged();
+        RelockNowCommand.RaiseCanExecuteChanged();
+        ExtendUnlockCommand.RaiseCanExecuteChanged();
+        SetFolderPasswordCommand.RaiseCanExecuteChanged();
+        ClearFolderPasswordCommand.RaiseCanExecuteChanged();
     }
 }
