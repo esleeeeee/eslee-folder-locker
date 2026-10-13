@@ -10,7 +10,7 @@ NTFS ACL 메타데이터를 변경해 파일 탐색기에서의 일반적인 접
 **이 프로그램은 암호화 제품이 아닙니다.** 파일 내용을 읽거나, 암호화하거나, 이동하거나, 압축하지 않습니다.
 관리자 권한이나 ACL 지식이 있는 사용자는 우회할 수 있습니다. 문서와 커밋 메시지에서 이 경계를 과장하지 마세요.
 
-내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee Folder Locker`이며, v1.3.0부터(2026-10-13 소유자 결정) 한국어/영어 UI 모두 같은 영어 이름을 쓰고 단일 빌드의 실행 파일명도 영어(`eslee-folder-locker.exe` 등)입니다.
+내부 프로젝트명과 엔진명은 호환성을 위해 `FolderGate`를 유지합니다. 사용자에게 보이는 이름만 `eslee Folder Locker`이며, v2.0.0부터(2026-10-13 소유자 결정) 한국어/영어 UI 모두 같은 영어 이름을 쓰고 단일 빌드의 실행 파일명도 영어(`eslee-folder-locker.exe` 등)입니다.
 이름을 통일한다는 이유로 네임스페이스나 어셈블리명을 바꾸지 마세요.
 
 ## 빌드와 테스트
@@ -96,7 +96,7 @@ dotnet test .\FolderGate.sln -c Release --no-build --filter "TestCategory!=Requi
 ## 설치 파일 빌드
 
 ```bash
-powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers.ps1 -Version 1.3.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers.ps1 -Version 2.0.0
 ```
 
 - Inno Setup 6 필요 (사용자 범위 설치 가능, `%LOCALAPPDATA%\Programs\Inno Setup 6`).
@@ -113,7 +113,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers
 1. `HKCU\Software\Classes\{Directory,Folder}\shell\eslee-folder-locker-unlock` — Explorer 우클릭 메뉴.
    앱을 한 번 실행하면 `App.OnStartup` → `MigrateLegacyInstallIfPresent()`가 실행 중인 exe 경로로 자동 갱신합니다.
 2. `HKCU\...\CurrentVersion\Run` → `eslee-folder-locker-temporary-relock` — 임시 해제 재잠금 등록.
-   `StartupRelockService.Install()`은 임시 해제 시에만 호출됩니다. v1.3.0부터는 같은 설치 폴더의 삭제된 이전 한국어 exe를 가리키는 항목만 새 exe로 다시 씁니다(설치 프로그램 + 앱 시작 시). 그 밖의 경로 변경은 여전히 자동 갱신되지 않습니다.
+   `StartupRelockService.Install()`은 임시 해제 시에만 호출됩니다. v2.0.0부터는 같은 설치 폴더의 삭제된 이전 한국어 exe를 가리키는 항목만 새 exe로 다시 씁니다(설치 프로그램 + 앱 시작 시). 그 밖의 경로 변경은 여전히 자동 갱신되지 않습니다.
 3. `config`의 `LatestBackupPath` — 백업 파일 절대경로. 잠금 해제 시 그대로 사용됩니다.
    파일이 없으면 예외 대신 빈 엔트리로 폴백해 Deny ACE만 제거합니다. 폴더는 열리지만 **원본 ACL은 복원되지 않습니다.**
 
@@ -134,6 +134,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Installers
 - 아이콘은 Segoe Fluent Icons 글리프를 씁니다.
 - 모든 표시 문자열은 `AppText`에 둡니다. 새 UI 문자열은 `AppText.Ui.cs`에 추가합니다.
 - 메인 창은 목록-상세 구조입니다. 비밀번호 변경, 마스터 비밀번호·힌트 변경, 복구 도구 열기(복구 필요 폴더의 주요 버튼 제외), 탐색기 메뉴 등록·제거, 로그 보기는 설정 창(`SettingsWindow`)에 있으며 `MainViewModel` 명령을 그대로 실행합니다.
+
+## 작업 동시성·상태 규칙 (v2.0.0)
+
+- **Unlocked/TemporarilyUnlocked가 아닌 폴더는 잠그지 않습니다.** `Locked`는 변경 없이 끝내고, `Working`과 `RecoveryRequired`는 거절합니다.
+  실제 ACL에 앱의 Deny 규칙이 이미 있으면(`AclService.HasFolderGateDenyRule`) 다시 잠그지 말고 상태만 `Locked`로 맞춘 뒤 이전 백업을 유지하세요.
+  이 검사를 우회하지 마세요. 두 번 잠그면 Deny가 들어간 ACL이 "원본"으로 백업되어 이후 해제해도 폴더가 계속 막힙니다.
+  "복구 필요" 폴더에는 잠금 버튼을 노출하지 않고 복구 도구나 잠금 해제로 안내합니다.
+- 도우미의 폴더 ACL 작업(잠금, 해제, 임시 해제 시작·재잠금, 복구)과 복구 도구의 복원은 폴더별 mutex(`FolderOperationLock.Acquire`)를 잡은 상태에서 **상태 확인과 ACL 변경을 함께** 수행합니다.
+  상태를 읽은 뒤 mutex를 놓고 ACL을 바꾸는 구조로 만들지 마세요. 임시 해제 대기 중에는 mutex를 잡고 있지 않고, 재잠금 직전에 다시 잡은 뒤 상태를 한 번 더 평가합니다.
+- 설정의 읽기-수정-쓰기는 모두 `ConfigStore.Update`를 쓰세요. 변경 목적의 `Load()` + `Save()` 쌍을 만들지 마세요(다른 프로세스의 변경을 덮어씁니다).
+  `Load()`는 읽기 전용 용도입니다. 작업 중 UI가 바꾼 값은 도우미의 `UpdateFolder`처럼 해당 항목만 갱신해야 보존됩니다.
+- 임시 해제의 재잠금은 그것을 시작한 소유자(`TemporaryUnlockOwner`)만, 승인 시점에 기억한 경로·소유자 SID·모드로 수행합니다.
+  `LastOperationId`, 경로, 소유자, 모드 중 하나라도 바뀌었거나 상태가 `TemporarilyUnlocked`가 아니면 재잠금 없이 끝냅니다(`TemporaryUnlockSchedule`).
+  재잠금 시각은 저장된 `TemporaryUnlockUntilUtc`를 따릅니다. 연장과 즉시 재잠금은 이 값만 옮기며 UAC를 다시 요구하지 않습니다.
+- 자동 잠금(`SessionLockRelockService`)은 Windows 잠금(`SessionLock`)과 절전(`Suspend`)에서만 임시 해제의 만료 시각을 당깁니다.
+  **로그아웃·종료에는 반응하지 않습니다**(도우미가 재잠금 도중 종료될 수 있음). 완전히 해제된 폴더는 UAC 없이 잠글 수 없으므로 자동 잠금 대상이 아닙니다.
+- 찾을 수 없는 폴더·분리된 드라이브(`FolderPresenceProbe`)는 잠금/해제를 비활성화합니다. 잠긴 폴더 자체의 속성을 읽어 존재 여부를 판단하지 마세요.
 
 ## ACL 작업 안전 규칙
 

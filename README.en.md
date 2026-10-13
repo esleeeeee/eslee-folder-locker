@@ -1,6 +1,6 @@
 # eslee Folder Locker
 
-Current release preparation: **v1.2.4** — [changes, validation and limits](.github/release-notes/v1.2.4.md).
+Current release preparation: **v2.0.0** — [changes, validation and limits](.github/release-notes/v2.0.0.md).
 
 A local folder-locking app for Windows that restricts access to selected folders and lets you lock and unlock them with a password.
 
@@ -16,6 +16,9 @@ It is a good fit for keeping specific folders off-limits when you share one PC a
 
 - Lock specific folders so that others using your account cannot open them
 - Unlock with a password — permanently, or temporarily for 1 minute to 1 day with automatic re-locking
+- Lock every folder at once (one administrator confirmation), and see, extend, or end a temporary unlock early
+- Optionally re-lock temporarily unlocked folders automatically when Windows locks or the PC sleeps (off by default)
+- Give a folder its own password (optional)
 - Unlock a locked folder straight from the File Explorer right-click menu
 - Use a light or dark theme (follows Windows or set manually)
 - Close the window and keep the app in the system tray (the icon area at the right of the taskbar) for quick access
@@ -40,7 +43,7 @@ An unsigned file is not automatically unsafe, and a signed one is not automatica
 Instructions are for Windows 11. You need an NTFS drive and x64 Windows; if the .NET 8 Desktop Runtime is missing, Windows will offer to install it on first run.
 
 1. Open the [latest release page](https://github.com/esleeeeee/eslee-folder-locker/releases/latest).
-2. Download and run the installer (`eslee-folder-locker-setup-vVERSION.exe`). Setup defaults to your Windows UI language; you can change it in the language selection dialog.
+2. Download and run the installer (`eslee-folder-locker-setup-vVERSION.exe`). It is one installer for both Korean and English: setup defaults to your Windows UI language and you can change it in the language selection dialog. After installing, the app language also follows Windows by default; choose **Use Windows setting / 한국어 / English** under **Settings > Appearance > Language** (applies after restarting the app).
 3. If SmartScreen appears, click **More info** → **Run anyway**.
 4. Follow the wizard. The default location is `C:\Program Files\eslee Folder Locker`.
 5. Enable the optional tasks if you want them — both are optional and can be changed later.
@@ -55,9 +58,11 @@ Installing also registers the File Explorer right-click entry (`Unlock with esle
 The main window is split into a list on the left and details on the right.
 
 - **Left (list)**: the app title, a Settings (gear) button, the **Add folder** button, a search box (search by name or path, `Ctrl+F`), filter chips (**All / Locked / Unlocked / Needs attention**), the list of registered folders, and the folder count and version at the bottom. **Needs attention** appears only while a folder is being processed or needs recovery. A thin progress bar shows on the folder being processed.
-- **Right (details)**: for the selected folder, a status card with the main button (**Lock** / **Unlock**), progress of a running operation with **Cancel**, the lock mode cards (shown only while the folder is unlocked), and **Details** (state, mode, path, last operation, last result). The **...** (More) menu next to the folder name offers **Open in File Explorer** and **Remove folder**.
+- **Right (details)**: for the selected folder, a status card with the main button (**Lock** / **Unlock**), progress of a running operation with **Cancel**, the lock mode cards (shown only while the folder is unlocked), and **Details** (state, mode, path, last operation, last result). The **...** (More) menu next to the folder name offers **Open in File Explorer**, **Set a password for this folder** / **Change this folder's password**, **Use the shared password again**, and **Remove folder**. The details also show the folder's **Recent activity** (recent lock, unlock, recovery, and extend entries; passwords are never logged).
+- **Lock all**: the **Lock all** button next to **Add folder** (also in the tray menu and the Tray Folder menu) locks every unlocked or temporarily unlocked folder with a single administrator confirmation (UAC). Missing folders are skipped.
+- **Missing folders**: if there is no folder at the registered path, or the drive that holds it (for example an unplugged external disk) is not connected, the list shows a **Not found** or **Drive offline** warning and counts the folder under **Needs attention**. Lock and unlock are disabled for it until the folder is back or the drive is connected.
 - **Drag and drop**: drag folders from File Explorer onto the main window; an overlay saying the folders will be registered on drop appears, and dropping registers them. Files are skipped, and the same checks as the folder picker apply.
-- **Settings**: open it with the gear button or **Settings** in the tray menu. Password changes, the master recovery password, the recovery tool, the Explorer menu, the operation log, and the theme are all here. Changes apply immediately; there is no Save button.
+- **Settings**: open it with the gear button or **Settings** in the tray menu. Password changes, the master recovery password, the recovery tool, the Explorer menu, the operation log, and the theme are all here. Changes apply immediately; there is no Save button. Automatic locking and the default unlock duration are under **Settings > Automatic locking**; the app language is under **Settings > Appearance > Language**.
 - **Dark mode**: choose **Use Windows setting / Light / Dark** under **Settings > Appearance > Theme**. The default follows Windows, including live changes to the Windows app mode.
 
 ## First-time setup
@@ -116,6 +121,13 @@ Hardened mode is not simply "more secure". Quick mode is the right starting poin
 
 When you unlock with a time limit, the app re-locks the folder when the time expires. If the PC was shut down or you logged out before that, the app checks at your next Windows login and re-locks — immediately if the time has already passed.
 
+A temporarily unlocked folder shows its remaining time in the list (for example `10 min left`). Select it to use these buttons; neither asks for the administrator confirmation (UAC) again:
+
+- **Lock now**: re-lock right away instead of waiting.
+- **Extend**: choose **+10 minutes / +30 minutes / +1 hour**. The re-lock time can be pushed at most one day from now.
+
+With **automatic locking** turned on (**Settings > Automatic locking**, off by default), temporarily unlocked folders are re-locked as soon as you lock Windows (`Win+L`) or the PC goes to sleep, while the app is running. Sign-out and shutdown do not trigger it; the login check above still applies. Folders unlocked permanently need an administrator confirmation to lock, so they are not locked automatically — use **Lock all** for those. **Default unlock duration** in the same section is the time preselected in the unlock dialog.
+
 Timed unlock schedules an automatic re-lock, so it is available only after the master recovery password has been set. Permanent unlock is always available.
 
 The login resume runner isolates failures per folder. A failed folder gets up to two more attempts after 30 and 60 seconds while other folders continue. Failures preserve access and recovery information and appear in the last operation and last result under **Details** of the folder. If retries are exhausted, review that result and re-lock manually. Corrupt security credentials prevent new lock attempts.
@@ -129,6 +141,7 @@ While the app runs, an icon sits in the system tray.
 - **Right-click** the tray icon for the menu:
   - **Open eslee Folder Locker**: open the main window
   - **Locked folders**: the current list of locked folders — selecting one opens the password prompt directly
+  - **Lock all**: lock every unlocked or temporarily unlocked folder with one UAC confirmation
   - **Open recovery tool**
   - **Settings**
   - **Exit**: quit the app completely
@@ -148,6 +161,7 @@ The app uses two different passwords.
 - They are not interchangeable. The master recovery password cannot unlock folders normally, and the folder password cannot open the recovery tool.
 - The master recovery password only needs to be non-empty. There are no length or character rules and no limit on failed attempts. A password made only of spaces is technically allowed but easy to get wrong later, so it is not recommended.
 - The hint is optional. It is stored unencrypted and anyone at the recovery tool screen can view it — never write the password itself into the hint.
+- By default every folder unlocks with one **shared unlock password** (**Settings > Security**). To give one folder its own password, open its **...** menu and choose **Set a password for this folder**. From then on only that folder uses its own password; the others keep the shared one. Changing it (**Change this folder's password**) asks for the current password first, and **Use the shared password again** returns the folder to the shared password at any time.
 - Both passwords can be changed under **Settings > Security**: **Change password** under **Unlock password** (folder), and **Change master password** and **Change recovery hint** under **Master recovery password**. Changing always requires the current password.
 - The eye icon at the right of a password field shows or hides what you typed. Input errors appear right below the field.
 
@@ -182,7 +196,7 @@ Auto-start is optional.
 ## Uninstall, update, reinstall
 
 - **Update**: running a newer installer upgrades in place. Settings, registered folders, permission backups, and password data are kept.
-- **Note for v1.3.0**: from v1.3.0 the Korean build also uses the English product name `eslee Folder Locker` and the same English executable names (`eslee-folder-locker.exe` and so on). When upgrading from v1.2.x or earlier, auto-start at login and the File Explorer right-click entry are migrated to the new executable automatically, and your data (`%LOCALAPPDATA%\eslee-folder-locker`) is kept.
+- **Note for v2.0.0**: from v2.0.0 the Korean build also uses the English product name `eslee Folder Locker` and the same English executable names (`eslee-folder-locker.exe` and so on). When upgrading from v1.2.x or earlier, auto-start at login and the File Explorer right-click entry are migrated to the new executable automatically, and your data (`%LOCALAPPDATA%\eslee-folder-locker`) is kept.
 - **Uninstall**: if locked folders remain, the uninstaller warns you and cancels by default. Fully unlock all folders in the app before uninstalling.
 - Uninstalling never auto-deletes your data (settings, permission backups, master password data, logs). It stays under `%LOCALAPPDATA%\eslee-folder-locker`.
 - **Reinstalling** picks that data up again. Even if you uninstalled with folders still locked, installing again lets you continue unlocking and recovery.
@@ -246,7 +260,7 @@ When attaching logs to a GitHub issue, remove or mask personal folder names and 
 ### A temporary unlock didn't re-lock
 
 - **Check first**: automatic re-locking works while you are logged in. If the PC was off, it re-locks after your next login.
-- **Fix**: to re-lock immediately, select the folder in the app and click **Lock**. If it keeps happening, check **View logs** (**Settings > File Explorer > Operation log**) for errors.
+- **Fix**: to re-lock immediately, select the folder in the app and click **Lock now** (while temporarily unlocked) or **Lock**. If it keeps happening, check **View logs** (**Settings > File Explorer > Operation log**) for errors.
 
 ### I forgot the master recovery password
 
@@ -296,7 +310,7 @@ dotnet build .\FolderGate.sln -c Release
 dotnet test .\FolderGate.sln --filter "TestCategory!=RequiresElevation"
 ```
 
-The same build supports Korean and English via `AppText.SetLanguage`. Build one installer with `installer\Build-Installers.ps1 -Version 1.3.0` (requires Inno Setup 6).
+The same build supports Korean and English via `AppText.SetLanguage`. Build one installer with `installer\Build-Installers.ps1 -Version 2.0.0` (requires Inno Setup 6).
 
 - [Architecture](docs/architecture.md) — project layout, data paths, master password design
 - [ACL design](docs/acl-design.md) — how permissions are changed

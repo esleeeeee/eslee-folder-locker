@@ -4,7 +4,7 @@ eslee Folder Locker(FolderGate 엔진)는 NTFS ACL 메타데이터를 변경해 
 
 ## Projects
 
-- `FolderGate.App`: WPF UI입니다. 단일 빌드에서 `FolderGateConfig.Language`와 `AppText.SetLanguage`로 한국어/영어 표시 문자열을 런타임에 선택합니다. 기본 `System`은 Windows UI 문화가 한국어이면 한국어, 그 외에는 영어를 사용합니다. 일반 사용자 권한으로 실행되며 잠금, 잠금 해제, 복구 작업이 필요할 때만 UAC 승격을 요청합니다. 실행 중 시스템 트레이 아이콘을 표시하고(잠긴 폴더 빠른 해제 메뉴 포함), 창 닫기 시 기본적으로 트레이로 최소화하며, 사용자 세션·데이터 루트당 단일 인스턴스로 동작합니다(두 번째 실행은 기존 창 활성화). 로그인 자동 실행(`--tray` 조용한 시작)은 임시 재잠금 등록과 별개의 Run 값으로 등록됩니다. 모니터를 끈 채 원격 접속할 때처럼 일부 그래픽 환경에서 하드웨어 렌더링 WPF 창이 빈 흰 사각형으로 표시되는 문제를 피하기 위해 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 소프트웨어 렌더링을 사용합니다. v1.3.0부터 실행 파일명이 단일 다국어 빌드에서 영어로 통일되어, 시작 시 `LegacyExecutableMigrationService`가 이전 한국어 exe(`eslee폴더잠금기.exe`)를 가리키던 자동 실행·임시 재잠금 Run 값을 새 exe로 다시 씁니다. 해당 값이 이전 한국어 exe 이름을 가리키고, 그 파일이 더 이상 존재하지 않으며, 실행 중인 앱과 같은 폴더였던 경우에만 적용되므로 개발 빌드가 설치본 등록을 가로채지 않습니다.
+- `FolderGate.App`: WPF UI입니다. 단일 빌드에서 `FolderGateConfig.Language`와 `AppText.SetLanguage`로 한국어/영어 표시 문자열을 런타임에 선택합니다. 기본 `System`은 Windows UI 문화가 한국어이면 한국어, 그 외에는 영어를 사용합니다. 일반 사용자 권한으로 실행되며 잠금, 잠금 해제, 복구 작업이 필요할 때만 UAC 승격을 요청합니다. 실행 중 시스템 트레이 아이콘을 표시하고(잠긴 폴더 빠른 해제 메뉴 포함), 창 닫기 시 기본적으로 트레이로 최소화하며, 사용자 세션·데이터 루트당 단일 인스턴스로 동작합니다(두 번째 실행은 기존 창 활성화). 로그인 자동 실행(`--tray` 조용한 시작)은 임시 재잠금 등록과 별개의 Run 값으로 등록됩니다. 모니터를 끈 채 원격 접속할 때처럼 일부 그래픽 환경에서 하드웨어 렌더링 WPF 창이 빈 흰 사각형으로 표시되는 문제를 피하기 위해 `App.OnStartup`에서 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly`로 소프트웨어 렌더링을 사용합니다. v2.0.0부터 실행 파일명이 단일 다국어 빌드에서 영어로 통일되어, 시작 시 `LegacyExecutableMigrationService`가 이전 한국어 exe(`eslee폴더잠금기.exe`)를 가리키던 자동 실행·임시 재잠금 Run 값을 새 exe로 다시 씁니다. 해당 값이 이전 한국어 exe 이름을 가리키고, 그 파일이 더 이상 존재하지 않으며, 실행 중인 앱과 같은 폴더였던 경우에만 적용되므로 개발 빌드가 설치본 등록을 가로채지 않습니다.
 - `FolderGate.Core`: 도메인 모델, 비밀번호 해시, 마스터 복구 자격 증명, JSON 설정/로그 저장소, 경로 검증, ACL 백업 직렬화, ACL 변경 서비스, 포터블 데이터 마이그레이션을 포함합니다.
 - `FolderGate.ElevatedHelper`: 승격 실행되는 콘솔 도우미입니다. 배포 파일명은 한국어/영어 빌드 모두 `eslee-folder-locker-helper.exe`입니다.
 - `FolderGate.RecoveryTool`: 독립 콘솔 복구 도구입니다. 실행 시 자체적으로 마스터 복구 비밀번호 인증을 수행합니다. 배포 파일명은 한국어/영어 빌드 모두 `eslee-folder-locker-recovery.exe`입니다.
@@ -39,6 +39,48 @@ UI 계층은 잠금·복구·네트워크 동작을 바꾸지 않습니다.
 설치본은 프로젝트 루트나 `FolderGate.sln` 탐색에 의존하지 않으며, 설치 폴더가 읽기 전용이어도 동작합니다. UAC 승격은 다른 관리자 계정으로 실행될 수 있어 `%LOCALAPPDATA%`가 달라질 수 있으므로, 승격 프로세스(권한 도우미, 복구 도구)에는 항상 `--data-root` 또는 `--root`를 명시적으로 전달합니다.
 
 이전 포터블 데이터는 `PortableMigrationService`가 근거 기반 후보(탐색기 메뉴/Run 키 등록의 `--root` 값, 실행 파일 인접 `data` 폴더, 사용자 선택 폴더)에서 복사-검증-활성화 방식으로 이전합니다. 설정 파일을 마지막에 기록하므로 부분 이전 상태가 활성 상태로 보이지 않습니다.
+
+## Operations (v2.0.0)
+
+### Runtime language
+
+표시 언어는 설치 프로그램이 아니라 앱이 정합니다. 각 프로세스(앱, 권한 도우미, 복구 도구)는 시작 시 `AppText.SetLanguage(config.Language)`를 호출합니다. `FolderGateConfig.Language`는 `System`(기본), `Korean`, `English`이고, `System`은 `CultureInfo.CurrentUICulture`가 한국어이면 `ko`, 그 외에는 `en`입니다. 설정 창의 언어 변경은 앱을 다시 시작해야 적용됩니다. 설치 파일과 릴리스 ZIP은 각각 하나이며, 값은 선택적 설정이라 이전 버전은 무시합니다.
+
+### Lock many (모두 잠그기)
+
+`lock-many`는 권한 도우미의 명령입니다. 앱은 대상 폴더 ID와 폴더별 작업 ID를 쉼표로 이어(`BatchLockRequest.Join`/`Parse`) 도우미를 한 번만 승격 실행하므로 UAC 확인이 한 번입니다. 도우미는 폴더를 하나씩 처리하며 각각 `RunTargetOperation("lock", ...)`을 거치기 때문에 폴더별 진행 파일, 로그, 상태 검사는 단일 잠금과 같습니다. `BatchLockRequest.IsLockable`이 `Unlocked`와 `TemporarilyUnlocked`만 허용하고, 설정에서 사라진 폴더나 이미 취소 요청된 작업은 건너뜁니다. 찾을 수 없는 폴더는 앱이 대상에서 먼저 제외합니다. 한 폴더가 실패해도 나머지는 계속 처리하고, 종료 코드는 전부 성공했을 때만 0입니다.
+
+### Per-folder operation mutex and state checks
+
+도우미의 ACL 작업(`lock`, `unlock`, 임시 해제 시작, 임시 해제 만료 시 재잠금, 복구)과 복구 도구의 복원은 `FolderOperationLock.Acquire`(Core)로 폴더별 named mutex(`Local\eslee-folder-locker-folder-<해시>`, 데이터 루트와 폴더 ID로 계산)를 잡은 상태에서 **상태 확인과 ACL 변경을 함께** 수행합니다. 서로 다른 도우미·복구 도구 프로세스 둘이 같은 폴더의 ACL을 동시에 바꿀 수 없습니다. 복구 도구는 사용자가 RESTORE를 입력한 뒤에만 이 mutex를 잡습니다. 최대 30분 기다리고, 그래도 얻지 못하면 `FolderBusyRefused`로 거절하며, 이전 소유자가 비정상 종료한 mutex(`AbandonedMutexException`)는 이어받습니다.
+
+잠금은 `Unlocked`/`TemporarilyUnlocked`에서만 진행합니다. 이미 `Locked`면 아무것도 바꾸지 않고, `Working`이면 거절하며, `RecoveryRequired`면 `LockRefusedRecoveryRequired`로 거절합니다. 상태가 `Unlocked`로 저장돼 있어도 실제 ACL에 앱의 Deny 규칙이 있으면(`AclService.HasFolderGateDenyRule`) 다시 잠그지 않고 상태를 `Locked`로 맞추며 이전 백업을 유지합니다. 같은 폴더를 두 번 잠그면 이미 Deny가 들어간 ACL을 "원본"으로 백업하게 되어 이후 해제해도 폴더가 계속 막히기 때문입니다. 해제는 이미 `Unlocked`면 변경 없이 끝냅니다.
+
+### TemporaryUnlockOwner and TemporaryUnlockSchedule
+
+임시 해제를 시작한 도우미 프로세스는 다음 재잠금까지 살아서 기다립니다. 승인 시점에 `TemporaryUnlockOwner.Capture`로 작업 ID(`LastOperationId`), 경로, 소유자 SID, 잠금 모드를 기억합니다. `TemporaryUnlockSchedule.Evaluate`는 매번(최대 1초 간격) 저장된 설정을 다시 읽어 다음 중 하나를 돌려줍니다.
+
+- `Wait`: 상태가 `TemporarilyUnlocked`이고 저장된 만료 시각(`TemporaryUnlockUntilUtc`)이 아직 남았고 소유자와 일치합니다.
+- `Relock`: 저장된 만료 시각이 지났습니다.
+- `Abandon`: 폴더가 설정에서 사라졌거나 상태가 바뀌었거나(다른 작업이 잠금·해제·새 임시 해제로 넘겨받음) `LastOperationId`, 경로, 소유자, 모드 중 하나라도 다릅니다. 이때는 재잠금 없이 끝납니다.
+
+재잠금 시각은 프로세스 메모리가 아니라 저장된 만료 시각을 따릅니다. 그래서 앱이 만료 시각을 앞당기면(**지금 다시 잠그기**, 자동 잠금) 도우미가 1초 안에 잠그고, 늘리면(**시간 연장**, 지금부터 최대 `MaximumRemaining` 하루) 계속 기다립니다. 둘 다 UAC를 다시 요구하지 않습니다. 재잠금 직전에 폴더 mutex를 잡고 한 번 더 평가하며, 실제 ACL 작업에는 설정 값이 아니라 기억해 둔 경로·소유자·모드를 사용합니다. 사용자 쓰기 가능한 설정 파일을 고쳐 권한 있는 재잠금이 다른 폴더를 가리키게 만들 수 없게 하기 위해서입니다.
+
+### ConfigStore.Update
+
+설정 변경은 `ConfigStore.Update(Func<FolderGateConfig, bool>)`로만 합니다. `config/foldergate.config.lock` 파일을 배타적으로 열어(`FileShare.None`, 25ms 간격 재시도) 프로세스 간 락으로 쓰고, 그 안에서 읽고 변경하고 저장하며, 델리게이트가 `false`를 돌려주면 파일을 건드리지 않습니다. `Load()`는 `FileShare.ReadWrite | Delete`로 읽어 쓰는 중에도 막히지 않고 일시적 I/O 오류는 재시도합니다. `Save()`는 호출마다 고유한 임시 파일(`<설정>.<guid>.tmp`)에 쓴 뒤 `File.Replace`/`Move`하므로 여러 프로세스가 임시 파일을 공유하다 깨지는 일이 없습니다. 도우미의 `UpdateFolder`는 이 위에서 해당 폴더 항목만 바꿔, 작업 중에 앱이 바꾼 다른 설정을 덮어쓰지 않습니다.
+
+### SessionLockRelockService
+
+설정 **자동 잠금**(`RelockOnSessionLock`, 기본 꺼짐)이 켜져 있을 때, 앱은 `SystemEvents.SessionSwitch`의 `SessionLock`(Win+L)과 `PowerModeChanged`의 `Suspend`(절전)에서 `ConfigStore.Update` 안에서 아직 만료되지 않은 모든 임시 해제의 만료 시각을 지금으로 당깁니다. 실제 잠금은 해당 폴더를 기다리던 도우미가 위 방식으로 수행하므로 UAC가 필요 없습니다. 로그아웃과 종료는 의도적으로 처리하지 않으며(도우미가 재잠금 도중 종료될 수 있음) 기존 로그인 시 재잠금 실행기가 맡습니다. 완전히 해제된 폴더는 잠그려면 UAC가 필요하므로 대상이 아닙니다. 시스템 이벤트 스레드에서 예외가 앱을 종료시키지 않도록 모두 잡아 로그에만 남깁니다.
+
+### FolderPresenceProbe
+
+등록 폴더가 아직 있는지 확인합니다. 잠긴 폴더는 현재 사용자를 거부하므로 폴더 자체의 속성을 읽지 않고, 드라이브 준비 여부(`DriveUnavailable`)와 상위 폴더 목록(`Missing`)으로 판단합니다. 상위 폴더에 접근할 수 없거나 I/O 오류처럼 판단할 수 없는 경우는 존재하는 것으로 보아 거짓 경고를 피합니다. 앱은 결과로 **찾을 수 없음**/**드라이브 없음** 경고를 표시하고 해당 폴더의 잠금·해제를 비활성화하며 **확인 필요** 필터에 포함합니다.
+
+### OperationLogReader
+
+폴더 상세의 **최근 기록**은 작업 로그(JSON Lines)의 끝부분만(최대 512KB) 공유 읽기로 열어 해당 폴더 ID의 항목을 최신순으로 돌려줍니다. 읽을 수 없는 줄은 건너뛰고, 로그가 없거나 다른 프로세스가 잡고 있으면 빈 목록을 돌려줍니다. 로그에는 비밀번호, 길이, 해시, 힌트를 기록하지 않습니다.
 
 ## Master Recovery Password
 
