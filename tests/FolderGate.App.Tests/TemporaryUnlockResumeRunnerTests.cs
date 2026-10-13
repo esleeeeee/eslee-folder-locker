@@ -37,6 +37,28 @@ public sealed class TemporaryUnlockResumeRunnerTests
     }
 
     [TestMethod]
+    public async Task MissingFolderIsSkippedWithoutAskingTheHelper()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var config = new FolderGateConfig();
+        config.Folders.Add(new RegisteredFolder { Id = "gone", State = FolderLockState.TemporarilyUnlocked, TemporaryUnlockUntilUtc = now.AddMinutes(-1) });
+        config.Folders.Add(new RegisteredFolder { Id = "here", State = FolderLockState.TemporarilyUnlocked, TemporaryUnlockUntilUtc = now.AddMinutes(-1) });
+        var attempts = new List<string>();
+        var runner = new TemporaryUnlockResumeRunner(() => config, _ => { }, folder =>
+        {
+            attempts.Add(folder.Id);
+            folder.State = FolderLockState.Locked;
+            return Task.FromResult(0);
+        }, () => false, () => now, delay => { now += delay; return Task.CompletedTask; },
+        folder => folder.Id != "gone");
+
+        Assert.AreNotEqual(0, await runner.RunPendingAsync());
+        CollectionAssert.AreEqual(new[] { "here" }, attempts);
+        Assert.AreEqual(FolderLockState.TemporarilyUnlocked, config.Folders[0].State);
+        StringAssert.Contains(config.Folders[0].LastResult, FolderGate.Core.Localization.AppText.RelockSkippedFolderMissing);
+    }
+
+    [TestMethod]
     public async Task WaitReloadsEarlierAddedDeadlineAndHonorsRescheduleAndRemoval()
     {
         var now = DateTimeOffset.UtcNow;

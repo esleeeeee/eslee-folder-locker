@@ -4,6 +4,7 @@ using FolderGate.Core.Acl;
 using FolderGate.Core.Formatting;
 using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
+using FolderGate.Core.Operations;
 using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
 
@@ -122,13 +123,28 @@ try
         Console.WriteLine($"{item.Phase}: {item.Processed}/{item.Total} {item.CurrentPath}");
     });
 
-    AclOperationResult result = aclService.RestoreBackupAsync(folder.Id, backupPath, CancellationToken.None, progress).GetAwaiter().GetResult();
+    // Taken only after the RESTORE confirmation, never while waiting for input,
+    // so the helper cannot change this folder's ACL in the middle of the restore.
+    AclOperationResult result;
+    using (FolderOperationLock.Acquire(paths, folder.Id))
+    {
+        result = aclService.RestoreBackupAsync(folder.Id, backupPath, CancellationToken.None, progress).GetAwaiter().GetResult();
+        configStore.Update(saved =>
+        {
+            RegisteredFolder? current = saved.Folders.FirstOrDefault(item => string.Equals(item.Id, folder.Id, StringComparison.OrdinalIgnoreCase));
+            if (current is null)
+            {
+                return false;
+            }
 
-    folder.State = result.Success ? FolderLockState.Unlocked : FolderLockState.RecoveryRequired;
-    folder.LastOperationId = result.OperationId;
-    folder.LastOperationUtc = DateTimeOffset.UtcNow;
-    folder.LastResult = result.Message;
-    configStore.Save(config);
+            current.State = result.Success ? FolderLockState.Unlocked : FolderLockState.RecoveryRequired;
+            current.TemporaryUnlockUntilUtc = null;
+            current.LastOperationId = result.OperationId;
+            current.LastOperationUtc = DateTimeOffset.UtcNow;
+            current.LastResult = result.Message;
+            return true;
+        });
+    }
 
     Console.WriteLine(result.Message);
     return result.Success ? 0 : 2;

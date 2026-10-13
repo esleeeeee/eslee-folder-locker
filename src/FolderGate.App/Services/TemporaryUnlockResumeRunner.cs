@@ -3,6 +3,7 @@ using FolderGate.Core.Localization;
 using FolderGate.Core.Models;
 using FolderGate.Core.Security;
 using FolderGate.Core.Storage;
+using FolderGate.Core.Validation;
 
 namespace FolderGate.App.Services;
 
@@ -11,11 +12,12 @@ public sealed class TemporaryUnlockResumeRunner
     private const string MutexName = @"Local\eslee-folder-locker-temporary-resume";
 
     private readonly Func<FolderGateConfig> _load;
-    private readonly Action<FolderGateConfig> _save;
+    private readonly Action<Func<FolderGateConfig, bool>> _update;
     private readonly Func<RegisteredFolder, Task<int>> _relock;
     private readonly Func<bool> _securityCorrupted;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly Func<TimeSpan, Task> _delay;
+    private readonly Func<RegisteredFolder, bool> _isPresent;
 
     public TemporaryUnlockResumeRunner(AppPaths paths)
     {
@@ -23,7 +25,7 @@ public sealed class TemporaryUnlockResumeRunner
         var tools = new ElevatedToolRunner(paths, new ToolLocator(paths));
         var master = new MasterCredentialManager(paths);
         _load = store.Load;
-        _save = store.Save;
+        _update = change => store.Update(change);
         _relock = folder => tools.RunHelperAsync("lock", folder, Guid.NewGuid().ToString("N"), folder.Mode);
         _securityCorrupted = () =>
         {
@@ -33,18 +35,24 @@ public sealed class TemporaryUnlockResumeRunner
         };
         _utcNow = () => DateTimeOffset.UtcNow;
         _delay = delay => Task.Delay(delay);
+        _isPresent = folder => FolderPresenceProbe.Probe(folder.Path) == FolderPresence.Present;
     }
 
     internal TemporaryUnlockResumeRunner(Func<FolderGateConfig> load, Action<FolderGateConfig> save,
         Func<RegisteredFolder, Task<int>> relock, Func<bool> securityCorrupted,
-        Func<DateTimeOffset> utcNow, Func<TimeSpan, Task> delay)
+        Func<DateTimeOffset> utcNow, Func<TimeSpan, Task> delay, Func<RegisteredFolder, bool>? isPresent = null)
     {
         _load = load;
-        _save = save;
+        _update = change =>
+        {
+            FolderGateConfig config = load();
+            if (change(config)) save(config);
+        };
         _relock = relock;
         _securityCorrupted = securityCorrupted;
         _utcNow = utcNow;
         _delay = delay;
+        _isPresent = isPresent ?? (_ => true);
     }
 
     public async Task<int> RunAsync()
@@ -105,6 +113,13 @@ public sealed class TemporaryUnlockResumeRunner
                 exitCode = 5;
                 failureMessage = AppText.MasterCredentialUnavailable;
             }
+            else if (!_isPresent(due))
+            {
+                // A moved folder or an unplugged drive cannot be locked; asking for
+                // administrator approval three times would only show UAC prompts.
+                exitCode = 2;
+                failureMessage = AppText.RelockSkippedFolderMissing;
+            }
             else
             {
                 try
@@ -125,7 +140,8 @@ public sealed class TemporaryUnlockResumeRunner
             }
             MarkAutoRelockFailure(due.Id, failureMessage);
             var attempts = failures.TryGetValue(due.Id, out var previous) ? previous.Attempts + 1 : 1;
-            failures[due.Id] = (exitCode == 5 ? 3 : attempts, _utcNow().AddSeconds(30 * attempts), exitCode);
+            bool giveUp = exitCode == 5 || failureMessage == AppText.RelockSkippedFolderMissing;
+            failures[due.Id] = (giveUp ? 3 : attempts, _utcNow().AddSeconds(30 * attempts), exitCode);
         }
     }
 
@@ -140,15 +156,17 @@ public sealed class TemporaryUnlockResumeRunner
 
     private void MarkAutoRelockFailure(string folderId, string message)
     {
-        FolderGateConfig config = _load();
-        RegisteredFolder? folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase));
-        if (folder is null)
+        _update(config =>
         {
-            return;
-        }
+            RegisteredFolder? folder = config.Folders.FirstOrDefault(item => string.Equals(item.Id, folderId, StringComparison.OrdinalIgnoreCase));
+            if (folder is null)
+            {
+                return false;
+            }
 
-        folder.LastOperationUtc = _utcNow();
-        folder.LastResult = $"{AppText.AutoRelockFailedPrefix}: {message}";
-        _save(config);
+            folder.LastOperationUtc = _utcNow();
+            folder.LastResult = $"{AppText.AutoRelockFailedPrefix}: {message}";
+            return true;
+        });
     }
 }

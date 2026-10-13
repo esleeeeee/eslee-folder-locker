@@ -319,12 +319,12 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            // Back on the dispatcher thread (ConfigureAwait(true)), so this save
-            // is serialized with every other UI-thread config write.
-            config = configStore.Load();
-            config.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
-            config.LastKnownLatestVersion = result.LatestVersion;
-            configStore.Save(config);
+            configStore.Update(saved =>
+            {
+                saved.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+                saved.LastKnownLatestVersion = result.LatestVersion;
+                return true;
+            });
 
             if (result.IsUpdateAvailable)
             {

@@ -117,8 +117,10 @@ public sealed class MasterCredentialManager
 
     private void StampConfig(string credentialId)
     {
-        FolderGateConfig config = _configStore.Load();
-        config.MasterCredentialId = credentialId;
-        _configStore.Save(config);
+        _configStore.Update(config =>
+        {
+            config.MasterCredentialId = credentialId;
+            return true;
+        });
     }
 }

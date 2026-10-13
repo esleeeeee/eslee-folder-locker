@@ -73,13 +73,18 @@ public sealed class SessionLockRelockService : IDisposable
         }
     }
 
+    // SystemEvents are raised on the UI thread; the config lock can make Update
+    // wait, so the work runs on the thread pool.
     private void Run()
     {
-        if (_disposed)
+        if (!_disposed)
         {
-            return;
+            _ = Task.Run(RunCore);
         }
+    }
 
+    private void RunCore()
+    {
         try
         {
             foreach (RegisteredFolder folder in EndTemporaryUnlocks(_configStore, DateTimeOffset.UtcNow))

@@ -181,6 +181,14 @@ public static partial class AppText
         ? "This folder needs recovery. Restore its original permissions with the recovery tool before locking it again."
         : "복구가 필요한 폴더입니다. 다시 잠그기 전에 복구 도구로 원래 권한을 먼저 되돌리세요.";
 
+    public static string LockRefusedForeignRule => LanguageCode == "en"
+        ? "The folder already carries a lock rule that this folder's own lock did not add (for example from a locked parent folder), so it was not locked."
+        : "이 폴더 자체의 잠금이 아닌 다른 잠금 규칙(예: 잠긴 상위 폴더)이 이미 있어서 잠그지 않았습니다.";
+
+    public static string RelockSkippedFolderMissing => LanguageCode == "en"
+        ? "The folder was not found when the temporary unlock ended, so it was not re-locked. It is re-locked when it is available again at the next sign-in."
+        : "임시 해제가 끝날 때 폴더를 찾을 수 없어 다시 잠그지 못했습니다. 다음 로그인 때 폴더가 있으면 다시 잠급니다.";
+
     public static string TemporaryUnlockTargetChanged => LanguageCode == "en"
         ? "The folder's saved path, owner or lock mode changed during the temporary unlock, so it was not re-locked automatically."
         : "임시 해제 중에 저장된 폴더 경로·소유자·잠금 모드가 바뀌어 자동으로 다시 잠그지 않았습니다.";

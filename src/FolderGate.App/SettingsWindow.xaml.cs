@@ -206,10 +206,12 @@ public partial class SettingsWindow : ThemedWindow
 
             try
             {
-                FolderGateConfig config = _configStore.Load();
-                config.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
-                config.LastKnownLatestVersion = result.LatestVersion;
-                _configStore.Save(config);
+                _configStore.Update(config =>
+                {
+                    config.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+                    config.LastKnownLatestVersion = result.LatestVersion;
+                    return true;
+                });
             }
             catch (Exception)
             {
