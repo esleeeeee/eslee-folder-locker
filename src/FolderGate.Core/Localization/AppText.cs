@@ -123,11 +123,11 @@ public static class AppText
     public const string ProjectParentBlocked = "Parent folders of the eslee Folder Locker project root cannot be used as lock targets.";
 #else
     public const string LanguageCode = "ko";
-    public const string ProductName = "eslee폴더잠금기";
-    public const string ProductNameFileStem = "eslee폴더잠금기";
-    public const string RecoveryToolName = "eslee폴더잠금기 복구 도구";
-    public const string ElevatedHelperName = "eslee폴더잠금기 권한 도우미";
-    public const string ExplorerUnlockMenuText = "eslee폴더잠금기로 잠금 해제";
+    public const string ProductName = "eslee Folder Locker";
+    public const string ProductNameFileStem = "eslee-folder-locker";
+    public const string RecoveryToolName = "eslee Folder Locker 복구 도구";
+    public const string ElevatedHelperName = "eslee Folder Locker 권한 도우미";
+    public const string ExplorerUnlockMenuText = "eslee Folder Locker로 잠금 해제";
     public const string MainSubtitle = "일반적인 파일 탐색기 접근 차단용 NTFS 폴더 잠금 도구";
     public const string RegisteredFolders = "등록된 잠금 폴더";
     public const string ColumnName = "이름";
@@ -173,7 +173,7 @@ public static class AppText
     public const string SelectFolderTitle = "잠글 폴더 선택";
     public const string NoLogsYet = "아직 기록된 로그가 없습니다.";
     public const string UnreadableLogItem = "[읽을 수 없는 로그 항목]";
-    public const string LogWindowTitle = "eslee폴더잠금기 작업 로그";
+    public const string LogWindowTitle = "eslee Folder Locker 작업 로그";
     public const string InvalidFolderGeneric = "이 폴더는 등록할 수 없습니다.";
     public const string NewPasswordTitle = "비밀번호 설정";
     public const string NewPasswordMessage = "처음 등록하는 폴더입니다. 잠금 해제에 사용할 비밀번호를 설정하세요. 비밀번호는 최소 4자 이상이어야 합니다.";
@@ -205,11 +205,11 @@ public static class AppText
     public const string ChangePasswordTitle = "비밀번호 변경";
     public const string ChangePasswordMessage = "새 비밀번호를 입력하세요. 비밀번호는 최소 4자 이상이어야 합니다.";
     public const string PasswordChanged = "비밀번호를 변경했습니다.";
-    public const string RecoveryToolRunning = "eslee폴더잠금기 복구 도구를 실행하는 중입니다.";
-    public const string RecoveryToolFinished = "eslee폴더잠금기 복구 도구 실행이 끝났습니다.";
-    public const string RecoveryToolFailed = "eslee폴더잠금기 복구 도구 실행 실패";
+    public const string RecoveryToolRunning = "eslee Folder Locker 복구 도구를 실행하는 중입니다.";
+    public const string RecoveryToolFinished = "eslee Folder Locker 복구 도구 실행이 끝났습니다.";
+    public const string RecoveryToolFailed = "eslee Folder Locker 복구 도구 실행 실패";
     public const string ExplorerMenuRegistered = "탐색기 우클릭 잠금 해제 메뉴를 등록했습니다.";
-    public const string ExplorerMenuRegisteredInfo = "탐색기에서 폴더를 우클릭하면 'eslee폴더잠금기로 잠금 해제' 메뉴를 사용할 수 있습니다.";
+    public const string ExplorerMenuRegisteredInfo = "탐색기에서 폴더를 우클릭하면 'eslee Folder Locker로 잠금 해제' 메뉴를 사용할 수 있습니다.";
     public const string ExplorerMenuRegisterFailed = "탐색기 메뉴 등록 실패";
     public const string ExplorerMenuRemoved = "탐색기 우클릭 잠금 해제 메뉴를 제거했습니다.";
     public const string ExplorerMenuRemovedInfo = "탐색기 우클릭 잠금 해제 메뉴를 제거했습니다.";
@@ -226,7 +226,7 @@ public static class AppText
     public const string ExplorerMenuKeyCreateFailed = "탐색기 메뉴 레지스트리 키를 만들지 못했습니다.";
     public const string ExplorerMenuCommandKeyCreateFailed = "탐색기 메뉴 명령 레지스트리 키를 만들지 못했습니다.";
     public const string StartupRegistryKeyCreateFailed = "Windows 로그인 자동 실행 레지스트리 키를 만들지 못했습니다.";
-    public const string NoPasswordConfigured = "설정된 비밀번호가 없습니다. 먼저 eslee폴더잠금기에서 비밀번호를 설정하세요.";
+    public const string NoPasswordConfigured = "설정된 비밀번호가 없습니다. 먼저 eslee Folder Locker에서 비밀번호를 설정하세요.";
     public const string FolderNotRegisteredPrefix = "등록된 잠금 폴더가 아닙니다.";
     public const string FolderIsWorking = "이 폴더는 현재 작업 중입니다. 작업이 끝난 뒤 다시 시도하세요.";
     public const string UnlockCompletedButStateNotUpdated = "잠금 해제 프로세스는 완료됐지만 폴더 상태가 해제됨으로 갱신되지 않았습니다. 앱에서 상태를 확인하세요.";
@@ -235,8 +235,8 @@ public static class AppText
     public const string RegisteredTargetNotFound = "등록된 잠금 대상을 찾을 수 없습니다.";
     public const string EmptyPath = "경로가 비어 있습니다.";
     public const string AclBackupReadFailed = "ACL 백업 파일을 읽을 수 없습니다.";
-    public const string ProjectFolderBlocked = "eslee폴더잠금기 프로젝트 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
-    public const string ProjectParentBlocked = "eslee폴더잠금기 프로젝트 루트의 상위 폴더는 잠금 대상으로 사용할 수 없습니다.";
+    public const string ProjectFolderBlocked = "eslee Folder Locker 프로젝트 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
+    public const string ProjectParentBlocked = "eslee Folder Locker 프로젝트 루트의 상위 폴더는 잠금 대상으로 사용할 수 없습니다.";
 #endif
 
     public static string PasswordTooShort => LanguageCode == "en"
@@ -309,7 +309,7 @@ public static class AppText
             "lock" => LanguageCode == "en" ? "Applying ACL lock." : "ACL 잠금을 적용하는 중입니다.",
             "unlock" => LanguageCode == "en"
                 ? "Removing ACL rules added by eslee Folder Locker."
-                : "eslee폴더잠금기(FolderGate 엔진)가 추가한 ACL 규칙을 제거하는 중입니다.",
+                : "eslee Folder Locker(FolderGate 엔진)가 추가한 ACL 규칙을 제거하는 중입니다.",
             "temporary-unlock-wait" => LanguageCode == "en"
                 ? "Temporarily unlocked. The folder will be locked again after the selected time."
                 : "임시 잠금 해제 상태입니다. 지정 시간이 지나면 다시 잠급니다.",
@@ -686,7 +686,7 @@ public static class AppText
 
     public static string MigrationPromptIntro => LanguageCode == "en"
         ? "Data from a previous portable version of eslee Folder Locker was found. It can be copied to the new per-user data location. The original data is not deleted or modified."
-        : "이전 포터블 버전의 eslee폴더잠금기 데이터를 발견했습니다. 새 사용자 데이터 위치로 복사해 계속 사용할 수 있습니다. 원본 데이터는 삭제하거나 수정하지 않습니다.";
+        : "이전 포터블 버전의 eslee Folder Locker 데이터를 발견했습니다. 새 사용자 데이터 위치로 복사해 계속 사용할 수 있습니다. 원본 데이터는 삭제하거나 수정하지 않습니다.";
 
     public static string MigrationRunButton => LanguageCode == "en"
         ? "Migrate"
@@ -702,11 +702,11 @@ public static class AppText
 
     public static string MigrationSelectFolderTitle => LanguageCode == "en"
         ? "Select the previous eslee Folder Locker folder (the one containing the data folder)"
-        : "이전 eslee폴더잠금기 폴더를 선택하세요 (data 폴더가 들어 있는 상위 폴더)";
+        : "이전 eslee Folder Locker 폴더를 선택하세요 (data 폴더가 들어 있는 상위 폴더)";
 
     public static string MigrationNoLegacyInSelected => LanguageCode == "en"
         ? "The selected folder does not contain previous eslee Folder Locker data."
-        : "선택한 폴더에 이전 eslee폴더잠금기 데이터가 없습니다.";
+        : "선택한 폴더에 이전 eslee Folder Locker 데이터가 없습니다.";
 
     public static string MigrationSummary(int folderCount, int lockedCount, int backupFileCount) => LanguageCode == "en"
         ? $"Registered folders: {folderCount}, locked folders: {lockedCount}, backup files: {backupFileCount}. Continue with migration?"
@@ -728,13 +728,13 @@ public static class AppText
 
     public static string DataFolderBlocked => LanguageCode == "en"
         ? "The eslee Folder Locker data folder and its children cannot be used as lock targets."
-        : "eslee폴더잠금기 데이터 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
+        : "eslee Folder Locker 데이터 폴더와 그 하위 폴더는 잠금 대상으로 사용할 수 없습니다.";
 
     // ----- System tray -----
 
     public static string TrayOpenApp => LanguageCode == "en"
         ? "Open eslee Folder Locker"
-        : "eslee폴더잠금기 열기";
+        : "eslee Folder Locker 열기";
 
     public static string TrayLockedFolders => LanguageCode == "en"
         ? "Locked folders"

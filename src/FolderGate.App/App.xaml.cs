@@ -39,6 +39,7 @@ public partial class App : System.Windows.Application
 
         AppPaths paths = AppPaths.Resolve(arguments.RootPath, arguments.DataRootPath);
         TryMigrateExplorerContextMenu(paths);
+        TryMigrateLegacyRunEntries(paths);
         if (arguments.ResumeTemporaryUnlocks)
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -289,6 +290,19 @@ public partial class App : System.Windows.Application
         catch
         {
             // Best-effort migration only. Normal app startup and unlock flow should continue.
+        }
+    }
+
+    private static void TryMigrateLegacyRunEntries(AppPaths paths)
+    {
+        try
+        {
+            new LegacyExecutableMigrationService(new ToolLocator(paths)).MigrateRunEntries();
+        }
+        catch
+        {
+            // Best-effort migration only. The installer performs the same rewrite;
+            // startup must continue either way.
         }
     }
 

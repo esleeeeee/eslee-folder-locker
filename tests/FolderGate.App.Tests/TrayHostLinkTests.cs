@@ -46,7 +46,7 @@ public sealed class TrayHostLinkTests
             () => Task.CompletedTask,
             () => Task.FromResult<IReadOnlyList<TrayHostMenuItem>>(
             [
-                TrayHostMenuItem.Action("open-app", "eslee폴더잠금기 열기"),
+                TrayHostMenuItem.Action("open-app", "eslee Folder Locker 열기"),
                 TrayHostMenuItem.Separator,
                 TrayHostMenuItem.Action(@"unlock:C:\Example\문서", "문서 (잠김)"),
             ]),

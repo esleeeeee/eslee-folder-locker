@@ -20,10 +20,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AppLanguage)' != 'en'">
-    <Title>eslee폴더잠금기 복구 도구</Title>
-    <Product>eslee폴더잠금기</Product>
-    <Description>eslee폴더잠금기 복구 도구</Description>
-    <AssemblyTitle>eslee폴더잠금기 복구 도구</AssemblyTitle>
+    <Title>eslee Folder Locker 복구 도구</Title>
+    <Product>eslee Folder Locker</Product>
+    <Description>eslee Folder Locker 복구 도구</Description>
+    <AssemblyTitle>eslee Folder Locker 복구 도구</AssemblyTitle>
   </PropertyGroup>
 
 </Project>

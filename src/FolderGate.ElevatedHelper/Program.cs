@@ -230,7 +230,7 @@ static AclOperationResult RunRestore(
 
 static void PrintUsage()
 {
-    string exeName = AppText.LanguageCode == "en" ? "eslee-folder-locker-helper.exe" : "eslee폴더잠금기_권한도우미.exe";
+    const string exeName = "eslee-folder-locker-helper.exe";
     Console.WriteLine($"{exeName} lock [--root <project-root> | --data-root <data-root>] --target-id <id> --operation-id <id> --mode Quick|Hardened");
     Console.WriteLine($"{exeName} unlock [--root <project-root> | --data-root <data-root>] --target-id <id> --operation-id <id>");
     Console.WriteLine($"{exeName} temporary-unlock [--root <project-root> | --data-root <data-root>] --target-id <id> --operation-id <id> --duration-seconds <seconds>");

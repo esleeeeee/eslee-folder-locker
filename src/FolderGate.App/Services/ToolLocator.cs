@@ -6,20 +6,18 @@ namespace FolderGate.App.Services;
 
 public sealed class ToolLocator
 {
+    /// <summary>
+    /// Main app executable name used by Korean installs before v1.3.0. Since
+    /// v1.3.0 both language builds ship the English names below; this name is
+    /// kept only so registrations that still point at it can be migrated.
+    /// </summary>
+    public const string LegacyKoreanAppExecutableName = "eslee폴더잠금기.exe";
+
     private static readonly IReadOnlyDictionary<string, string[]> DisplayExecutableNames = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
-        ["FolderGate.App"] =
-        [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker.exe" : "eslee폴더잠금기.exe"
-        ],
-        ["FolderGate.ElevatedHelper"] =
-        [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker-helper.exe" : "eslee폴더잠금기_권한도우미.exe"
-        ],
-        ["FolderGate.RecoveryTool"] =
-        [
-            AppText.LanguageCode == "en" ? "eslee-folder-locker-recovery.exe" : "eslee폴더잠금기_복구도구.exe"
-        ]
+        ["FolderGate.App"] = ["eslee-folder-locker.exe"],
+        ["FolderGate.ElevatedHelper"] = ["eslee-folder-locker-helper.exe"],
+        ["FolderGate.RecoveryTool"] = ["eslee-folder-locker-recovery.exe"]
     };
 
     private readonly AppPaths _paths;

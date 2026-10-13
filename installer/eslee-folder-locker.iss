@@ -23,13 +23,15 @@
 #endif
 
 #define AppDisplayName "eslee Folder Locker"
+; Since v1.3.0 both language builds ship the same English executable names.
+#define MainExeName "eslee-folder-locker.exe"
+#define RecoveryExeName "eslee-folder-locker-recovery.exe"
+; Korean installs before v1.3.0 used these names; upgrades remove them and
+; repoint per-user Run entries at MainExeName (see CurStepChanged).
+#define LegacyKoreanMainExeName "eslee폴더잠금기.exe"
 #if AppLanguage == "ko"
-  #define MainExeName "eslee폴더잠금기.exe"
-  #define RecoveryExeName "eslee폴더잠금기_복구도구.exe"
-  #define RecoveryShortcutName "eslee폴더잠금기 복구 도구"
+  #define RecoveryShortcutName "eslee Folder Locker 복구 도구"
 #else
-  #define MainExeName "eslee-folder-locker.exe"
-  #define RecoveryExeName "eslee-folder-locker-recovery.exe"
   #define RecoveryShortcutName "eslee Folder Locker Recovery Tool"
 #endif
 
@@ -71,10 +73,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
 #if AppLanguage == "ko"
-LaunchApp=eslee폴더잠금기 실행
+LaunchApp=eslee Folder Locker 실행
 DesktopIconTask=바탕화면 바로가기 만들기
 AutoStartTask=Windows 로그인 시 자동 실행 (트레이로 시작)
-LockedFoldersWarning=경고: 아직 잠긴 폴더가 있습니다.%n%n프로그램을 제거하기 전에 eslee폴더잠금기에서 모든 폴더의 잠금을 정상적으로 해제하세요. 잠긴 상태로 제거하면 잠긴 폴더를 해제하기 어려워질 수 있습니다.%n%n지금 제거를 취소하고 먼저 잠금을 해제하시겠습니까?%n%n[예] = 제거 취소 (권장)%n[아니요] = 위험을 감수하고 계속
+LockedFoldersWarning=경고: 아직 잠긴 폴더가 있습니다.%n%n프로그램을 제거하기 전에 eslee Folder Locker에서 모든 폴더의 잠금을 정상적으로 해제하세요. 잠긴 상태로 제거하면 잠긴 폴더를 해제하기 어려워질 수 있습니다.%n%n지금 제거를 취소하고 먼저 잠금을 해제하시겠습니까?%n%n[예] = 제거 취소 (권장)%n[아니요] = 위험을 감수하고 계속
 LockedFoldersSecondConfirm=정말 계속하시겠습니까?%n%n잠긴 폴더와 복구 데이터는 삭제되지 않지만, 프로그램이 제거되면 잠금 해제를 위해 프로그램을 다시 설치해야 할 수 있습니다.%n%n[예] = 제거 계속%n[아니요] = 제거 취소
 DataPreservedNote=사용자 데이터(설정, ACL 백업, 마스터 복구 비밀번호)는 삭제되지 않았습니다. 다시 설치하면 기존 데이터를 그대로 사용할 수 있습니다.
 #else
@@ -89,6 +91,13 @@ DataPreservedNote=User data (settings, ACL backups, master recovery password) wa
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopIconTask}"; Flags: unchecked
 Name: "autostart"; Description: "{cm:AutoStartTask}"; Flags: unchecked
+
+[InstallDelete]
+; Pre-1.3.0 Korean executable names and recovery shortcut (renamed to English).
+Type: files; Name: "{app}\{#LegacyKoreanMainExeName}"
+Type: files; Name: "{app}\eslee폴더잠금기_권한도우미.exe"
+Type: files; Name: "{app}\eslee폴더잠금기_복구도구.exe"
+Type: files; Name: "{autoprograms}\eslee폴더잠금기 복구 도구.lnk"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -122,7 +131,7 @@ Filename: "{app}\{#MainExeName}"; Description: "{cm:LaunchApp}"; Flags: nowait p
 function GetMenuText(Param: string): string;
 begin
 #if AppLanguage == "ko"
-  Result := 'eslee폴더잠금기로 잠금 해제';
+  Result := 'eslee Folder Locker로 잠금 해제';
 #else
   Result := 'Unlock with eslee Folder Locker';
 #endif
@@ -148,6 +157,36 @@ begin
        (Pos('"State": "Working"', Text) > 0) or
        (Pos('"State": "RecoveryRequired"', Text) > 0) then
       Result := True;
+  end;
+end;
+
+procedure MigrateLegacyRunValue(ValueName: string);
+var
+  Command: string;
+  LegacyExe: string;
+begin
+  { Upgrades from Korean installs before v1.3.0: [InstallDelete] removed the old
+    main executable, so a Run entry still pointing at it would silently fail at
+    the next login (no tray app, and no temporary-unlock relock). Replace only
+    the quoted executable and keep the arguments, including any --data-root.
+    Same per-user hive caveat as below: this reaches the elevating user only;
+    the app repeats this rewrite for its own user on every start. }
+  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', ValueName, Command) then
+    Exit;
+  LegacyExe := '"' + ExpandConstant('{app}\{#LegacyKoreanMainExeName}') + '"';
+  if Pos(Lowercase(LegacyExe), Lowercase(Command)) <> 1 then
+    Exit;
+  Delete(Command, 1, Length(LegacyExe));
+  RegWriteStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', ValueName,
+    '"' + ExpandConstant('{app}\{#MainExeName}') + '"' + Command);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    MigrateLegacyRunValue('eslee-folder-locker');
+    MigrateLegacyRunValue('eslee-folder-locker-temporary-relock');
   end;
 end;
 

@@ -66,16 +66,10 @@ function Publish-Language([string]$lang) {
         }
     }
 
-    if ($lang -eq "ko") {
-        Copy-Item (Join-Path $publishDir "FolderGate.App.exe") (Join-Path $publishDir "eslee폴더잠금기.exe") -Force
-        Copy-Item (Join-Path $publishDir "FolderGate.ElevatedHelper.exe") (Join-Path $publishDir "eslee폴더잠금기_권한도우미.exe") -Force
-        Copy-Item (Join-Path $publishDir "FolderGate.RecoveryTool.exe") (Join-Path $publishDir "eslee폴더잠금기_복구도구.exe") -Force
-    }
-    else {
-        Copy-Item (Join-Path $publishDir "FolderGate.App.exe") (Join-Path $publishDir "eslee-folder-locker.exe") -Force
-        Copy-Item (Join-Path $publishDir "FolderGate.ElevatedHelper.exe") (Join-Path $publishDir "eslee-folder-locker-helper.exe") -Force
-        Copy-Item (Join-Path $publishDir "FolderGate.RecoveryTool.exe") (Join-Path $publishDir "eslee-folder-locker-recovery.exe") -Force
-    }
+    # Both languages share the English executable names since v1.3.0.
+    Copy-Item (Join-Path $publishDir "FolderGate.App.exe") (Join-Path $publishDir "eslee-folder-locker.exe") -Force
+    Copy-Item (Join-Path $publishDir "FolderGate.ElevatedHelper.exe") (Join-Path $publishDir "eslee-folder-locker-helper.exe") -Force
+    Copy-Item (Join-Path $publishDir "FolderGate.RecoveryTool.exe") (Join-Path $publishDir "eslee-folder-locker-recovery.exe") -Force
 
     & (Join-Path $repoRoot "tools\Verify-ReleasePrivacy.ps1") -PublishRoot $publishDir
     return $publishDir

@@ -6,6 +6,14 @@ namespace FolderGate.App.Tests;
 public sealed class DisplayNameAndIconTests
 {
     [TestMethod]
+    public void ProductName_IsEnglishInEveryLanguageBuild()
+    {
+        // Since v1.3.0 the Korean build also uses the English product name.
+        Assert.AreEqual("eslee Folder Locker", AppText.ProductName);
+        Assert.AreEqual("eslee-folder-locker", AppText.ProductNameFileStem);
+    }
+
+    [TestMethod]
     public void MainWindow_UsesDisplayNameAndIcon()
     {
         RunOnStaThread(() =>
