@@ -8,7 +8,7 @@ Windows 폴더를 비밀번호로 잠그고 해제하는 프로그램입니다. 
 
 **문서 언어:** 한국어 · [English](README.en.md)
 
-<img src="docs/images/main-window.png" width="760" alt="eslee Folder Locker 메인 화면">
+![eslee Folder Locker 메인 화면](docs/images/main-window.png)
 
 ## 소개
 
@@ -46,7 +46,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 처음 실행하면 아래 창이 나타납니다.
 
-<img src="docs/images/master-password-setup.png" width="420" alt="마스터 복구 비밀번호 설정 창">
+![마스터 복구 비밀번호 설정 창](docs/images/master-password-setup.png)
 
 **마스터 복구 비밀번호**는 폴더를 여는 비밀번호가 아니라, 문제가 생겼을 때 **복구 도구**를 여는 데 쓰는 비상용 비밀번호입니다.
 
@@ -62,7 +62,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ### 폴더 추가
 
-<img src="docs/images/add-folder.png" width="760" alt="폴더를 추가하기 전의 첫 화면">
+![폴더를 추가하기 전의 첫 화면](docs/images/add-folder.png)
 
 **폴더 추가**를 눌러 잠글 폴더를 선택합니다. 파일 탐색기에서 폴더를 창으로 끌어다 놓아도 됩니다.
 
@@ -72,7 +72,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ### 잠금 모드 선택과 잠금
 
-<img src="docs/images/lock-folder.png" width="760" alt="잠금 모드를 고르고 잠금 버튼을 누르는 화면">
+![잠금 모드를 고르고 잠금 버튼을 누르는 화면](docs/images/lock-folder.png)
 
 1. 왼쪽 목록에서 폴더를 선택합니다.
 2. 오른쪽에서 **잠금 모드**를 고릅니다.
@@ -99,7 +99,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ### 목록 우클릭 메뉴
 
-<img src="docs/images/folder-context-menu.png" width="760" alt="폴더 목록에서 우클릭한 메뉴">
+![폴더 목록에서 우클릭한 메뉴](docs/images/folder-context-menu.png)
 
 목록에서 폴더를 우클릭하면 자주 쓰는 기능을 바로 실행할 수 있습니다. 폴더 상태에 맞는 항목만 표시됩니다(예: 잠긴 폴더에는 **잠금 해제**).
 
@@ -107,7 +107,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ### 앱에서 해제
 
-<img src="docs/images/unlock-dialog.png" width="420" alt="비밀번호와 잠금 해제 유지 시간을 고르는 창">
+![비밀번호와 잠금 해제 유지 시간을 고르는 창](docs/images/unlock-dialog.png)
 
 1. 목록에서 잠긴 폴더를 선택하고 **잠금 해제**를 누릅니다.
 2. 폴더 비밀번호를 입력합니다.
@@ -120,7 +120,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ### 파일 탐색기에서 해제
 
-<img src="docs/images/explorer-locked-notice.png" width="420" alt="잠긴 폴더를 열었을 때 나타나는 안내 창">
+![잠긴 폴더를 열었을 때 나타나는 안내 창](docs/images/explorer-locked-notice.png)
 
 앱이 실행 중일 때 파일 탐색기에서 잠긴 폴더를 열면, Windows의 "권한이 없습니다" 창 대신 위 안내 창이 나타납니다. **잠금 해제**를 누르면 비밀번호 입력 창으로 이어집니다.
 
@@ -134,7 +134,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ## 5. 임시 해제
 
-<img src="docs/images/temporary-unlock.png" width="760" alt="임시 해제한 폴더와 시간 연장 메뉴">
+![임시 해제한 폴더와 시간 연장 메뉴](docs/images/temporary-unlock.png)
 
 시간을 정해 해제하면 목록에 남은 시간(예: `25분 남음`)이 표시되고, 시간이 지나면 자동으로 다시 잠깁니다. 임시 해제 중에는 다음 버튼을 쓸 수 있으며, 둘 다 UAC 확인이 다시 나타나지 않습니다.
 
@@ -149,7 +149,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 
 ## 설정
 
-<img src="docs/images/settings.png" width="520" alt="설정 창">
+![설정 창](docs/images/settings.png)
 
 톱니바퀴를 눌러 엽니다. 변경 사항은 저장 버튼 없이 바로 적용됩니다.
 
@@ -164,7 +164,7 @@ PC 한 대를 가족이나 지인과 함께 쓸 때, 다른 사람이 열지 않
 | **보안** | 폴더 비밀번호 변경, 마스터 복구 비밀번호·힌트 변경, 복구 도구 열기 |
 | **파일 탐색기** | 우클릭 메뉴 등록/제거, 잠긴 폴더 안내 표시, 작업 로그 보기 |
 
-<img src="docs/images/main-window-dark.png" width="560" alt="다크 테마의 메인 화면">
+![다크 테마의 메인 화면](docs/images/main-window-dark.png)
 
 다크 테마를 적용한 화면입니다.
 
