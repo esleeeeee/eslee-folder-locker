@@ -251,13 +251,7 @@ See the [recovery guide](docs/recovery-guide.md) for details.
 
 ## How it works
 
-```mermaid
-flowchart TD
-    A[Register folder] --> B[Back up current permissions]
-    B --> C[Apply access restriction]
-    C --> D[Unlock after password check]
-    D --> E[Restore backed-up permissions]
-```
+![Workflow: registering a folder backs up its permissions and restricts access; unlocking with the password restores the backed-up permissions](docs/images/en/workflow.png)
 
 1. Before locking, the folder's Windows access permissions (ACL) are backed up.
 2. A restriction is added so the current user account cannot access the folder.
